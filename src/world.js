@@ -134,6 +134,8 @@ const ROOMS = [
   // F5.15: MAPA POR ÁREAS. La jungla vieja (CONFIG.THICKET) es espesura; se camina solo por las áreas y los
   // senderos (corridor: true, parte del área a la que llevan). Cada sendero tiene su entrada comprable (H2..H8)
   { id:'R14', name:'RANCHO',        x1:-42, x2:-27, z1: 26, z2: 31, floor:'jungle', outdoor:true, part:true, corridor:true },   // lazo D20
+  // F5.16: el tortugario, del tamaño del rancho y abierto a él (misma área)
+  { id:'R14', name:'TORTUGARIO',    x1:-70, x2:-56, z1: 18, z2: 40, floor:'sand', outdoor:true, part:true },
   // R15: los jardines del norte (detrás del sótano), abiertos a los dos jardines
   { id:'R15', name:'JARDINES NORTE',x1:-27, x2: 35, z1: 40, z2: 58, floor:'jungle', outdoor:true },
   // F5.16: 5 ÁREAS. Casa (playa, casa, jardines, muelle) ↔ Rancho (D20) y ↔ Templo (H6); Rancho ↔ Búnker (H2) y
@@ -363,6 +365,7 @@ const SPAWN_POINTS = [
   { room:'R12', x:-25.5, z:26.5 },
   // F5.10: rancho (solo con el lazo D20 abierto: detrás de una puerta cerrada flowAt = -1)
   { room:'R14', x:-44.5, z:36.5 }, { room:'R14', x:-43.5, z:27.5 }, { room:'R14', x:-46.5, z:21.5 },   // F5.13: corrido
+  { room:'R14', x:-60.5, z:21.5 }, { room:'R14', x:-61.5, z:37.5 },    // F5.16: tortugario
   { room:'R10', x:-30.5, z:-14.5 },                                     // F5.15: la playa oeste
   { room:'R19', x:-48.5, z:-30.5 }, { room:'R19', x:-70.5, z:-30.5 },  // F5.13: playa del calamar
   { room:'R15', x:-22.5, z:52.5 }, { room:'R15', x: 2.5, z:53.5 }, { room:'R15', x: 30.5, z:52.5 },   // F5.11: jardín norte
@@ -1049,12 +1052,7 @@ function buildMap() {
   // F5.13: la lengua de arena del calamar (x -75..-41, z -60..-24): su costa este y sur
   addBoundary(-41.2, -40.8, -60, -24, 'bound:mar');
   addBoundary(-75.2, -40.8, -60.2, -59.8, 'bound:mar');
-  // F5.10: corral del tortugario, bajo: se ve adentro y se dispara por encima. F5.13: más grande, 4 lados
-  const TG = CONFIG.RANCHO.corral;
-  addWall(TG.x2, TG.z1, TG.x2, TG.z2, TG.h, MAT.wood, 'corral');
-  addWall(TG.x1, TG.z2, TG.x2, TG.z2, TG.h, MAT.wood, 'corral');
-  addWall(TG.x1, TG.z1, TG.x2, TG.z1, TG.h, MAT.wood, 'corral');
-  addWall(TG.x1, TG.z1, TG.x1, TG.z2, TG.h, MAT.wood, 'corral');
+  // (F5.16: sin el corral chico: el tortugario es un área abierta al oeste del rancho)
   hedge(-24, -4, -20, -4);                     //      sur, fuera de la playa
   hedge( -8, -4,  -8,  4);                     //      este, entre la cerca y la sala
   // F5.15: la playa oeste y la costa del calamar comparten el borde x -41. F5.16: cerco fijo entero (sin H5): al

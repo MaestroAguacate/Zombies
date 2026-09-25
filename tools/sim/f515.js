@@ -112,8 +112,8 @@ const areas = { 'claro del búnker': [-60, 64], 'costa del calamar': [-60, -10],
 const miss = Object.entries(areas).filter(([, [x, z]]) => !nearNav(x, z)).map(([k]) => k);
 check(!miss.length, 'con todo abierto se llega a las 6 áreas de afuera', miss.join(', '));
 // la espesura no se camina ni se ve a través
-check([[-60, 30], [45, 50], [0, 66], [-35, 5], [45, -18], [60, 80]].every(([x, z]) => G.inThicket(x, z) && G.flowAt(x, z) < 0) ||
-  [[-60, 30], [45, 50], [0, 66], [-35, 5], [45, -18]].every(([x, z]) => G.inThicket(x, z) && G.flowAt(x, z) < 0), 'la espesura no se camina');
+check([[-65, 10], [45, 50], [0, 66], [-35, 5], [45, -18], [60, 80]].every(([x, z]) => G.inThicket(x, z) && G.flowAt(x, z) < 0) ||
+  [[-65, 10], [45, 50], [0, 66], [-35, 5], [45, -18]].every(([x, z]) => G.inThicket(x, z) && G.flowAt(x, z) < 0), 'la espesura no se camina');
 const tw = G.WORLD.colliders.filter(c => c.tag === 'thicket');
 check(tw.length > 20 && tw.every(c => c.solid && c.maxY >= 3), 'paredes de vegetación sólidas', `(${tw.length} tramos)`);
 player.pos.set(0, P.height, 56); player.vel.set(0, 0, 0); player.yaw = 0; G.keys.KeyW = true;   // yaw 0 = hacia -z: da la vuelta

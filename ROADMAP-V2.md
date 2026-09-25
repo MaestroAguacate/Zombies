@@ -689,7 +689,7 @@ garaje).
 - Portal Templo ↔ Calamar (fundido a negro, como la escotilla).
 - Recalcular precios con Dijkstra en `map.js`. Reubicar almejas, spawns y armas de pared.
 
-### Tanda C — Rancho y tortugario
+### Tanda C — Rancho y tortugario — HECHO (falta playtest)
 - Rancho un poco más grande. Tortugario del tamaño del rancho, abierto y corrible.
 - Cueva en el tortugario, con la única tortuga viva. La trampa se activa ahí.
 - Huesos de zombies y de tortugas por el piso.

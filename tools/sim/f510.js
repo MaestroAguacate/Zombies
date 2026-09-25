@@ -93,7 +93,7 @@ check(state.points === pts, 'sin puntos', `(${state.points - pts})`);
 check(!playerHit, 'a vos no te hacen nada');
 check(TT.list.some(tu => tu.g.visible), 'andan por el rancho');
 for (let i = 0; i < 60 * (TC.time - 12 + 6); i++) { G.tick(dt); G.updateTraps(dt); }
-check(TT.phase === 'cool' && TT.list.every(tu => tu.state === 'off' && !tu.g.visible), 'al terminar vuelven al corral y se esconden');
+check(TT.phase === 'cool' && TT.list.every(tu => tu.state === 'off' && !tu.g.visible), 'al terminar vuelve a la cueva y se esconde (F5.16)');
 fresh(true); clearZ(); CONFIG.BOSS.enabled = true; state.round = 12;
 G.spawnBoss(); const b = BOSS.z; b.px = -47; b.pz = 24; b.state = 'walk'; const bh = b.health;
 G.useTrap(TT);

@@ -202,6 +202,11 @@ function resetPiranhas() {
   for (const zn of PIRANHAS.zones) { zn.t = 0; zn.next = 0; for (const f of zn.fish) { f.k = 1; f.hit = false; f.mesh.visible = false; } }
 }
 
+// F5.16: números al azar con semilla fija (el dibujo del tortugario sale igual siempre)
+function mulberry(a) {
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
 // F5.10: rancho de playa (solo dibujo; los sólidos están en PROPS y el corral en buildMap). Palapa con techo de
 // palma en capas, deck de madera, billar con bolas y tacos, barra con botellas y bancos, hamaca, foquitos
 // (MeshBasic: ninguna luz nueva), tablas, red con boyas, cartel, y el tortugario con nidos, huevos y crías
@@ -273,15 +278,50 @@ function buildRancho() {
   for (const z of [36.8, 38.9]) mb.box(-55.6, 1.1, z, 0.1, 2.2, 0.1, dark);
   for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) mb.box(-55.6, 0.8 + j * 0.35, 37 + i * 0.4, 0.02, 0.02, 0.36, 0x6a5a3a);
   [[37.3, 1.5, 0xe84a2a], [38.1, 1.1, 0xf0c030], [38.6, 1.8, 0xe84a2a]].forEach(([z, y, c]) => mb.box(-55.5, y, z, 0.2, 0.2, 0.2, c));
-  // tortugario: arena, nidos, huevos, crías y cartel (F5.13: más grande)
-  const C = R.corral;
-  mb.box((C.x1 + C.x2) / 2, 0.04, (C.z1 + C.z2) / 2, C.x2 - C.x1, 0.06, C.z2 - C.z1, 0xe8d4a0);
-  [[-55, 19.3], [-53.4, 19.8], [-51.6, 19.2], [-54.6, 21.5], [-52.8, 22.2], [-51.2, 22.8]].forEach(([x, z], i) => {
-    mb.box(x, 0.1, z, 0.7, 0.12, 0.7, 0xd0b880);
-    for (let k = 0; k < 4; k++) mb.box(x - 0.12 + (k % 2) * 0.24, 0.2, z - 0.1 + Math.floor(k / 2) * 0.2, 0.12, 0.12, 0.12, 0xf4f0e0);
-    if (i % 2) { mb.box(x + 0.4, 0.1, z - 0.3, 0.18, 0.08, 0.22, 0x3a6a3a); mb.box(x + 0.4, 0.1, z - 0.18, 0.08, 0.06, 0.08, 0x5a8a4a); }
+  // F5.16: tortugario del tamaño del rancho: arena revuelta, nidos rotos, huesos de zombies y de tortugas, y la
+  // cueva de roca contra el borde oeste (la última tortuga viva se esconde adentro)
+  const PN = R.pen, CV = R.cave, rr = mulberry(34);
+  const bone = 0xd8d0b8, boneOld = 0xb8ae90;
+  for (let k = 0; k < 18; k++) {                                        // manchas de arena más oscura
+    const x = PN.x1 + 1 + rr() * (PN.x2 - PN.x1 - 2), z = PN.z1 + 1 + rr() * (PN.z2 - PN.z1 - 2);
+    mb.box(x, 0.02, z, 1 + rr() * 2, 0.02, 1 + rr() * 2, k % 2 ? 0xc8b07a : 0xb89a66, 0, rr() * 3, 0);
+  }
+  // cueva: montículo de rocas en capas, boca oscura hacia el este y estalactitas
+  const rock = [0x5a5550, 0x6a645c, 0x4a4642, 0x7a7266];
+  for (let k = 0; k < 26; k++) {
+    const x = CV.x1 + rr() * (CV.x2 - CV.x1 + 0.8), z = CV.z1 - 0.6 + rr() * (CV.z2 - CV.z1 + 1.2), h = 1.2 + rr() * (CV.h - 0.8);
+    mb.box(x, h / 2, z, 1.2 + rr() * 1.6, h, 1.2 + rr() * 1.6, rock[k % 4], 0, rr() * 3, (rr() - 0.5) * 0.2);
+  }
+  mb.box((CV.x1 + CV.x2) / 2, CV.h + 0.3, (CV.z1 + CV.z2) / 2, CV.x2 - CV.x1 + 0.6, 0.8, CV.z2 - CV.z1 + 0.4, 0x3e5a2a);   // musgo arriba
+  const mx = CV.x2 + 0.02, mz = CV.mouth.z;
+  mb.box(mx, 1.0, mz, 0.04, 2.0, 2.4, 0x050404);                       // boca oscura
+  mb.box(mx + 0.2, 2.15, mz, 0.5, 0.35, 3.0, 0x4a4642);                // dintel de roca
+  for (const dz of [-1.35, 1.35]) mb.box(mx + 0.25, 1.0, mz + dz, 0.6, 2.0, 0.5, 0x5a5550);
+  for (let k = 0; k < 5; k++) mb.box(mx + 0.1, 1.85 - (k % 2) * 0.15, mz - 0.9 + k * 0.45, 0.08, 0.3, 0.08, 0x6a645c);   // estalactitas
+  mb.box(mx + 1.2, 0.04, mz, 2.2, 0.03, 2.2, 0x9a8458);                // huellas de la tortuga en la entrada
+  // huesos de zombies: calaveras, costillares, fémures, y alguna mano
+  const skull = (x, z, r) => { mb.box(x, 0.13, z, 0.24, 0.24, 0.28, bone, 0, r, 0); mb.box(x, 0.09, z + 0.12, 0.08, 0.05, 0.02, 0x1a1410, 0, r, 0);
+    mb.box(x - 0.06, 0.16, z + 0.14, 0.05, 0.05, 0.01, 0x100c0a, 0, r, 0); mb.box(x + 0.06, 0.16, z + 0.14, 0.05, 0.05, 0.01, 0x100c0a, 0, r, 0); };
+  const ribs = (x, z, r) => { mb.box(x, 0.05, z, 0.08, 0.06, 0.8, boneOld, 0, r, 0);
+    for (let q = 0; q < 5; q++) mb.box(x, 0.08, z - 0.3 + q * 0.15, 0.55, 0.04, 0.04, bone, 0, r, 0.2); };
+  const femur = (x, z, r) => { mb.box(x, 0.04, z, 0.06, 0.06, 0.55, bone, 0, r, 0); mb.box(x, 0.05, z + 0.28, 0.12, 0.08, 0.08, bone, 0, r, 0); };
+  for (let k = 0; k < 16; k++) {
+    const x = PN.x1 + 6.5 + rr() * (PN.x2 - PN.x1 - 7.5), z = PN.z1 + 1 + rr() * (PN.z2 - PN.z1 - 2), r = rr() * 6.3;
+    if (k % 3 === 0) skull(x, z, r); else if (k % 3 === 1) ribs(x, z, r); else femur(x, z, r);
+  }
+  // caparazones vacíos y huesitos de tortuga (se comieron a sus hermanas)
+  for (let k = 0; k < 7; k++) {
+    const x = PN.x1 + 6 + rr() * (PN.x2 - PN.x1 - 7), z = PN.z1 + 1.5 + rr() * (PN.z2 - PN.z1 - 3), r = rr() * 6.3;
+    mb.box(x, 0.18, z, 0.8, 0.26, 1.0, k % 2 ? 0x4a5a32 : 0x5a5030, (rr() - 0.5) * 0.8, r, (rr() - 0.5) * 0.8);
+    mb.box(x + 0.5, 0.04, z + 0.3, 0.06, 0.04, 0.3, boneOld, 0, r, 0);
+    mb.box(x - 0.4, 0.04, z - 0.4, 0.2, 0.04, 0.05, boneOld, 0, r, 0);
+  }
+  // nidos rotos con cáscaras
+  [[-58, 20], [-59.5, 23], [-57.5, 38.3], [-62, 20.5]].forEach(([x, z]) => {
+    mb.box(x, 0.08, z, 0.8, 0.1, 0.8, 0xd0b880);
+    for (let q = 0; q < 3; q++) mb.box(x - 0.2 + q * 0.2, 0.16, z + (q % 2) * 0.15, 0.1, 0.05, 0.1, 0xf4f0e0, 0.5, q, 0);
   });
-  mb.box(-50.4, 1.0, 24.4, 0.08, 1.0, 0.08, dark);                         // poste del cartel
+  mb.box(-57, 1.0, 30, 0.08, 2.0, 0.08, dark);                         // poste del cartel
   const m = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
   if (m) { m.userData.theme = false; m.updateMatrix(); }
   // carteles
@@ -297,7 +337,7 @@ function buildRancho() {
     s.position.set(x, y, z); s.rotation.y = ry; scene.add(s);
   };
   sign('RANCHO', 'DON MARENA', cx, P.h - 0.2, P.z1 - 0.12, Math.PI, 1.8);
-  sign('TURTLE PEN', 'DO NOT DISTURB', -50.4, 1.55, 24.5, 0, 1.0);
+  sign('TURTLE PEN', 'DO NOT DISTURB', -57, 1.85, 30.06, 0, 1.2);
   // foquitos colgando del borde de la palapa: un InstancedMesh MeshBasic que late (sin luces)
   const n = 28, geo = new THREE.BoxGeometry(0.12, 0.16, 0.12);
   const bulbs = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: 0xffd890 }), n);

@@ -571,11 +571,15 @@ const CONFIG = {
       { id: 'billar', box: [-50.3, -47.7, 28.3, 29.7, 0.85] },
       { id: 'barra',  box: [-55.9, -55.1, 26.8, 31.2, 1.1] },
       { id: 'posteP1', box: [-54.15, -53.85, 23.85, 24.15, 4.5] }, { id: 'posteP2', box: [-44.15, -43.85, 23.85, 24.15, 4.5] },
-      { id: 'posteP3', box: [-54.15, -53.85, 33.85, 34.15, 4.5] }, { id: 'posteP4', box: [-44.15, -43.85, 33.85, 34.15, 4.5] }
+      { id: 'posteP3', box: [-54.15, -53.85, 33.85, 34.15, 4.5] }, { id: 'posteP4', box: [-44.15, -43.85, 33.85, 34.15, 4.5] },
+      { id: 'cueva', box: [-70, -65, 31, 39, 3.6] }     // F5.16: la cueva de la tortuga (tortugario)
     ],
     backHedge: [-56, -46, 40],                              // cerco fijo del norte del rancho [x1, x2, z] (F5.15: x -46..-42 es H2)
-    // F5.13: tortugario más grande, pegado al borde oeste del rancho (cerca en 3 lados; el oeste es el cerco)
-    corral: { x1: -56, x2: -50, z1: 18, z2: 24, h: 0.5 }
+    // F5.16 tanda C (Diego): sin el corral chico. El tortugario es un área abierta del tamaño del rancho, al oeste
+    // (parte de R14), con huesos de zombies y de tortugas, y una cueva contra el borde oeste donde se esconde la
+    // única tortuga viva (la trampa sale de ahí). La cueva es sólida (PROPS 'cueva'); `mouth` = la boca
+    pen: { x1: -70, x2: -56, z1: 18, z2: 40 },
+    cave: { x1: -70, x2: -65, z1: 31, z2: 39, h: 3.6, mouth: { x: -64.3, z: 35 } }   // (al norte: al sur la barra tapaba la salida)
   },
   // F5.13: cabeza de calamar gigante muerto en la playa del calamar (R19), con la boca al norte. Sale del piso
   // de a poco: `minRise` en la R1 y entera en `openRound`; recién ahí se entra por la boca (túnel de 4 m) a la
@@ -724,9 +728,11 @@ const CONFIG = {
     // cada una va al zombie más cercano (a menos de `range` m de la salida, con línea libre) y se lo come (`eat`
     // s masticando). Al jugador no le hacen nada. Al terminar vuelven al corral
     turtles: {
-      name: 'TURTLES', cost: 1500, time: 20, cooldown: 60, room: 'R14', lever: { x: -49.2, z: 18.6 },   // F5.13: tortugario corrido
-      exit: { x: -49.3, z: 21 }, count: 6, stagger: 0.4, speed: 3.4, range: 14, reach: 0.9, eat: 0.7,
-      radius: 0.3, scale: 0.9,
+      // F5.16: una sola tortuga (la última viva), grande y rápida, que sale de la cueva del tortugario; la palanca
+      // está al lado de la boca
+      name: 'TURTLES', cost: 1500, time: 20, cooldown: 60, room: 'R14', lever: { x: -64.2, z: 30.2 },
+      exit: { x: -64.3, z: 35 }, count: 1, stagger: 0, speed: 3.8, range: 26, reach: 1.2, eat: 0.35,
+      radius: 0.45, scale: 1.7,
       biteRound: 10          // F5.11: hasta esta ronda matan de un mordisco; después cada uno saca la vida de la R10
     }
   },

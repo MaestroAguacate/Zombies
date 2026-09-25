@@ -35,7 +35,7 @@ sol y luna, desmembramiento, animaciones y poses de muerte, agua animada, playa 
 **Repo (2026-09-25):** GitHub `MaestroAguacate/Zombies` arrancó de cero con subidas web: sin historial ni tags
 viejos (`v1-final`…`v2-f5.5` solo existen en la copia local de Diego). F5.6–F7 + F5.15 están en `main`, con los
 43 tests en verde (7 tests desactualizados por F5.15 se arreglaron: f510, f511, f512, f513, quest, roof, audio2).
-Falta el playtest de Diego (sobre todo FPS con sombras). **F5.16 (5 áreas, ver ROADMAP-V2): tandas A y B hechas**, siguen C–E y después F8.
+Falta el playtest de Diego (sobre todo FPS con sombras). **F5.16 (5 áreas, ver ROADMAP-V2): tandas A, B y C hechas**, siguen D–E y después F8. **Todo el juego está en inglés** (textos visibles); el código y los comentarios siguen en español.
 
 ## Reglas no negociables
 - **Se edita `src/`, nunca `index.html`.** `node build.js` concatena `src/*.js` (en `build.js` ORDER) dentro
@@ -1149,6 +1149,25 @@ Si agregás estado o funciones que un test necesita, exponelas en la línea `glo
   · Liviana 60 · Casi nada 90, con el aviso "Menos niebla = menos FPS". Mueve `camera.far` (far + 4) y
   `BOSS.fogBase`. Dura la sesión.
 - Test: `f516.js` (portal con tumba, cruce, cooldown, templo, rampas, niebla). `audio2.js` adaptado.
+
+## Inglés, PaP y tanda C (V2 F5.16c) — manda sobre lo de arriba donde se contradice
+- **Textos visibles en inglés** (carteles `[F] Buy / Ammo / Open door / Burn the vines / Take / Pick up ...`, banners
+  `ROUND n`, `A PORTAL OPENED`, HUD, menús, controles, ajustes, pantalla final, nombres de armas, perks, piezas,
+  trampas, power-ups y almejas `GREEN clam`). Los tests comparan los textos en inglés. Código y comentarios en
+  español. Nombres propios quedan (EL SOMBRERÓN, RANCHO DON MARENA).
+- **Nombres de PaP inventados:** M1911 GRAVE WHISPER · Shotgun BONECRUSHER 9000 · SMG HIVEMIND · Rifle DEAD
+  RECKONING · LMG ABYSS CHOIR · Ray Gun STARBLEED X9 · Sniper SILENT REQUIEM · Flamethrower HELLKISS · Revolver SIX
+  FEET UNDER · Double Barrel CERBERUS · Crossbow NIGHTSTINGER · Uzi LIL RIPPER · AK-47 RED ZEPHYR · Desert Eagle
+  THUNDERJAW · SPAS-12 MEAT GRINDER · Bow ECLIPSE STRING · Bazooka DOOMSDAY PARADE · Breaking Wave MARENA'S WRATH.
+- `showBanner` sin segundos queda fijo: siempre pasar la duración (el del portal quedaba pegado).
+- **Tanda C, tortugario** (`CONFIG.RANCHO.pen/cave`): área abierta x −70..−56, z 18..40 (parte de R14, `name
+  'TORTUGARIO'`, del tamaño del rancho). Sin el corral chico. Arena revuelta, nidos rotos, calaveras, costillares,
+  fémures y caparazones vacíos (un MeshBuilder con `mulberry` de semilla fija). **Cueva** de roca contra el borde oeste
+  (sólida, PROPS `cueva`, x −70..−65, z 31..39) con boca oscura al este en (−64.3, 35). 2 spawns nuevos.
+  - **Trampa:** una sola tortuga (`TRAPS.turtles` count 1, ×1.7, 3.8 m/s, come en 0.35 s, alcance 26 m) que sale de la
+    boca de la cueva y vuelve a esconderse ahí. Palanca en (−64.2, 30.2). La cueva va al norte porque al sur la barra
+    del rancho tapaba la salida.
+- Test: `f516.js` (tanda C). Se adaptaron los tests a los textos en inglés, `f510.js` (tortuga) y `f515.js`.
 
 ## Audio (V2 F6) — `src/audio.js`, `CONFIG.AUDIO`
 - **Buses:** `sfx → compresor → master`, `amb → master`, `music → master` (F6), más 2 loops nuevos

@@ -120,4 +120,15 @@ check(CONFIG.TEMPLE.ramps.every(R => !G.isNav(Math.floor((R.x1 + R.x2) / 2), Mat
   G.WORLD.colliders.filter(c => c.tag === 'bound:rampa').every(c => c.zombieOnly), 'la huella de las rampas bloquea a los zombies del piso (solo a ellos)');
 check(CONFIG.TEMPLE.ramps.every(R => G.flowAt(R.bottom[0], R.bottom[1]) >= 0), 'y el pie de cada rampa sigue enlazado');
 
+// 8) tanda C: tortugario del tamaño del rancho, cueva con la última tortuga, sin corral
+{ const R = CONFIG.RANCHO, PN = R.pen, CV = R.cave, TC = CONFIG.TRAPS.turtles;
+  fresh(); G.debugOpenAllDoors(); player.pos.set(-49, 1.7, 30); G.updateFlowField(true);
+  check(G.roomAt((PN.x1 + PN.x2) / 2, (PN.z1 + PN.z2) / 2).id === 'R14' && (PN.x2 - PN.x1) * (PN.z2 - PN.z1) >= 14 * 22, 'el tortugario es parte del rancho y del tamaño del rancho');
+  let open = 0, tot = 0;
+  for (let x = PN.x1; x < PN.x2; x++) for (let z = PN.z1; z < PN.z2; z++) { tot++; if (G.flowAt(x, z) >= 0) open++; }
+  check(open / tot > 0.6, 'se corre por el tortugario (celdas alcanzables desde el rancho)', `(${open}/${tot})`);
+  check(!G.WORLD.colliders.some(c => c.tag === 'corral') && G.WORLD.colliders.some(c => c.tag === 'prop:cueva'), 'sin el corral chico; la cueva es sólida');
+  check(TC.count === 1 && Math.abs(TC.exit.x - CV.mouth.x) < 0.01 && Math.abs(TC.exit.z - CV.mouth.z) < 0.01 && G.roomAt(TC.lever.x, TC.lever.z).id === 'R14', 'una sola tortuga, sale de la boca de la cueva; la palanca al lado');
+  check(G.SPAWN_POINTS.filter(s => s.room === 'R14' && s.x < PN.x2).every(s => s.valid && G.flowAt(s.cx, s.cz) >= 0), 'spawns del tortugario válidos'); }
+
 console.log(fail ? `FALLA (${fail})` : 'PASA'); process.exit(fail ? 1 : 0);
