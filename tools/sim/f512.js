@@ -36,7 +36,7 @@ check(!H4.open && H4.collider.solid && H4.mesh.parent && H4.mesh.material.color.
 fresh(); G.debugOpenAllDoors(); setPlayer(0, 50);
 // F5.15: la jungla vieja es espesura; quedan áreas (R15/R17/R18/R19/R20) unidas por senderos
 check(G.roomAt(0, 50).id === 'R15' && G.roomAt(-60, 60).id === 'R17' && !G.roomAt(45, 10) && G.inThicket(45, 10) && !G.roomAt(-50, 10), 'áreas de la jungla (norte, claro) y espesura entre medio (F5.16: el campamento es espesura)');
-check(nearNav(-70, 70) && nearNav(90, 95) && nearNav(-70, -55) && !nearNav(50, 30), 'se llega a las 3 puntas (claro, templo, calamar); al campamento no');
+check(nearNav(-70, 70) && nearNav(57, 95) && nearNav(-70, -55) && !nearNav(50, 30), 'se llega a las 3 puntas (claro, templo, calamar); al campamento no');
 const trees = G.JUNGLE.trees;
 check(trees.length > 20 && trees.every(t => G.PROPS.some(p => p.id === t.id && p.collider)), 'árboles con tronco sólido', `(${trees.length})`);
 check(trees.every(t => G.roomAt(t.x, t.z) && ['R15', 'R17', 'R20'].includes(G.roomAt(t.x, t.z).id)), 'todos adentro de un área de jungla (F5.15: y el templo)');
