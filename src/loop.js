@@ -17,6 +17,7 @@ function init() {
   clock = new THREE.Clock();
 
   buildTextures();
+  buildFoliage();                       // F5.17: atlas de hojas con alfa (jungla, palmeras, techos de paja)
   buildMaterials();
   buildSky();
   buildLights();

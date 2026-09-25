@@ -396,7 +396,8 @@ function makeTex(draw, rep = 1, size = 128) {
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(rep, rep);
-  t.magFilter = THREE.NearestFilter;   // look voxel / cúbico
+  // F5.17 (Diego: menos Minecraft): filtrado lineal y anisotrópico. Antes NearestFilter (píxeles cuadrados de cerca)
+  t.anisotropy = texAniso();
   return t;
 }
 function noise(ctx, s, amount, alpha, h) {
@@ -414,7 +415,8 @@ function makeTexWH(w, h, draw, nearest) {
   draw(c.getContext('2d'), w, h);
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  if (nearest !== false) t.magFilter = THREE.NearestFilter;
+  if (nearest === true) t.magFilter = THREE.NearestFilter;      // F5.17: lineal salvo que se pida
+  t.anisotropy = texAniso();
   return t;
 }
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -684,6 +686,37 @@ function buildTextures() {
     }
     blotches(c, s, s, 6, 'rgba(70,100,50,.3)', 5, 14);              // musgo
   });
+  // F5.17: corteza (troncos de la jungla, postes de troncos) y roca con vetas (rocas, cueva, templo erosionado).
+  // Claras: el color va por vértice
+  TEX.bark = makeTex((c, s) => {
+    c.fillStyle = '#bcb0a0'; c.fillRect(0, 0, s, s);
+    for (let i = 0; i < 70; i++) {
+      const x = Math.random() * s, w = 1 + Math.random() * 3;
+      c.fillStyle = Math.random() < 0.5 ? 'rgba(60,45,30,.35)' : 'rgba(230,220,200,.25)';
+      c.beginPath(); c.moveTo(x, 0);
+      for (let y = 0; y <= s; y += 16) c.lineTo(x + Math.sin(y * 0.08 + i) * 3, y);
+      c.lineTo(x + w, s); c.lineTo(x + w, 0); c.fill();
+    }
+    noise(c, s, 30);
+  }, 1, 128);
+  TEX.thatch = makeTex((c, s) => {                               // F5.17: paja de los techos (palapa, bar)
+    c.fillStyle = '#b8955a'; c.fillRect(0, 0, s, s);
+    for (let i = 0; i < 520; i++) {
+      const x = Math.random() * s, y = Math.random() * s, len = 10 + Math.random() * 22;
+      c.strokeStyle = ['#c8a868', '#a07c44', '#d8b878', '#8a6a3a', '#b89050'][i % 5]; c.lineWidth = 1 + Math.random();
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x + (Math.random() - 0.5) * 5, y + len); c.stroke();
+    }
+    c.fillStyle = 'rgba(60,40,20,.35)';
+    for (let y = 0; y < s; y += s / 4) c.fillRect(0, y, s, 2);    // hileras atadas
+  }, 1, 128);
+  TEX.rock = makeTex((c, s) => {
+    c.fillStyle = '#b8b4aa'; c.fillRect(0, 0, s, s);
+    noise(c, s, 46);
+    blotches(c, s, s, 8, 'rgba(60,58,50,.25)', 6, 18);
+    c.strokeStyle = 'rgba(40,38,34,.5)'; c.lineWidth = 1;
+    for (let i = 0; i < 7; i++) { c.beginPath(); let x = Math.random() * s, y = Math.random() * s; c.moveTo(x, y);
+      for (let k = 0; k < 5; k++) { x += (Math.random() - 0.5) * 30; y += Math.random() * 20; c.lineTo(x, y); } c.stroke(); }
+  }, 1, 128);
   //--- grano genérico para props (se multiplica por color de vértice) ---
   TEX.grime = makeTex((c, s) => {
     c.fillStyle = '#dcdcdc'; c.fillRect(0, 0, s, s);
@@ -871,6 +904,12 @@ function buildMaterials() {
   MAT.hedge = m(TEX.hedge);
   MAT.stone = m(TEX.stone);                    // F5.13: templo
   MAT.gate = new THREE.MeshLambertMaterial({ map: TEX.door, color: 0x6a7076 });   // F5.7: portón de metal
+  // F5.17: materiales de los MeshBuilder con formas curvas (color por vértice encima de la textura)
+  MAT.bark = new THREE.MeshLambertMaterial({ map: TEX.bark, vertexColors: true });
+  MAT.rock = new THREE.MeshLambertMaterial({ map: TEX.rock, vertexColors: true });
+  MAT.grimeV = new THREE.MeshLambertMaterial({ map: TEX.grime, vertexColors: true });
+  MAT.thatch = new THREE.MeshLambertMaterial({ map: TEX.thatch, vertexColors: true });
+  MAT.thatchIn = new THREE.MeshLambertMaterial({ map: TEX.thatch, vertexColors: true, emissive: 0x2a1c0e });   // por debajo (si no, negro)
 }
 
 // caja genérica: registra mesh + collider

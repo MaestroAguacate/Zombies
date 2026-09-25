@@ -31,7 +31,12 @@ MeshBuilder.prototype.local = function (x, y, z) {
 MeshBuilder.prototype.add = function (geo, x, y, z, sx, sy, sz, rx, ry, rz, color, uvRect) {
   _mbE.set(rx || 0, ry || 0, rz || 0, 'YXZ');
   _mbL.compose(_mbP.set(x, y, z), _mbQ.setFromEuler(_mbE), _mbS.set(sx, sy, sz));
-  if (this.frame) _mbM.multiplyMatrices(this.frame, _mbL); else _mbM.copy(_mbL);
+  return this.addM(geo, _mbL, color, uvRect);
+};
+// F5.17: lo mismo con la matriz ya armada (seg() orienta con un cuaternión). Acepta geometrías sin índice
+// (IcosahedronGeometry de r128 no lo tiene)
+MeshBuilder.prototype.addM = function (geo, L, color, uvRect) {
+  if (this.frame) _mbM.multiplyMatrices(this.frame, L); else _mbM.copy(L);
   _mbN.getNormalMatrix(_mbM);
   _mbC.setHex(color === undefined ? 0xffffff : color);
   if (this.tint) _mbC.multiply(this.tint);
@@ -39,12 +44,12 @@ MeshBuilder.prototype.add = function (geo, x, y, z, sx, sy, sz, rx, ry, rz, colo
   for (let k = 0; k < P.count; k++) {
     _mbV.fromBufferAttribute(P, k).applyMatrix4(_mbM); this.p.push(_mbV.x, _mbV.y, _mbV.z);
     _mbV.fromBufferAttribute(N, k).applyMatrix3(_mbN).normalize(); this.n.push(_mbV.x, _mbV.y, _mbV.z);
-    let u = U.getX(k), v = U.getY(k);
+    let u = U ? U.getX(k) : 0, v = U ? U.getY(k) : 0;
     if (uvRect) { u = uvRect[0] + u * (uvRect[2] - uvRect[0]); v = uvRect[1] + v * (uvRect[3] - uvRect[1]); }
     this.uv.push(u, v); this.c.push(_mbC.r, _mbC.g, _mbC.b);
   }
-  const I = geo.index.array;
-  for (let k = 0; k < I.length; k++) this.i.push(base + I[k]);
+  if (geo.index) { const I = geo.index.array; for (let k = 0; k < I.length; k++) this.i.push(base + I[k]); }
+  else for (let k = 0; k < P.count; k++) this.i.push(base + k);
   return this;
 };
 MeshBuilder.prototype.box = function (x, y, z, w, h, d, color, rx, ry, rz) {
@@ -82,6 +87,268 @@ MeshBuilder.prototype.mesh = function (mat) {
   scene.add(m);
   return m;
 };
+
+//--- F5.17 (Diego: "que no sea tan Minecraft, más BO2"): formas curvas en el MeshBuilder ---
+// Geometrías de unidad cacheadas (cilindros, esferas, rocas, gotas) + tubos y tornos a medida. Todo se fusiona
+// igual que las cajas: un draw call por MeshBuilder. Las rotaciones son como en box() (Euler YXZ)
+const MBGEO = {};
+const _mbUp = new THREE.Vector3(0, 1, 0);
+function mbGeo(key, make) { return MBGEO[key] || (MBGEO[key] = make()); }
+// cilindro parado en (x, y, z): radio r abajo y r*top arriba, alto h, `seg` lados. Gira sobre la base
+MeshBuilder.prototype.cyl = function (x, y, z, r, h, color, top, seg, rx, ry, rz) {
+  top = top === undefined ? 1 : top; seg = seg || 8;
+  const g = mbGeo('cyl' + seg + '_' + top.toFixed(2), () => { const c = new THREE.CylinderGeometry(top, 1, 1, seg, 1); c.translate(0, 0.5, 0); return c; });
+  return this.add(g, x, y, z, r, h, r, rx, ry, rz, color);
+};
+// cilindro de a (x,y,z) a b, radio r0 -> r1 (vigas, ramas, sogas, huesos)
+MeshBuilder.prototype.seg = function (a, b, r0, r1, color, seg) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz) || 1e-4;
+  const top = r1 === undefined ? 1 : r1 / r0; seg = seg || 6;
+  const g = mbGeo('cyl' + seg + '_' + top.toFixed(2), () => { const c = new THREE.CylinderGeometry(top, 1, 1, seg, 1); c.translate(0, 0.5, 0); return c; });
+  _mbQ.setFromUnitVectors(_mbUp, _mbV2.set(dx / L, dy / L, dz / L));
+  _mbL.compose(_mbP.set(a[0], a[1], a[2]), _mbQ, _mbS.set(r0, L, r0));
+  return this.addM(g, _mbL, color);
+};
+MeshBuilder.prototype.sphere = function (x, y, z, sx, sy, sz, color, seg, rx, ry, rz) {
+  seg = seg || 8;
+  const g = mbGeo('sph' + seg, () => new THREE.SphereGeometry(1, seg, Math.max(4, Math.round(seg * 0.6))));
+  return this.add(g, x, y, z, sx, sy, sz, rx, ry, rz, color);
+};
+// roca: icosaedro deformado, caras planas y la base aplastada (se apoya). 8 variantes (seed)
+MeshBuilder.prototype.rock = function (x, y, z, sx, sy, sz, color, seed, rx, ry, rz) {
+  const k = Math.abs(Math.floor(seed || 0)) % 8;
+  return this.add(mbGeo('rock' + k, () => rockGeo(k)), x, y, z, sx, sy, sz, rx, ry, rz, color);
+};
+function rockGeo(k) {
+  const g = new THREE.IcosahedronGeometry(1, 1), P = g.attributes.position, r = mulberry(k * 97 + 13), seen = {};
+  for (let i = 0; i < P.count; i++) {
+    const x = P.getX(i), y = P.getY(i), z = P.getZ(i), key = x.toFixed(3) + ',' + y.toFixed(3) + ',' + z.toFixed(3);
+    const s = seen[key] || (seen[key] = 0.72 + r() * 0.5);            // el mismo vértice de caras vecinas, igual
+    P.setXYZ(i, x * s, (y < 0 ? y * 0.45 : y) * s, z * s);
+  }
+  g.computeVertexNormals();                                            // sin índice: una normal por cara
+  return g;
+}
+// gota: esfera ondulada y suave (musgo, barro, baba, carne, montículos). 6 variantes
+MeshBuilder.prototype.blob = function (x, y, z, sx, sy, sz, color, seed, rx, ry, rz) {
+  const k = Math.abs(Math.floor(seed || 0)) % 6;
+  return this.add(mbGeo('blob' + k, () => blobGeo(k)), x, y, z, sx, sy, sz, rx, ry, rz, color);
+};
+function blobGeo(k) {
+  const g = new THREE.SphereGeometry(1, 14, 9), P = g.attributes.position, r = mulberry(k * 131 + 7);
+  const a = [r() * 6, r() * 6, r() * 6], f = [1.6 + r(), 2 + r(), 2.6 + r()];
+  for (let i = 0; i < P.count; i++) {
+    const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
+    const n = 1 + 0.16 * Math.sin(x * f[0] + a[0]) * Math.sin(y * f[1] + a[1]) + 0.1 * Math.sin(z * f[2] + a[2] + x * 2);
+    P.setXYZ(i, x * n, y * n, z * n);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+// tubo por una curva (puntos [x,y,z]), radio r0 -> r1: lianas, raíces, troncos curvos, tentáculos
+MeshBuilder.prototype.tube = function (pts, r0, r1, color, seg, radial) {
+  seg = seg || 8; radial = radial || 6;
+  const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0], p[1], p[2])));
+  const F = curve.computeFrenetFrames(seg, false), pos = [], nor = [], uv = [], idx = [];
+  for (let i = 0; i <= seg; i++) {
+    const t = i / seg, P = curve.getPointAt(t), r = r0 + (r1 - r0) * t, N = F.normals[i], B = F.binormals[i];
+    for (let j = 0; j <= radial; j++) {
+      const a = j / radial * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+      const nx = c * N.x + s * B.x, ny = c * N.y + s * B.y, nz = c * N.z + s * B.z;
+      pos.push(P.x + r * nx, P.y + r * ny, P.z + r * nz); nor.push(nx, ny, nz); uv.push(j / radial, t * 3);
+    }
+  }
+  for (let i = 0; i < seg; i++) for (let j = 0; j < radial; j++) {
+    const a = i * (radial + 1) + j, b = a + radial + 1;
+    idx.push(a, a + 1, b, b, a + 1, b + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  return this.addM(g, _mbL.identity(), color);
+};
+// torno: perfil [[r, y], ...] de abajo hacia arriba, girado en y (vasijas, cúpulas, macetas, el caparazón)
+MeshBuilder.prototype.lathe = function (profile, x, y, z, sx, sy, sz, color, seg, rx, ry, rz) {
+  const g = new THREE.LatheGeometry(profile.map(p => new THREE.Vector2(p[0], p[1])), seg || 12);
+  return this.add(g, x, y, z, sx, sy, sz, rx, ry, rz, color);
+};
+// hoja: plano del atlas de follaje (FOLI.r[reg]) parado en (x, y, z) con la base abajo. Normales tiradas hacia
+// arriba: el follaje se ilumina parejo de los dos lados (el material de FOLI no da vuelta la luz atrás)
+const UNIT_CARD = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0);
+const UNIT_FROND = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0.5, 0, 0);
+MeshBuilder.prototype.card = function (x, y, z, w, h, rx, ry, rz, reg, color) {
+  const n0 = this.n.length;
+  this.add(UNIT_CARD, x, y, z, w, h, 1, rx, ry, rz, color, FOLI.r[reg]);
+  return this.upNormals(n0);
+};
+// fronda acostada: base en (x, y, z), largo hacia `yaw` (0 = +x), cae `droop` rad; ancho wid
+MeshBuilder.prototype.frond = function (x, y, z, len, wid, yaw, droop, reg, color, uvRect) {
+  const n0 = this.n.length;
+  this.add(UNIT_FROND, x, y, z, len, 1, wid, 0, yaw, -droop, color, uvRect || FOLI.r[reg]);
+  return this.upNormals(n0);
+};
+MeshBuilder.prototype.upNormals = function (n0) {
+  for (let k = n0; k < this.n.length; k += 3) {
+    const x = this.n[k] * 0.3, y = this.n[k + 1] * 0.3 + 1, z = this.n[k + 2] * 0.3, l = Math.hypot(x, y, z);
+    this.n[k] = x / l; this.n[k + 1] = y / l; this.n[k + 2] = z / l;
+  }
+  return this;
+};
+// mata de hojas: 3 planos cruzados (y uno acostado arriba). Para copas, arbustos, helechos y pasto
+MeshBuilder.prototype.clump = function (x, y, z, w, h, reg, color, rot, top) {
+  rot = rot || 0;
+  for (let k = 0; k < 3; k++) this.card(x, y, z, w, h, 0, rot + k * Math.PI / 3, 0, reg, color);
+  if (top) { const n0 = this.n.length; this.add(UNIT_PLANE, x, y + h * 0.55, z, w, w, 1, -Math.PI / 2, rot, 0, color, FOLI.r[reg]); this.upNormals(n0); }
+  return this;
+};
+
+// F5.17: MeshBuilder por celdas de `size` m: cada celda es su propio mesh (con su esfera de límites), así la
+// cámara (camera.far = la niebla) descarta lo lejano y el frustum lo de atrás. La jungla entera era un mesh
+// que se dibujaba siempre
+function ChunkMB(size) { this.size = size || 24; this.map = {}; }
+ChunkMB.prototype.at = function (x, z) {
+  const k = Math.floor(x / this.size) + ',' + Math.floor(z / this.size);
+  return this.map[k] || (this.map[k] = new MeshBuilder());
+};
+ChunkMB.prototype.meshes = function (mat) {
+  const out = [];
+  for (const k in this.map) {
+    const m = this.map[k].mesh(mat);
+    if (m) { m.userData.theme = false; out.push(m); }
+  }
+  return out;
+};
+
+//--- F5.17: atlas de follaje (hojas con alfa, dibujadas por canvas). FOLI.r[reg] = [u0, v0, u1, v1] ---
+const FOLI = { tex: null, mat: null, r: {} };
+function buildFoliage() {
+  const S = 512, cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d'), R = mulberry(71);
+  const reg = (key, x0, y0, x1, y1, draw) => {
+    c.save(); c.beginPath(); c.rect(x0, y0, x1 - x0, y1 - y0); c.clip();
+    draw(x0, y0, x1 - x0, y1 - y0);
+    c.restore();
+    FOLI.r[key] = [x0 / S, 1 - y1 / S, x1 / S, 1 - y0 / S];
+  };
+  const leaf = (x, y, len, wid, ang, col, rib) => {              // hoja con nervio
+    c.save(); c.translate(x, y); c.rotate(ang);
+    c.fillStyle = col; c.beginPath(); c.moveTo(0, 0);
+    c.quadraticCurveTo(len * 0.5, -wid, len, 0); c.quadraticCurveTo(len * 0.5, wid, 0, 0); c.fill();
+    if (rib) { c.strokeStyle = rib; c.lineWidth = 1; c.beginPath(); c.moveTo(0, 0); c.lineTo(len * 0.9, 0); c.stroke(); }
+    c.restore();
+  };
+  const greens = ['#3f6a2c', '#4f7c34', '#355a26', '#5c8a3c', '#2c4c20', '#6a9444'];
+  // copa: racimo de hojas anchas desde abajo al centro, más densas en el medio
+  reg('leaf', 0, 0, 256, 256, (x0, y0, w, h) => {
+    for (let i = 0; i < 140; i++) {
+      const a = -Math.PI / 2 + (R() - 0.5) * 2.9, d = 20 + R() * 95, px = x0 + w / 2 + Math.cos(a) * d * 0.9, py = y0 + h * 0.62 + Math.sin(a) * d * 0.8;
+      leaf(px, py, 26 + R() * 22, 7 + R() * 6, a + (R() - 0.5), greens[i % 6], 'rgba(20,40,12,.5)');
+    }
+  });
+  // fronda de palmera: nervio curvo (base a la izquierda) con folíolos finos que cuelgan
+  reg('palm', 256, 0, 512, 128, (x0, y0, w, h) => {
+    const cy = y0 + h / 2;
+    for (let i = 0; i < 64; i++) {
+      const t = i / 64, x = x0 + 8 + t * (w - 16), sp = (1 - t * 0.7) * 50;
+      for (const sd of [-1, 1]) leaf(x, cy, sp, 3.2, sd * (1.1 + t * 0.3), greens[(i + (sd > 0 ? 1 : 3)) % 6]);
+    }
+    c.strokeStyle = '#6a5a34'; c.lineWidth = 4; c.beginPath(); c.moveTo(x0, cy); c.lineTo(x0 + w, cy); c.stroke();
+  });
+  // helecho: nervio con folíolos que se achican a la punta
+  reg('fern', 256, 128, 512, 256, (x0, y0, w, h) => {
+    const cy = y0 + h / 2;
+    for (let i = 0; i < 40; i++) {
+      const t = i / 40, x = x0 + 10 + t * (w - 20), sp = (1 - t) * 48 + 6;
+      for (const sd of [-1, 1]) leaf(x, cy, sp, 5, sd * 1.25, greens[(i + 2) % 6], 'rgba(20,40,12,.4)');
+    }
+    c.strokeStyle = '#3a5424'; c.lineWidth = 3; c.beginPath(); c.moveTo(x0, cy); c.lineTo(x0 + w, cy); c.stroke();
+  });
+  // pasto: briznas desde abajo
+  reg('grass', 0, 256, 128, 384, (x0, y0, w, h) => {
+    for (let i = 0; i < 70; i++) {
+      const bx = x0 + 6 + R() * (w - 12), tall = h * (0.45 + R() * 0.55), lean = (R() - 0.5) * 30;
+      c.strokeStyle = ['#5c7a34', '#4a6a2a', '#7a9444', '#6a8a3a', '#8a9a4a'][i % 5]; c.lineWidth = 2 + R() * 2;
+      c.beginPath(); c.moveTo(bx, y0 + h); c.quadraticCurveTo(bx + lean * 0.3, y0 + h - tall * 0.6, bx + lean, y0 + h - tall); c.stroke();
+    }
+  });
+  // liana colgando (arriba = de donde cuelga)
+  reg('vine', 128, 256, 192, 512, (x0, y0, w, h) => {
+    c.strokeStyle = '#4a5a2a'; c.lineWidth = 3; c.beginPath(); c.moveTo(x0 + w / 2, y0);
+    for (let y = 0; y <= h; y += 16) c.lineTo(x0 + w / 2 + Math.sin(y * 0.05) * 8, y0 + y); c.stroke();
+    for (let y = 8; y < h - 6; y += 9) leaf(x0 + w / 2 + Math.sin(y * 0.05) * 8, y0 + y, 14 + R() * 8, 5, (y % 18 ? 0.5 : Math.PI - 0.5) + (R() - 0.5) * 0.5, greens[y % 6]);
+  });
+  // paja del techo: flecos que cuelgan
+  reg('thatch', 192, 256, 320, 384, (x0, y0, w, h) => {
+    for (let i = 0; i < 160; i++) {
+      const bx = x0 + R() * w, len = h * (0.55 + R() * 0.45);
+      c.strokeStyle = ['#b8955a', '#a07c44', '#c8a868', '#8a6a3a', '#d0b070'][i % 5]; c.lineWidth = 1.5 + R() * 1.5;
+      c.beginPath(); c.moveTo(bx, y0); c.lineTo(bx + (R() - 0.5) * 8, y0 + len); c.stroke();
+    }
+  });
+  // hiedra / musgo: mancha redonda de hojitas
+  reg('ivy', 320, 256, 448, 384, (x0, y0, w, h) => {
+    for (let i = 0; i < 180; i++) {
+      const a = R() * 6.3, d = Math.sqrt(R()) * w * 0.45;
+      leaf(x0 + w / 2 + Math.cos(a) * d, y0 + h / 2 + Math.sin(a) * d, 9 + R() * 6, 4, R() * 6.3, greens[i % 6]);
+    }
+  });
+  // flores tropicales (rojas, naranjas, rosas) con hojitas
+  reg('flower', 448, 256, 512, 320, (x0, y0, w, h) => {
+    for (let i = 0; i < 14; i++) leaf(x0 + w / 2, y0 + h, 18 + R() * 12, 4, -Math.PI / 2 + (R() - 0.5) * 2, greens[i % 6]);
+    for (let i = 0; i < 9; i++) {
+      c.fillStyle = ['#e83a4a', '#f08a2a', '#e85aa0', '#f0c030'][i % 4];
+      const fx = x0 + 10 + R() * (w - 20), fy = y0 + 8 + R() * (h * 0.55);
+      for (let p = 0; p < 5; p++) { const a = p / 5 * 6.28; c.beginPath(); c.arc(fx + Math.cos(a) * 3, fy + Math.sin(a) * 3, 2.6, 0, 7); c.fill(); }
+      c.fillStyle = '#f8e070'; c.beginPath(); c.arc(fx, fy, 1.6, 0, 7); c.fill();
+    }
+  });
+  // hojas secas (piso)
+  reg('dead', 448, 320, 512, 384, (x0, y0, w, h) => {
+    for (let i = 0; i < 26; i++) leaf(x0 + 6 + R() * (w - 12), y0 + 6 + R() * (h - 12), 10 + R() * 8, 4, R() * 6.3, ['#7a5a2a', '#8a6a34', '#5a4420', '#9a7a3a'][i % 4], 'rgba(40,20,5,.5)');
+  });
+  // hoja grande (banano / monstera), base abajo
+  reg('bigleaf', 0, 384, 128, 512, (x0, y0, w, h) => {
+    c.fillStyle = '#3f7030'; c.beginPath(); c.moveTo(x0 + w / 2, y0 + h);
+    c.bezierCurveTo(x0 - 10, y0 + h * 0.5, x0 + w * 0.2, y0 + 4, x0 + w / 2, y0 + 2);
+    c.bezierCurveTo(x0 + w * 0.8, y0 + 4, x0 + w + 10, y0 + h * 0.5, x0 + w / 2, y0 + h); c.fill();
+    c.strokeStyle = '#6a9a4a'; c.lineWidth = 2; c.beginPath(); c.moveTo(x0 + w / 2, y0 + h); c.lineTo(x0 + w / 2, y0 + 6); c.stroke();
+    c.lineWidth = 1;
+    for (let y = 16; y < h - 8; y += 8) for (const sd of [-1, 1]) { c.beginPath(); c.moveTo(x0 + w / 2, y0 + y + 6); c.lineTo(x0 + w / 2 + sd * w * 0.42, y0 + y); c.stroke(); }
+    c.globalCompositeOperation = 'destination-out';                  // cortes de la monstera
+    for (let i = 0; i < 6; i++) { c.beginPath(); c.ellipse(x0 + w / 2 + (i % 2 ? 1 : -1) * w * 0.3, y0 + 20 + i * 16, 8, 3, (i % 2 ? -0.4 : 0.4), 0, 7); c.fill(); }
+    c.globalCompositeOperation = 'source-over';
+  });
+  // telaraña (rincones del caparazón, la cueva)
+  reg('web', 256, 384, 384, 512, (x0, y0, w, h) => {
+    c.strokeStyle = 'rgba(230,230,220,.8)'; c.lineWidth = 1;
+    const cx = x0 + 6, cy = y0 + 6;
+    for (let k = 0; k < 9; k++) { const a = k / 8 * Math.PI / 2; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(a) * w, cy + Math.sin(a) * h); c.stroke(); }
+    for (let d = 14; d < w * 1.3; d += 12) { c.beginPath(); for (let k = 0; k <= 8; k++) { const a = k / 8 * Math.PI / 2, rr = d + Math.sin(k * 3) * 2; k ? c.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : c.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } c.stroke(); }
+  });
+  // raíces colgando / flecos de musgo
+  reg('moss', 384, 384, 512, 512, (x0, y0, w, h) => {
+    for (let i = 0; i < 90; i++) {
+      const bx = x0 + R() * w, len = h * (0.3 + R() * 0.7);
+      c.strokeStyle = ['#4a5a2a', '#5a6a34', '#3a4a22', '#6a7a3a'][i % 4]; c.lineWidth = 1 + R() * 2;
+      c.beginPath(); c.moveTo(bx, y0); c.quadraticCurveTo(bx + (R() - 0.5) * 12, y0 + len * 0.5, bx + (R() - 0.5) * 6, y0 + len); c.stroke();
+    }
+  });
+  const t = new THREE.CanvasTexture(cv);
+  t.anisotropy = texAniso();
+  FOLI.tex = t;
+  FOLI.mat = new THREE.MeshLambertMaterial({ map: t, vertexColors: true, alphaTest: 0.42, side: THREE.DoubleSide });
+  // atrás se ilumina igual que adelante (si no, con DoubleSide la cara de atrás queda negra)
+  FOLI.mat.onBeforeCompile = sh => {
+    sh.fragmentShader = sh.fragmentShader.replace('( gl_FrontFacing ) ? vIndirectFront : vIndirectBack', 'vIndirectFront')
+                                         .replace('( gl_FrontFacing ) ? vLightFront : vLightBack', 'vLightFront');
+  };
+}
+function texAniso() {
+  return typeof renderer !== 'undefined' && renderer && renderer.capabilities ? Math.min(4, renderer.capabilities.getMaxAnisotropy()) : 1;
+}
 
 function themeMaterials() {
   const T = CONFIG.THEME;
@@ -209,23 +476,38 @@ function buildWindows(props, win, shaft) {
 }
 
 //--- palmera seca (con marco propio). lean = inclinación, rot = hacia dónde se inclina ---
-function palm(b, x, z, segs, broken, lean, rot) {
+// F5.17: tronco de cilindros con anillos (antes cajas) y frondas de hojas con alfa en `fb` (FOLI.mat), arqueadas en
+// dos tramos. Sin `fb`, las frondas van como antes (tablas). La cuenta del tronco no cambia (palmTop)
+function palm(b, x, z, segs, broken, lean, rot, fb) {
   b.setFrame(x, 0, z, rot);
+  if (fb) fb.setFrame(x, 0, z, rot);
   let px = 0, py = 0;
   for (let i = 0; i < segs; i++) {
     const h = 0.9, wd = 0.36 - i * 0.012, ang = lean * Math.pow(i / segs, 2) * 1.6;
-    b.box(px + Math.sin(ang) * h / 2, py + Math.cos(ang) * h / 2, 0, wd, h + 0.05, wd, i % 2 ? 0x6e5f50 : 0x645646, 0, 0, -ang);
-    px += Math.sin(ang) * h; py += Math.cos(ang) * h;
+    const nx = px + Math.sin(ang) * h, ny = py + Math.cos(ang) * h;
+    b.seg([px, py - 0.02, 0], [nx, ny + 0.02, 0], wd * 0.56, wd * 0.5, i % 2 ? 0x6e5f50 : 0x645646, 7);
+    b.seg([px, py - 0.04, 0], [px + Math.sin(ang) * 0.1, py + Math.cos(ang) * 0.1, 0], wd * 0.62, wd * 0.6, 0x54483a, 7);   // anillo
+    px = nx; py = ny;
   }
-  const n = broken ? 4 : 8;
-  if (broken) b.box(px + 0.4, py - 0.45, 0, 0.24, 1.0, 0.24, 0x5e5044, 0, 0, 2.5);   // punta quebrada colgando
+  const n = broken ? 4 : 9;
+  if (broken) b.seg([px, py, 0], [px + 0.6, py - 0.9, 0.1], 0.12, 0.07, 0x5e5044, 6);   // punta quebrada colgando
+  b.sphere(px, py, 0, 0.26, 0.22, 0.26, 0x5a4a34, 7);                                   // corona
   for (let k = 0; k < n; k++) {
-    const a = k / n * Math.PI * 2 + rnd(-0.2, 0.2), droop = broken ? rnd(0.9, 1.3) : rnd(0.35, 0.9), len = rnd(1.6, 2.4);
-    const dx = Math.cos(droop) * Math.cos(a), dy = -Math.sin(droop), dz = -Math.cos(droop) * Math.sin(a);
-    b.box(px + dx * len / 2, py + dy * len / 2, dz * len / 2, len, 0.03, 0.3,
-      [0x8a7a55, 0x7a6a48, 0x9a8a62][k % 3], 0, a, -droop);
+    const a = k / n * Math.PI * 2 + rnd(-0.2, 0.2), droop = broken ? rnd(0.9, 1.3) : rnd(0.35, 0.9), len = rnd(1.8, 2.8);
+    const col = [0x8a7a55, 0x7a6a48, 0x9a8a62][k % 3];
+    if (!fb) {
+      const dx = Math.cos(droop) * Math.cos(a), dy = -Math.sin(droop), dz = -Math.cos(droop) * Math.sin(a);
+      b.box(px + dx * len / 2, py + dy * len / 2, dz * len / 2, len, 0.03, 0.3, col, 0, a, -droop);
+      continue;
+    }
+    const R = FOLI.r.palm, um = (R[0] + R[2]) / 2, l1 = len * 0.45, up = broken ? 0.2 : -0.35;   // 1er tramo sube un poco
+    const ex = px + Math.cos(up) * l1 * Math.cos(a), ey = py - Math.sin(up) * l1, ez = -Math.cos(up) * l1 * Math.sin(a);
+    const tint = broken ? 0xc8b078 : [0xd8e0b0, 0xc8d4a0, 0xe0e8c0][k % 3];
+    fb.frond(px, py, 0, l1, 0.9, a, up, null, tint, [R[0], R[1], um, R[3]]);
+    fb.frond(ex, ey, ez, len - l1, 0.8, a, droop + 0.3, null, tint, [um, R[1], R[2], R[3]]);
   }
   b.setFrame(null);
+  if (fb) fb.setFrame(null);
 }
 // F5.5: punta del tronco en el marco de la palmera (+x = hacia donde se inclina). La misma cuenta que palm()
 function palmTop(P) {
@@ -269,11 +551,11 @@ function buildOutside() {
   // F5.5: cada palmera en su grupo (base, girado hacia donde se inclina) con un hijo que puede voltearse
   // (THEMEFX.palms[i], rotation.z). El tocón queda en el mesh fijo de afuera
   THEMEFX.palms = CONFIG.QUEST.palms.map(P => {
-    const pb = new MeshBuilder();
-    palm(pb, 0, 0, P.segs, P.broken, P.lean, 0);
-    const m = pb.mesh(TMAT.prop), outer = new THREE.Group(), tilt = new THREE.Group();
+    const pb = new MeshBuilder(), fpb = new MeshBuilder();
+    palm(pb, 0, 0, P.segs, P.broken, P.lean, 0, fpb);
+    const m = pb.mesh(TMAT.prop), fm = fpb.mesh(FOLI.mat), outer = new THREE.Group(), tilt = new THREE.Group();
     outer.position.set(P.x, 0, P.z); outer.rotation.y = P.rot; outer.userData.theme = true;
-    outer.add(tilt); tilt.add(m);
+    outer.add(tilt); tilt.add(m); if (fm) tilt.add(fm);
     scene.add(outer);
     b.box(P.x, 0.3, P.z, 0.42, 0.6, 0.42, 0x5e5044);                                  // tocón
     return tilt;
@@ -297,8 +579,10 @@ function buildOutside() {
     .forEach(p => { for (let k = 0; k < 4; k++) b.box(p[0] + rnd(-0.3, 0.3), 0.35, p[1] + rnd(-0.2, 0.2), 0.04, rnd(0.5, 0.9), 0.04, 0x55603a, rnd(-0.2, 0.2), 0, rnd(-0.2, 0.2)); });
   for (let z = -3.4; z <= 3.4; z += 2.27) [16, 22].forEach(x => b.box(x, -0.5, z, 0.22, 1.1, 0.22, 0x5e5446));
   // (F5.12: la laguna que bajaba al mar se sacó: ahí se pasa de la playa a la jungla este)
-  for (const P of CONFIG.GARDEN.palms) palm(b, P.x, P.z, P.segs, false, P.lean, P.rot);
+  const fb = new MeshBuilder();
+  for (const P of CONFIG.GARDEN.palms) palm(b, P.x, P.z, P.segs, false, P.lean, P.rot, fb);
   b.mesh(TMAT.prop);
+  fb.mesh(FOLI.mat);
 }
 function updateSea(t) {
   const S = THEMEFX.sea;

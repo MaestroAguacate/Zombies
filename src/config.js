@@ -569,7 +569,7 @@ const CONFIG = {
     palapa: { x1: -54, x2: -44, z1: 24, z2: 34, h: 4.5 },  // postes en las 4 esquinas; techo de palma arriba (F5.11: 3.2 -> 4.5)
     props: [
       { id: 'billar', box: [-50.3, -47.7, 28.3, 29.7, 0.85] },
-      { id: 'barra',  box: [-55.9, -55.1, 26.8, 31.2, 1.1] },
+      { id: 'barra',  box: [-54.4, -49.6, 18.3, 19.1, 1.1] },   // F5.17 (Diego): contra el cerco sur (antes tapaba la salida de la tortuga)
       { id: 'posteP1', box: [-54.15, -53.85, 23.85, 24.15, 4.5] }, { id: 'posteP2', box: [-44.15, -43.85, 23.85, 24.15, 4.5] },
       { id: 'posteP3', box: [-54.15, -53.85, 33.85, 34.15, 4.5] }, { id: 'posteP4', box: [-44.15, -43.85, 33.85, 34.15, 4.5] },
       { id: 'cueva', box: [-70, -65, 31, 39, 3.6] }     // F5.16: la cueva de la tortuga (tortugario)
@@ -876,7 +876,7 @@ const CONFIG = {
     // F5.16 (Diego): la casa queda con 3 (escopeta, subfusil, revólver; el machete es cuerpo a cuerpo) y cada área
     // con 1-2: rancho doble cañón + rifle · calamar LMG · búnker bazooka + Uzi · templo ballesta
     // (en tablón propio y a ~2.3 m de la espesura: los arbustos del borde tapaban la tiza pegada a la pared)
-    { weapon:'rifle',   room:'R14', cost:2000, x:-53.6, z:37.5, face: 1, post:true },            // F5.16: rancho, oeste
+    { weapon:'rifle',   room:'R14', cost:2000, x:-42.7, z:21.6, face:-1, post:true },            // F5.17 (Diego: estaba en medio del camino): esquina SE del rancho
     { weapon:'lmg',     room:'R19', cost:2500, x:-60, z:-6.3, face:-1, axis:'z', post:true },    // F5.16: calamar, norte
     { weapon:'uzi',     room:'R21', cost:1200, x:-27, z:64, face:-1 },                          // F5.16: búnker chico de la estación
     { weapon:'crossbow',room:'R20', cost:2000, x: 58, z:57.5, face: 1, axis:'z', post:true },    // F5.16: entrada del templo

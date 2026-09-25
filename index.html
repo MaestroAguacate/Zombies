@@ -868,7 +868,7 @@ const CONFIG = {
     palapa: { x1: -54, x2: -44, z1: 24, z2: 34, h: 4.5 },  // postes en las 4 esquinas; techo de palma arriba (F5.11: 3.2 -> 4.5)
     props: [
       { id: 'billar', box: [-50.3, -47.7, 28.3, 29.7, 0.85] },
-      { id: 'barra',  box: [-55.9, -55.1, 26.8, 31.2, 1.1] },
+      { id: 'barra',  box: [-54.4, -49.6, 18.3, 19.1, 1.1] },   // F5.17 (Diego): contra el cerco sur (antes tapaba la salida de la tortuga)
       { id: 'posteP1', box: [-54.15, -53.85, 23.85, 24.15, 4.5] }, { id: 'posteP2', box: [-44.15, -43.85, 23.85, 24.15, 4.5] },
       { id: 'posteP3', box: [-54.15, -53.85, 33.85, 34.15, 4.5] }, { id: 'posteP4', box: [-44.15, -43.85, 33.85, 34.15, 4.5] },
       { id: 'cueva', box: [-70, -65, 31, 39, 3.6] }     // F5.16: la cueva de la tortuga (tortugario)
@@ -1175,7 +1175,7 @@ const CONFIG = {
     // F5.16 (Diego): la casa queda con 3 (escopeta, subfusil, revólver; el machete es cuerpo a cuerpo) y cada área
     // con 1-2: rancho doble cañón + rifle · calamar LMG · búnker bazooka + Uzi · templo ballesta
     // (en tablón propio y a ~2.3 m de la espesura: los arbustos del borde tapaban la tiza pegada a la pared)
-    { weapon:'rifle',   room:'R14', cost:2000, x:-53.6, z:37.5, face: 1, post:true },            // F5.16: rancho, oeste
+    { weapon:'rifle',   room:'R14', cost:2000, x:-42.7, z:21.6, face:-1, post:true },            // F5.17 (Diego: estaba en medio del camino): esquina SE del rancho
     { weapon:'lmg',     room:'R19', cost:2500, x:-60, z:-6.3, face:-1, axis:'z', post:true },    // F5.16: calamar, norte
     { weapon:'uzi',     room:'R21', cost:1200, x:-27, z:64, face:-1 },                          // F5.16: búnker chico de la estación
     { weapon:'crossbow',room:'R20', cost:2000, x: 58, z:57.5, face: 1, axis:'z', post:true },    // F5.16: entrada del templo
@@ -1761,7 +1761,8 @@ function makeTex(draw, rep = 1, size = 128) {
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(rep, rep);
-  t.magFilter = THREE.NearestFilter;   // look voxel / cúbico
+  // F5.17 (Diego: menos Minecraft): filtrado lineal y anisotrópico. Antes NearestFilter (píxeles cuadrados de cerca)
+  t.anisotropy = texAniso();
   return t;
 }
 function noise(ctx, s, amount, alpha, h) {
@@ -1779,7 +1780,8 @@ function makeTexWH(w, h, draw, nearest) {
   draw(c.getContext('2d'), w, h);
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  if (nearest !== false) t.magFilter = THREE.NearestFilter;
+  if (nearest === true) t.magFilter = THREE.NearestFilter;      // F5.17: lineal salvo que se pida
+  t.anisotropy = texAniso();
   return t;
 }
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -2049,6 +2051,37 @@ function buildTextures() {
     }
     blotches(c, s, s, 6, 'rgba(70,100,50,.3)', 5, 14);              // musgo
   });
+  // F5.17: corteza (troncos de la jungla, postes de troncos) y roca con vetas (rocas, cueva, templo erosionado).
+  // Claras: el color va por vértice
+  TEX.bark = makeTex((c, s) => {
+    c.fillStyle = '#bcb0a0'; c.fillRect(0, 0, s, s);
+    for (let i = 0; i < 70; i++) {
+      const x = Math.random() * s, w = 1 + Math.random() * 3;
+      c.fillStyle = Math.random() < 0.5 ? 'rgba(60,45,30,.35)' : 'rgba(230,220,200,.25)';
+      c.beginPath(); c.moveTo(x, 0);
+      for (let y = 0; y <= s; y += 16) c.lineTo(x + Math.sin(y * 0.08 + i) * 3, y);
+      c.lineTo(x + w, s); c.lineTo(x + w, 0); c.fill();
+    }
+    noise(c, s, 30);
+  }, 1, 128);
+  TEX.thatch = makeTex((c, s) => {                               // F5.17: paja de los techos (palapa, bar)
+    c.fillStyle = '#b8955a'; c.fillRect(0, 0, s, s);
+    for (let i = 0; i < 520; i++) {
+      const x = Math.random() * s, y = Math.random() * s, len = 10 + Math.random() * 22;
+      c.strokeStyle = ['#c8a868', '#a07c44', '#d8b878', '#8a6a3a', '#b89050'][i % 5]; c.lineWidth = 1 + Math.random();
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x + (Math.random() - 0.5) * 5, y + len); c.stroke();
+    }
+    c.fillStyle = 'rgba(60,40,20,.35)';
+    for (let y = 0; y < s; y += s / 4) c.fillRect(0, y, s, 2);    // hileras atadas
+  }, 1, 128);
+  TEX.rock = makeTex((c, s) => {
+    c.fillStyle = '#b8b4aa'; c.fillRect(0, 0, s, s);
+    noise(c, s, 46);
+    blotches(c, s, s, 8, 'rgba(60,58,50,.25)', 6, 18);
+    c.strokeStyle = 'rgba(40,38,34,.5)'; c.lineWidth = 1;
+    for (let i = 0; i < 7; i++) { c.beginPath(); let x = Math.random() * s, y = Math.random() * s; c.moveTo(x, y);
+      for (let k = 0; k < 5; k++) { x += (Math.random() - 0.5) * 30; y += Math.random() * 20; c.lineTo(x, y); } c.stroke(); }
+  }, 1, 128);
   //--- grano genérico para props (se multiplica por color de vértice) ---
   TEX.grime = makeTex((c, s) => {
     c.fillStyle = '#dcdcdc'; c.fillRect(0, 0, s, s);
@@ -2236,6 +2269,12 @@ function buildMaterials() {
   MAT.hedge = m(TEX.hedge);
   MAT.stone = m(TEX.stone);                    // F5.13: templo
   MAT.gate = new THREE.MeshLambertMaterial({ map: TEX.door, color: 0x6a7076 });   // F5.7: portón de metal
+  // F5.17: materiales de los MeshBuilder con formas curvas (color por vértice encima de la textura)
+  MAT.bark = new THREE.MeshLambertMaterial({ map: TEX.bark, vertexColors: true });
+  MAT.rock = new THREE.MeshLambertMaterial({ map: TEX.rock, vertexColors: true });
+  MAT.grimeV = new THREE.MeshLambertMaterial({ map: TEX.grime, vertexColors: true });
+  MAT.thatch = new THREE.MeshLambertMaterial({ map: TEX.thatch, vertexColors: true });
+  MAT.thatchIn = new THREE.MeshLambertMaterial({ map: TEX.thatch, vertexColors: true, emissive: 0x2a1c0e });   // por debajo (si no, negro)
 }
 
 // caja genérica: registra mesh + collider
@@ -3107,7 +3146,12 @@ MeshBuilder.prototype.local = function (x, y, z) {
 MeshBuilder.prototype.add = function (geo, x, y, z, sx, sy, sz, rx, ry, rz, color, uvRect) {
   _mbE.set(rx || 0, ry || 0, rz || 0, 'YXZ');
   _mbL.compose(_mbP.set(x, y, z), _mbQ.setFromEuler(_mbE), _mbS.set(sx, sy, sz));
-  if (this.frame) _mbM.multiplyMatrices(this.frame, _mbL); else _mbM.copy(_mbL);
+  return this.addM(geo, _mbL, color, uvRect);
+};
+// F5.17: lo mismo con la matriz ya armada (seg() orienta con un cuaternión). Acepta geometrías sin índice
+// (IcosahedronGeometry de r128 no lo tiene)
+MeshBuilder.prototype.addM = function (geo, L, color, uvRect) {
+  if (this.frame) _mbM.multiplyMatrices(this.frame, L); else _mbM.copy(L);
   _mbN.getNormalMatrix(_mbM);
   _mbC.setHex(color === undefined ? 0xffffff : color);
   if (this.tint) _mbC.multiply(this.tint);
@@ -3115,12 +3159,12 @@ MeshBuilder.prototype.add = function (geo, x, y, z, sx, sy, sz, rx, ry, rz, colo
   for (let k = 0; k < P.count; k++) {
     _mbV.fromBufferAttribute(P, k).applyMatrix4(_mbM); this.p.push(_mbV.x, _mbV.y, _mbV.z);
     _mbV.fromBufferAttribute(N, k).applyMatrix3(_mbN).normalize(); this.n.push(_mbV.x, _mbV.y, _mbV.z);
-    let u = U.getX(k), v = U.getY(k);
+    let u = U ? U.getX(k) : 0, v = U ? U.getY(k) : 0;
     if (uvRect) { u = uvRect[0] + u * (uvRect[2] - uvRect[0]); v = uvRect[1] + v * (uvRect[3] - uvRect[1]); }
     this.uv.push(u, v); this.c.push(_mbC.r, _mbC.g, _mbC.b);
   }
-  const I = geo.index.array;
-  for (let k = 0; k < I.length; k++) this.i.push(base + I[k]);
+  if (geo.index) { const I = geo.index.array; for (let k = 0; k < I.length; k++) this.i.push(base + I[k]); }
+  else for (let k = 0; k < P.count; k++) this.i.push(base + k);
   return this;
 };
 MeshBuilder.prototype.box = function (x, y, z, w, h, d, color, rx, ry, rz) {
@@ -3158,6 +3202,268 @@ MeshBuilder.prototype.mesh = function (mat) {
   scene.add(m);
   return m;
 };
+
+//--- F5.17 (Diego: "que no sea tan Minecraft, más BO2"): formas curvas en el MeshBuilder ---
+// Geometrías de unidad cacheadas (cilindros, esferas, rocas, gotas) + tubos y tornos a medida. Todo se fusiona
+// igual que las cajas: un draw call por MeshBuilder. Las rotaciones son como en box() (Euler YXZ)
+const MBGEO = {};
+const _mbUp = new THREE.Vector3(0, 1, 0);
+function mbGeo(key, make) { return MBGEO[key] || (MBGEO[key] = make()); }
+// cilindro parado en (x, y, z): radio r abajo y r*top arriba, alto h, `seg` lados. Gira sobre la base
+MeshBuilder.prototype.cyl = function (x, y, z, r, h, color, top, seg, rx, ry, rz) {
+  top = top === undefined ? 1 : top; seg = seg || 8;
+  const g = mbGeo('cyl' + seg + '_' + top.toFixed(2), () => { const c = new THREE.CylinderGeometry(top, 1, 1, seg, 1); c.translate(0, 0.5, 0); return c; });
+  return this.add(g, x, y, z, r, h, r, rx, ry, rz, color);
+};
+// cilindro de a (x,y,z) a b, radio r0 -> r1 (vigas, ramas, sogas, huesos)
+MeshBuilder.prototype.seg = function (a, b, r0, r1, color, seg) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz) || 1e-4;
+  const top = r1 === undefined ? 1 : r1 / r0; seg = seg || 6;
+  const g = mbGeo('cyl' + seg + '_' + top.toFixed(2), () => { const c = new THREE.CylinderGeometry(top, 1, 1, seg, 1); c.translate(0, 0.5, 0); return c; });
+  _mbQ.setFromUnitVectors(_mbUp, _mbV2.set(dx / L, dy / L, dz / L));
+  _mbL.compose(_mbP.set(a[0], a[1], a[2]), _mbQ, _mbS.set(r0, L, r0));
+  return this.addM(g, _mbL, color);
+};
+MeshBuilder.prototype.sphere = function (x, y, z, sx, sy, sz, color, seg, rx, ry, rz) {
+  seg = seg || 8;
+  const g = mbGeo('sph' + seg, () => new THREE.SphereGeometry(1, seg, Math.max(4, Math.round(seg * 0.6))));
+  return this.add(g, x, y, z, sx, sy, sz, rx, ry, rz, color);
+};
+// roca: icosaedro deformado, caras planas y la base aplastada (se apoya). 8 variantes (seed)
+MeshBuilder.prototype.rock = function (x, y, z, sx, sy, sz, color, seed, rx, ry, rz) {
+  const k = Math.abs(Math.floor(seed || 0)) % 8;
+  return this.add(mbGeo('rock' + k, () => rockGeo(k)), x, y, z, sx, sy, sz, rx, ry, rz, color);
+};
+function rockGeo(k) {
+  const g = new THREE.IcosahedronGeometry(1, 1), P = g.attributes.position, r = mulberry(k * 97 + 13), seen = {};
+  for (let i = 0; i < P.count; i++) {
+    const x = P.getX(i), y = P.getY(i), z = P.getZ(i), key = x.toFixed(3) + ',' + y.toFixed(3) + ',' + z.toFixed(3);
+    const s = seen[key] || (seen[key] = 0.72 + r() * 0.5);            // el mismo vértice de caras vecinas, igual
+    P.setXYZ(i, x * s, (y < 0 ? y * 0.45 : y) * s, z * s);
+  }
+  g.computeVertexNormals();                                            // sin índice: una normal por cara
+  return g;
+}
+// gota: esfera ondulada y suave (musgo, barro, baba, carne, montículos). 6 variantes
+MeshBuilder.prototype.blob = function (x, y, z, sx, sy, sz, color, seed, rx, ry, rz) {
+  const k = Math.abs(Math.floor(seed || 0)) % 6;
+  return this.add(mbGeo('blob' + k, () => blobGeo(k)), x, y, z, sx, sy, sz, rx, ry, rz, color);
+};
+function blobGeo(k) {
+  const g = new THREE.SphereGeometry(1, 14, 9), P = g.attributes.position, r = mulberry(k * 131 + 7);
+  const a = [r() * 6, r() * 6, r() * 6], f = [1.6 + r(), 2 + r(), 2.6 + r()];
+  for (let i = 0; i < P.count; i++) {
+    const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
+    const n = 1 + 0.16 * Math.sin(x * f[0] + a[0]) * Math.sin(y * f[1] + a[1]) + 0.1 * Math.sin(z * f[2] + a[2] + x * 2);
+    P.setXYZ(i, x * n, y * n, z * n);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+// tubo por una curva (puntos [x,y,z]), radio r0 -> r1: lianas, raíces, troncos curvos, tentáculos
+MeshBuilder.prototype.tube = function (pts, r0, r1, color, seg, radial) {
+  seg = seg || 8; radial = radial || 6;
+  const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0], p[1], p[2])));
+  const F = curve.computeFrenetFrames(seg, false), pos = [], nor = [], uv = [], idx = [];
+  for (let i = 0; i <= seg; i++) {
+    const t = i / seg, P = curve.getPointAt(t), r = r0 + (r1 - r0) * t, N = F.normals[i], B = F.binormals[i];
+    for (let j = 0; j <= radial; j++) {
+      const a = j / radial * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+      const nx = c * N.x + s * B.x, ny = c * N.y + s * B.y, nz = c * N.z + s * B.z;
+      pos.push(P.x + r * nx, P.y + r * ny, P.z + r * nz); nor.push(nx, ny, nz); uv.push(j / radial, t * 3);
+    }
+  }
+  for (let i = 0; i < seg; i++) for (let j = 0; j < radial; j++) {
+    const a = i * (radial + 1) + j, b = a + radial + 1;
+    idx.push(a, a + 1, b, b, a + 1, b + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  return this.addM(g, _mbL.identity(), color);
+};
+// torno: perfil [[r, y], ...] de abajo hacia arriba, girado en y (vasijas, cúpulas, macetas, el caparazón)
+MeshBuilder.prototype.lathe = function (profile, x, y, z, sx, sy, sz, color, seg, rx, ry, rz) {
+  const g = new THREE.LatheGeometry(profile.map(p => new THREE.Vector2(p[0], p[1])), seg || 12);
+  return this.add(g, x, y, z, sx, sy, sz, rx, ry, rz, color);
+};
+// hoja: plano del atlas de follaje (FOLI.r[reg]) parado en (x, y, z) con la base abajo. Normales tiradas hacia
+// arriba: el follaje se ilumina parejo de los dos lados (el material de FOLI no da vuelta la luz atrás)
+const UNIT_CARD = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0);
+const UNIT_FROND = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0.5, 0, 0);
+MeshBuilder.prototype.card = function (x, y, z, w, h, rx, ry, rz, reg, color) {
+  const n0 = this.n.length;
+  this.add(UNIT_CARD, x, y, z, w, h, 1, rx, ry, rz, color, FOLI.r[reg]);
+  return this.upNormals(n0);
+};
+// fronda acostada: base en (x, y, z), largo hacia `yaw` (0 = +x), cae `droop` rad; ancho wid
+MeshBuilder.prototype.frond = function (x, y, z, len, wid, yaw, droop, reg, color, uvRect) {
+  const n0 = this.n.length;
+  this.add(UNIT_FROND, x, y, z, len, 1, wid, 0, yaw, -droop, color, uvRect || FOLI.r[reg]);
+  return this.upNormals(n0);
+};
+MeshBuilder.prototype.upNormals = function (n0) {
+  for (let k = n0; k < this.n.length; k += 3) {
+    const x = this.n[k] * 0.3, y = this.n[k + 1] * 0.3 + 1, z = this.n[k + 2] * 0.3, l = Math.hypot(x, y, z);
+    this.n[k] = x / l; this.n[k + 1] = y / l; this.n[k + 2] = z / l;
+  }
+  return this;
+};
+// mata de hojas: 3 planos cruzados (y uno acostado arriba). Para copas, arbustos, helechos y pasto
+MeshBuilder.prototype.clump = function (x, y, z, w, h, reg, color, rot, top) {
+  rot = rot || 0;
+  for (let k = 0; k < 3; k++) this.card(x, y, z, w, h, 0, rot + k * Math.PI / 3, 0, reg, color);
+  if (top) { const n0 = this.n.length; this.add(UNIT_PLANE, x, y + h * 0.55, z, w, w, 1, -Math.PI / 2, rot, 0, color, FOLI.r[reg]); this.upNormals(n0); }
+  return this;
+};
+
+// F5.17: MeshBuilder por celdas de `size` m: cada celda es su propio mesh (con su esfera de límites), así la
+// cámara (camera.far = la niebla) descarta lo lejano y el frustum lo de atrás. La jungla entera era un mesh
+// que se dibujaba siempre
+function ChunkMB(size) { this.size = size || 24; this.map = {}; }
+ChunkMB.prototype.at = function (x, z) {
+  const k = Math.floor(x / this.size) + ',' + Math.floor(z / this.size);
+  return this.map[k] || (this.map[k] = new MeshBuilder());
+};
+ChunkMB.prototype.meshes = function (mat) {
+  const out = [];
+  for (const k in this.map) {
+    const m = this.map[k].mesh(mat);
+    if (m) { m.userData.theme = false; out.push(m); }
+  }
+  return out;
+};
+
+//--- F5.17: atlas de follaje (hojas con alfa, dibujadas por canvas). FOLI.r[reg] = [u0, v0, u1, v1] ---
+const FOLI = { tex: null, mat: null, r: {} };
+function buildFoliage() {
+  const S = 512, cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d'), R = mulberry(71);
+  const reg = (key, x0, y0, x1, y1, draw) => {
+    c.save(); c.beginPath(); c.rect(x0, y0, x1 - x0, y1 - y0); c.clip();
+    draw(x0, y0, x1 - x0, y1 - y0);
+    c.restore();
+    FOLI.r[key] = [x0 / S, 1 - y1 / S, x1 / S, 1 - y0 / S];
+  };
+  const leaf = (x, y, len, wid, ang, col, rib) => {              // hoja con nervio
+    c.save(); c.translate(x, y); c.rotate(ang);
+    c.fillStyle = col; c.beginPath(); c.moveTo(0, 0);
+    c.quadraticCurveTo(len * 0.5, -wid, len, 0); c.quadraticCurveTo(len * 0.5, wid, 0, 0); c.fill();
+    if (rib) { c.strokeStyle = rib; c.lineWidth = 1; c.beginPath(); c.moveTo(0, 0); c.lineTo(len * 0.9, 0); c.stroke(); }
+    c.restore();
+  };
+  const greens = ['#3f6a2c', '#4f7c34', '#355a26', '#5c8a3c', '#2c4c20', '#6a9444'];
+  // copa: racimo de hojas anchas desde abajo al centro, más densas en el medio
+  reg('leaf', 0, 0, 256, 256, (x0, y0, w, h) => {
+    for (let i = 0; i < 140; i++) {
+      const a = -Math.PI / 2 + (R() - 0.5) * 2.9, d = 20 + R() * 95, px = x0 + w / 2 + Math.cos(a) * d * 0.9, py = y0 + h * 0.62 + Math.sin(a) * d * 0.8;
+      leaf(px, py, 26 + R() * 22, 7 + R() * 6, a + (R() - 0.5), greens[i % 6], 'rgba(20,40,12,.5)');
+    }
+  });
+  // fronda de palmera: nervio curvo (base a la izquierda) con folíolos finos que cuelgan
+  reg('palm', 256, 0, 512, 128, (x0, y0, w, h) => {
+    const cy = y0 + h / 2;
+    for (let i = 0; i < 64; i++) {
+      const t = i / 64, x = x0 + 8 + t * (w - 16), sp = (1 - t * 0.7) * 50;
+      for (const sd of [-1, 1]) leaf(x, cy, sp, 3.2, sd * (1.1 + t * 0.3), greens[(i + (sd > 0 ? 1 : 3)) % 6]);
+    }
+    c.strokeStyle = '#6a5a34'; c.lineWidth = 4; c.beginPath(); c.moveTo(x0, cy); c.lineTo(x0 + w, cy); c.stroke();
+  });
+  // helecho: nervio con folíolos que se achican a la punta
+  reg('fern', 256, 128, 512, 256, (x0, y0, w, h) => {
+    const cy = y0 + h / 2;
+    for (let i = 0; i < 40; i++) {
+      const t = i / 40, x = x0 + 10 + t * (w - 20), sp = (1 - t) * 48 + 6;
+      for (const sd of [-1, 1]) leaf(x, cy, sp, 5, sd * 1.25, greens[(i + 2) % 6], 'rgba(20,40,12,.4)');
+    }
+    c.strokeStyle = '#3a5424'; c.lineWidth = 3; c.beginPath(); c.moveTo(x0, cy); c.lineTo(x0 + w, cy); c.stroke();
+  });
+  // pasto: briznas desde abajo
+  reg('grass', 0, 256, 128, 384, (x0, y0, w, h) => {
+    for (let i = 0; i < 70; i++) {
+      const bx = x0 + 6 + R() * (w - 12), tall = h * (0.45 + R() * 0.55), lean = (R() - 0.5) * 30;
+      c.strokeStyle = ['#5c7a34', '#4a6a2a', '#7a9444', '#6a8a3a', '#8a9a4a'][i % 5]; c.lineWidth = 2 + R() * 2;
+      c.beginPath(); c.moveTo(bx, y0 + h); c.quadraticCurveTo(bx + lean * 0.3, y0 + h - tall * 0.6, bx + lean, y0 + h - tall); c.stroke();
+    }
+  });
+  // liana colgando (arriba = de donde cuelga)
+  reg('vine', 128, 256, 192, 512, (x0, y0, w, h) => {
+    c.strokeStyle = '#4a5a2a'; c.lineWidth = 3; c.beginPath(); c.moveTo(x0 + w / 2, y0);
+    for (let y = 0; y <= h; y += 16) c.lineTo(x0 + w / 2 + Math.sin(y * 0.05) * 8, y0 + y); c.stroke();
+    for (let y = 8; y < h - 6; y += 9) leaf(x0 + w / 2 + Math.sin(y * 0.05) * 8, y0 + y, 14 + R() * 8, 5, (y % 18 ? 0.5 : Math.PI - 0.5) + (R() - 0.5) * 0.5, greens[y % 6]);
+  });
+  // paja del techo: flecos que cuelgan
+  reg('thatch', 192, 256, 320, 384, (x0, y0, w, h) => {
+    for (let i = 0; i < 160; i++) {
+      const bx = x0 + R() * w, len = h * (0.55 + R() * 0.45);
+      c.strokeStyle = ['#b8955a', '#a07c44', '#c8a868', '#8a6a3a', '#d0b070'][i % 5]; c.lineWidth = 1.5 + R() * 1.5;
+      c.beginPath(); c.moveTo(bx, y0); c.lineTo(bx + (R() - 0.5) * 8, y0 + len); c.stroke();
+    }
+  });
+  // hiedra / musgo: mancha redonda de hojitas
+  reg('ivy', 320, 256, 448, 384, (x0, y0, w, h) => {
+    for (let i = 0; i < 180; i++) {
+      const a = R() * 6.3, d = Math.sqrt(R()) * w * 0.45;
+      leaf(x0 + w / 2 + Math.cos(a) * d, y0 + h / 2 + Math.sin(a) * d, 9 + R() * 6, 4, R() * 6.3, greens[i % 6]);
+    }
+  });
+  // flores tropicales (rojas, naranjas, rosas) con hojitas
+  reg('flower', 448, 256, 512, 320, (x0, y0, w, h) => {
+    for (let i = 0; i < 14; i++) leaf(x0 + w / 2, y0 + h, 18 + R() * 12, 4, -Math.PI / 2 + (R() - 0.5) * 2, greens[i % 6]);
+    for (let i = 0; i < 9; i++) {
+      c.fillStyle = ['#e83a4a', '#f08a2a', '#e85aa0', '#f0c030'][i % 4];
+      const fx = x0 + 10 + R() * (w - 20), fy = y0 + 8 + R() * (h * 0.55);
+      for (let p = 0; p < 5; p++) { const a = p / 5 * 6.28; c.beginPath(); c.arc(fx + Math.cos(a) * 3, fy + Math.sin(a) * 3, 2.6, 0, 7); c.fill(); }
+      c.fillStyle = '#f8e070'; c.beginPath(); c.arc(fx, fy, 1.6, 0, 7); c.fill();
+    }
+  });
+  // hojas secas (piso)
+  reg('dead', 448, 320, 512, 384, (x0, y0, w, h) => {
+    for (let i = 0; i < 26; i++) leaf(x0 + 6 + R() * (w - 12), y0 + 6 + R() * (h - 12), 10 + R() * 8, 4, R() * 6.3, ['#7a5a2a', '#8a6a34', '#5a4420', '#9a7a3a'][i % 4], 'rgba(40,20,5,.5)');
+  });
+  // hoja grande (banano / monstera), base abajo
+  reg('bigleaf', 0, 384, 128, 512, (x0, y0, w, h) => {
+    c.fillStyle = '#3f7030'; c.beginPath(); c.moveTo(x0 + w / 2, y0 + h);
+    c.bezierCurveTo(x0 - 10, y0 + h * 0.5, x0 + w * 0.2, y0 + 4, x0 + w / 2, y0 + 2);
+    c.bezierCurveTo(x0 + w * 0.8, y0 + 4, x0 + w + 10, y0 + h * 0.5, x0 + w / 2, y0 + h); c.fill();
+    c.strokeStyle = '#6a9a4a'; c.lineWidth = 2; c.beginPath(); c.moveTo(x0 + w / 2, y0 + h); c.lineTo(x0 + w / 2, y0 + 6); c.stroke();
+    c.lineWidth = 1;
+    for (let y = 16; y < h - 8; y += 8) for (const sd of [-1, 1]) { c.beginPath(); c.moveTo(x0 + w / 2, y0 + y + 6); c.lineTo(x0 + w / 2 + sd * w * 0.42, y0 + y); c.stroke(); }
+    c.globalCompositeOperation = 'destination-out';                  // cortes de la monstera
+    for (let i = 0; i < 6; i++) { c.beginPath(); c.ellipse(x0 + w / 2 + (i % 2 ? 1 : -1) * w * 0.3, y0 + 20 + i * 16, 8, 3, (i % 2 ? -0.4 : 0.4), 0, 7); c.fill(); }
+    c.globalCompositeOperation = 'source-over';
+  });
+  // telaraña (rincones del caparazón, la cueva)
+  reg('web', 256, 384, 384, 512, (x0, y0, w, h) => {
+    c.strokeStyle = 'rgba(230,230,220,.8)'; c.lineWidth = 1;
+    const cx = x0 + 6, cy = y0 + 6;
+    for (let k = 0; k < 9; k++) { const a = k / 8 * Math.PI / 2; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(a) * w, cy + Math.sin(a) * h); c.stroke(); }
+    for (let d = 14; d < w * 1.3; d += 12) { c.beginPath(); for (let k = 0; k <= 8; k++) { const a = k / 8 * Math.PI / 2, rr = d + Math.sin(k * 3) * 2; k ? c.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : c.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } c.stroke(); }
+  });
+  // raíces colgando / flecos de musgo
+  reg('moss', 384, 384, 512, 512, (x0, y0, w, h) => {
+    for (let i = 0; i < 90; i++) {
+      const bx = x0 + R() * w, len = h * (0.3 + R() * 0.7);
+      c.strokeStyle = ['#4a5a2a', '#5a6a34', '#3a4a22', '#6a7a3a'][i % 4]; c.lineWidth = 1 + R() * 2;
+      c.beginPath(); c.moveTo(bx, y0); c.quadraticCurveTo(bx + (R() - 0.5) * 12, y0 + len * 0.5, bx + (R() - 0.5) * 6, y0 + len); c.stroke();
+    }
+  });
+  const t = new THREE.CanvasTexture(cv);
+  t.anisotropy = texAniso();
+  FOLI.tex = t;
+  FOLI.mat = new THREE.MeshLambertMaterial({ map: t, vertexColors: true, alphaTest: 0.42, side: THREE.DoubleSide });
+  // atrás se ilumina igual que adelante (si no, con DoubleSide la cara de atrás queda negra)
+  FOLI.mat.onBeforeCompile = sh => {
+    sh.fragmentShader = sh.fragmentShader.replace('( gl_FrontFacing ) ? vIndirectFront : vIndirectBack', 'vIndirectFront')
+                                         .replace('( gl_FrontFacing ) ? vLightFront : vLightBack', 'vLightFront');
+  };
+}
+function texAniso() {
+  return typeof renderer !== 'undefined' && renderer && renderer.capabilities ? Math.min(4, renderer.capabilities.getMaxAnisotropy()) : 1;
+}
 
 function themeMaterials() {
   const T = CONFIG.THEME;
@@ -3285,23 +3591,38 @@ function buildWindows(props, win, shaft) {
 }
 
 //--- palmera seca (con marco propio). lean = inclinación, rot = hacia dónde se inclina ---
-function palm(b, x, z, segs, broken, lean, rot) {
+// F5.17: tronco de cilindros con anillos (antes cajas) y frondas de hojas con alfa en `fb` (FOLI.mat), arqueadas en
+// dos tramos. Sin `fb`, las frondas van como antes (tablas). La cuenta del tronco no cambia (palmTop)
+function palm(b, x, z, segs, broken, lean, rot, fb) {
   b.setFrame(x, 0, z, rot);
+  if (fb) fb.setFrame(x, 0, z, rot);
   let px = 0, py = 0;
   for (let i = 0; i < segs; i++) {
     const h = 0.9, wd = 0.36 - i * 0.012, ang = lean * Math.pow(i / segs, 2) * 1.6;
-    b.box(px + Math.sin(ang) * h / 2, py + Math.cos(ang) * h / 2, 0, wd, h + 0.05, wd, i % 2 ? 0x6e5f50 : 0x645646, 0, 0, -ang);
-    px += Math.sin(ang) * h; py += Math.cos(ang) * h;
+    const nx = px + Math.sin(ang) * h, ny = py + Math.cos(ang) * h;
+    b.seg([px, py - 0.02, 0], [nx, ny + 0.02, 0], wd * 0.56, wd * 0.5, i % 2 ? 0x6e5f50 : 0x645646, 7);
+    b.seg([px, py - 0.04, 0], [px + Math.sin(ang) * 0.1, py + Math.cos(ang) * 0.1, 0], wd * 0.62, wd * 0.6, 0x54483a, 7);   // anillo
+    px = nx; py = ny;
   }
-  const n = broken ? 4 : 8;
-  if (broken) b.box(px + 0.4, py - 0.45, 0, 0.24, 1.0, 0.24, 0x5e5044, 0, 0, 2.5);   // punta quebrada colgando
+  const n = broken ? 4 : 9;
+  if (broken) b.seg([px, py, 0], [px + 0.6, py - 0.9, 0.1], 0.12, 0.07, 0x5e5044, 6);   // punta quebrada colgando
+  b.sphere(px, py, 0, 0.26, 0.22, 0.26, 0x5a4a34, 7);                                   // corona
   for (let k = 0; k < n; k++) {
-    const a = k / n * Math.PI * 2 + rnd(-0.2, 0.2), droop = broken ? rnd(0.9, 1.3) : rnd(0.35, 0.9), len = rnd(1.6, 2.4);
-    const dx = Math.cos(droop) * Math.cos(a), dy = -Math.sin(droop), dz = -Math.cos(droop) * Math.sin(a);
-    b.box(px + dx * len / 2, py + dy * len / 2, dz * len / 2, len, 0.03, 0.3,
-      [0x8a7a55, 0x7a6a48, 0x9a8a62][k % 3], 0, a, -droop);
+    const a = k / n * Math.PI * 2 + rnd(-0.2, 0.2), droop = broken ? rnd(0.9, 1.3) : rnd(0.35, 0.9), len = rnd(1.8, 2.8);
+    const col = [0x8a7a55, 0x7a6a48, 0x9a8a62][k % 3];
+    if (!fb) {
+      const dx = Math.cos(droop) * Math.cos(a), dy = -Math.sin(droop), dz = -Math.cos(droop) * Math.sin(a);
+      b.box(px + dx * len / 2, py + dy * len / 2, dz * len / 2, len, 0.03, 0.3, col, 0, a, -droop);
+      continue;
+    }
+    const R = FOLI.r.palm, um = (R[0] + R[2]) / 2, l1 = len * 0.45, up = broken ? 0.2 : -0.35;   // 1er tramo sube un poco
+    const ex = px + Math.cos(up) * l1 * Math.cos(a), ey = py - Math.sin(up) * l1, ez = -Math.cos(up) * l1 * Math.sin(a);
+    const tint = broken ? 0xc8b078 : [0xd8e0b0, 0xc8d4a0, 0xe0e8c0][k % 3];
+    fb.frond(px, py, 0, l1, 0.9, a, up, null, tint, [R[0], R[1], um, R[3]]);
+    fb.frond(ex, ey, ez, len - l1, 0.8, a, droop + 0.3, null, tint, [um, R[1], R[2], R[3]]);
   }
   b.setFrame(null);
+  if (fb) fb.setFrame(null);
 }
 // F5.5: punta del tronco en el marco de la palmera (+x = hacia donde se inclina). La misma cuenta que palm()
 function palmTop(P) {
@@ -3345,11 +3666,11 @@ function buildOutside() {
   // F5.5: cada palmera en su grupo (base, girado hacia donde se inclina) con un hijo que puede voltearse
   // (THEMEFX.palms[i], rotation.z). El tocón queda en el mesh fijo de afuera
   THEMEFX.palms = CONFIG.QUEST.palms.map(P => {
-    const pb = new MeshBuilder();
-    palm(pb, 0, 0, P.segs, P.broken, P.lean, 0);
-    const m = pb.mesh(TMAT.prop), outer = new THREE.Group(), tilt = new THREE.Group();
+    const pb = new MeshBuilder(), fpb = new MeshBuilder();
+    palm(pb, 0, 0, P.segs, P.broken, P.lean, 0, fpb);
+    const m = pb.mesh(TMAT.prop), fm = fpb.mesh(FOLI.mat), outer = new THREE.Group(), tilt = new THREE.Group();
     outer.position.set(P.x, 0, P.z); outer.rotation.y = P.rot; outer.userData.theme = true;
-    outer.add(tilt); tilt.add(m);
+    outer.add(tilt); tilt.add(m); if (fm) tilt.add(fm);
     scene.add(outer);
     b.box(P.x, 0.3, P.z, 0.42, 0.6, 0.42, 0x5e5044);                                  // tocón
     return tilt;
@@ -3373,8 +3694,10 @@ function buildOutside() {
     .forEach(p => { for (let k = 0; k < 4; k++) b.box(p[0] + rnd(-0.3, 0.3), 0.35, p[1] + rnd(-0.2, 0.2), 0.04, rnd(0.5, 0.9), 0.04, 0x55603a, rnd(-0.2, 0.2), 0, rnd(-0.2, 0.2)); });
   for (let z = -3.4; z <= 3.4; z += 2.27) [16, 22].forEach(x => b.box(x, -0.5, z, 0.22, 1.1, 0.22, 0x5e5446));
   // (F5.12: la laguna que bajaba al mar se sacó: ahí se pasa de la playa a la jungla este)
-  for (const P of CONFIG.GARDEN.palms) palm(b, P.x, P.z, P.segs, false, P.lean, P.rot);
+  const fb = new MeshBuilder();
+  for (const P of CONFIG.GARDEN.palms) palm(b, P.x, P.z, P.segs, false, P.lean, P.rot, fb);
   b.mesh(TMAT.prop);
+  fb.mesh(FOLI.mat);
 }
 function updateSea(t) {
   const S = THEMEFX.sea;
@@ -10250,123 +10573,241 @@ function mulberry(a) {
   return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
     t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
-// F5.10: rancho de playa (solo dibujo; los sólidos están en PROPS y el corral en buildMap). Palapa con techo de
-// palma en capas, deck de madera, billar con bolas y tacos, barra con botellas y bancos, hamaca, foquitos
-// (MeshBasic: ninguna luz nueva), tablas, red con boyas, cartel, y el tortugario con nidos, huevos y crías
-const RANCHO = { bulbs: null, t: 0 };
+// F5.10: rancho de playa (solo dibujo; los sólidos están en PROPS). F5.17 (Diego: "le falta mucho diseño", menos
+// Minecraft): palapa de troncos con techo de paja a 4 aguas en capas y flecos, tiki bar de bambú contra el cerco sur
+// (antes tapaba a la tortuga), billar con lámpara, hamaca curva, antorchas, arco de entrada, tablas de surf, red con
+// boyas, barriles; el tortugario con huesos de verdad y la cueva de rocas facetadas con ojos que brillan adentro
+const RANCHO = { bulbs: null, t: 0, eyes: null, blink: 0 };
 function buildRancho() {
-  const R = CONFIG.RANCHO, P = R.palapa, mb = new MeshBuilder();
-  const wood = 0x7a5432, dark = 0x4a321e, straw = 0xc8a860, straw2 = 0xa88848, felt = 0x1f6a3a;
-  const cx = (P.x1 + P.x2) / 2, cz = (P.z1 + P.z2) / 2, W = P.x2 - P.x1, D = P.z2 - P.z1;
-  // deck
-  for (let i = 0; i < 20; i++) mb.box(cx, 0.03, P.z1 + 0.25 + i * 0.5, W + 0.6, 0.05, 0.46, i % 2 ? 0x9a7048 : 0x8a6440);
-  // postes (troncos) y vigas
+  const R = CONFIG.RANCHO, P = R.palapa;
+  // wd: troncos y bambú (corteza) · lf: hojas y flecos (FOLI) · rk: rocas y huesos · th/tu: paja arriba/abajo · mb: resto
+  const wd = new MeshBuilder(), lf = new MeshBuilder(), rk = new MeshBuilder(), th = new MeshBuilder(), tu = new MeshBuilder(), mb = new MeshBuilder();
+  const log = 0xa88a66, logD = 0x7a5a3a, rope = 0xd8b878, plank = [0x9a7048, 0x8a6440, 0xa87a50], felt = 0x1f6a3a, dark = 0x4a321e;
+  const cx = (P.x1 + P.x2) / 2, cz = (P.z1 + P.z2) / 2, W = P.x2 - P.x1, D = P.z2 - P.z1, H = P.h;
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  // quad con la normal hacia afuera de `c` (así no hay que pensar el orden de las esquinas)
+  const quadOut = (B, a, b, cc, d, c, color, uw, vh) => {
+    const n = V(b[0] - a[0], b[1] - a[1], b[2] - a[2]).cross(V(d[0] - a[0], d[1] - a[1], d[2] - a[2]));
+    const m = V((a[0] + b[0] + cc[0] + d[0]) / 4 - c[0], (a[1] + b[1] + cc[1] + d[1]) / 4 - c[1], (a[2] + b[2] + cc[2] + d[2]) / 4 - c[2]);
+    const uv = [[0, 0], [uw, 0], [uw, vh], [0, vh]];
+    if (n.dot(m) < 0) B.quad(a, d, cc, b, [uv[0], uv[3], uv[2], uv[1]], color); else B.quad(a, b, cc, d, uv, color);
+  };
+  // deck de tablones con un tronco de borde
+  for (let i = 0; i < 22; i++) mb.box(cx, 0.04, P.z1 - 0.5 + 0.25 + i * 0.5, W + 1, 0.06, 0.45, plank[i % 3]);
+  for (const z of [P.z1 - 0.55, P.z2 + 0.55]) wd.seg([P.x1 - 0.55, 0.09, z], [P.x2 + 0.55, 0.09, z], 0.09, 0.09, logD, 7);
+  for (const x of [P.x1 - 0.55, P.x2 + 0.55]) wd.seg([x, 0.09, P.z1 - 0.55], [x, 0.09, P.z2 + 0.55], 0.09, 0.09, logD, 7);
+  // postes de tronco con amarras de soga y una piedra al pie
   for (const [x, z] of [[P.x1, P.z1], [P.x2, P.z1], [P.x1, P.z2], [P.x2, P.z2]]) {
-    mb.box(x, P.h / 2, z, 0.3, P.h, 0.3, wood);
-    mb.box(x, 0.4, z, 0.36, 0.1, 0.36, dark);
+    wd.cyl(x, 0, z, 0.17, H + 0.25, log, 0.82, 9);
+    for (const y of [H - 0.45, H - 0.25, 1.1]) wd.cyl(x, y, z, 0.18, 0.09, rope, 1, 9);
+    rk.rock(x, 0.02, z, 0.42, 0.28, 0.42, 0x8a8478, x * 3 + z);
   }
-  mb.box(cx, P.h, P.z1, W + 0.4, 0.2, 0.2, dark); mb.box(cx, P.h, P.z2, W + 0.4, 0.2, 0.2, dark);
-  mb.box(P.x1, P.h, cz, 0.2, 0.2, D + 0.4, dark); mb.box(P.x2, P.h, cz, 0.2, 0.2, D + 0.4, dark);
-  // techo de palma: capas que se achican hacia arriba, con flecos en el borde
-  for (let k = 0; k < 5; k++) {
-    const s = 1 - k * 0.19;
-    mb.box(cx, P.h + 0.2 + k * 0.32, cz, (W + 1.6) * s, 0.3, (D + 1.6) * s, k % 2 ? straw : straw2);
+  // vigas del borde y cabios hasta la punta
+  const yT = H + 2.7, ov = 1.1;
+  for (const z of [P.z1, P.z2]) wd.seg([P.x1 - 0.5, H, z], [P.x2 + 0.5, H, z], 0.13, 0.13, logD, 8);
+  for (const x of [P.x1, P.x2]) wd.seg([x, H + 0.1, P.z1 - 0.5], [x, H + 0.1, P.z2 + 0.5], 0.12, 0.12, logD, 8);
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) wd.seg([cx + sx * (W / 2 + ov), H - 0.1, cz + sz * (D / 2 + ov)], [cx, yT - 0.15, cz], 0.09, 0.06, logD, 6);
+  for (let k = 1; k < 4; k++) for (const [ax, sd] of [['x', -1], ['x', 1], ['z', -1], ['z', 1]]) {   // cabios intermedios
+    const f = -0.5 + k / 4, bx = ax === 'x' ? cx + f * (W + 2 * ov) : cx + sd * (W / 2 + ov), bz = ax === 'x' ? cz + sd * (D / 2 + ov) : cz + f * (D + 2 * ov);
+    wd.seg([bx, H - 0.05, bz], [cx, yT - 0.15, cz], 0.055, 0.04, logD, 5);
   }
-  mb.box(cx, P.h + 1.85, cz, 0.5, 0.35, 0.5, straw2);
-  for (let i = 0; i < 24; i++) {                                         // flecos
-    const t = i / 24, along = -0.5 + t;
-    mb.box(cx + along * (W + 1.6), P.h + 0.02, P.z1 - 0.8, 0.35, 0.35, 0.06, straw, 0.3, 0, 0);
-    mb.box(cx + along * (W + 1.6), P.h + 0.02, P.z2 + 0.8, 0.35, 0.35, 0.06, straw, -0.3, 0, 0);
-    mb.box(P.x1 - 0.8, P.h + 0.02, cz + along * (D + 1.6), 0.06, 0.35, 0.35, straw, 0, 0, -0.3);
-    mb.box(P.x2 + 0.8, P.h + 0.02, cz + along * (D + 1.6), 0.06, 0.35, 0.35, straw, 0, 0, 0.3);
+  // techo de paja a 4 aguas: 5 capas que se solapan, cada una con flecos colgando del borde
+  const S0 = W / 2 + ov + 0.15, below = [cx, H - 5, cz], above = [cx, yT + 5, cz], N = 5;
+  for (let k = 0; k < N; k++) {
+    const t0 = k / N, t1 = Math.min(1, (k + 1.35) / N), s0 = S0 * (1 - t0) + 0.12, s1 = S0 * (1 - t1);
+    const y0 = H + 0.05 + (yT - H - 0.05) * t0 - 0.12, y1 = H + 0.05 + (yT - H - 0.05) * t1;
+    const pts = s => [[cx - s, cz - s], [cx + s, cz - s], [cx + s, cz + s], [cx - s, cz + s]];
+    const p0 = pts(s0), p1 = pts(s1), slope = Math.hypot(s0 - s1, y1 - y0);
+    for (let i = 0; i < 4; i++) {
+      const j = (i + 1) % 4, A = [p0[i][0], y0, p0[i][1]], B = [p0[j][0], y0, p0[j][1]], Cc = [p1[j][0], y1, p1[j][1]], Dd = [p1[i][0], y1, p1[i][1]];
+      const tone = [0xffffff, 0xf0e4d0, 0xe4d6bc][(k + i) % 3];
+      quadOut(th, A, B, Cc, Dd, below, tone, s0 * 2 / 1.6, slope / 1.2);
+      const dn = 0.14;                                                 // por debajo, apenas más bajo
+      quadOut(tu, [A[0], A[1] - dn, A[2]], [B[0], B[1] - dn, B[2]], [Cc[0], Cc[1] - dn, Cc[2]], [Dd[0], Dd[1] - dn, Dd[2]], above, 0x8a7458, s0 * 2 / 1.6, slope / 1.2);
+      const L = Math.hypot(B[0] - A[0], B[2] - A[2]), n = Math.ceil(L / 0.55), ry = Math.atan2(B[0] - A[0], B[2] - A[2]) + Math.PI / 2;
+      if (k === 0) for (let q = 0; q < n; q++) {                         // flecos del borde de afuera (los de arriba asomaban por debajo)
+        const f = (q + 0.5) / n, len = 0.45 + ((q * 7 + k) % 5) * 0.06;
+        lf.card(A[0] + (B[0] - A[0]) * f, y0 - len + 0.04, A[2] + (B[2] - A[2]) * f, 0.62, len, 0, ry, 0, 'thatch', 0xffffff);
+      }
+    }
   }
-  // billar (PROPS billar): patas, caja, paño, bandas, troneras, bolas y dos tacos
+  th.sphere(cx, yT, cz, 0.35, 0.3, 0.35, 0xc8a868, 8);                // moño de la punta
+  wd.cyl(cx, yT + 0.1, cz, 0.05, 0.7, logD, 0.6, 6);
+  // billar (PROPS billar): patas torneadas, caja, paño, bandas, troneras, bolas, tacos y lámpara colgando
   const [bx1, bx2, bz1, bz2, bh] = R.props.find(p => p.id === 'billar').box;
   const bcx = (bx1 + bx2) / 2, bcz = (bz1 + bz2) / 2, bw = bx2 - bx1, bd = bz2 - bz1;
-  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) mb.box(bcx + sx * (bw / 2 - 0.15), 0.35, bcz + sz * (bd / 2 - 0.15), 0.16, 0.7, 0.16, dark);
-  mb.box(bcx, bh - 0.12, bcz, bw, 0.22, bd, wood);
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const lx = bcx + sx * (bw / 2 - 0.16), lz = bcz + sz * (bd / 2 - 0.16);
+    wd.cyl(lx, 0, lz, 0.09, bh - 0.2, dark, 0.7, 8); wd.sphere(lx, 0.32, lz, 0.1, 0.09, 0.1, dark, 8);
+  }
+  mb.box(bcx, bh - 0.12, bcz, bw, 0.22, bd, 0x6a3a1e);
   mb.box(bcx, bh + 0.005, bcz, bw - 0.24, 0.02, bd - 0.24, felt);
-  mb.box(bcx, bh + 0.04, bz1 + 0.06, bw, 0.08, 0.12, 0x5a2a1a); mb.box(bcx, bh + 0.04, bz2 - 0.06, bw, 0.08, 0.12, 0x5a2a1a);
-  mb.box(bx1 + 0.06, bh + 0.04, bcz, 0.12, 0.08, bd, 0x5a2a1a); mb.box(bx2 - 0.06, bh + 0.04, bcz, 0.12, 0.08, bd, 0x5a2a1a);
-  for (const [sx, sz] of [[-1, -1], [0, -1], [1, -1], [-1, 1], [0, 1], [1, 1]]) mb.box(bcx + sx * (bw / 2 - 0.13), bh + 0.02, bcz + sz * (bd / 2 - 0.13), 0.12, 0.03, 0.12, 0x0a0a0a);
+  for (const z of [bz1 + 0.06, bz2 - 0.06]) mb.box(bcx, bh + 0.04, z, bw, 0.08, 0.12, 0x5a2a1a);
+  for (const x of [bx1 + 0.06, bx2 - 0.06]) mb.box(x, bh + 0.04, bcz, 0.12, 0.08, bd, 0x5a2a1a);
+  for (const [sx, sz] of [[-1, -1], [0, -1], [1, -1], [-1, 1], [0, 1], [1, 1]]) mb.cyl(bcx + sx * (bw / 2 - 0.13), bh + 0.01, bcz + sz * (bd / 2 - 0.13), 0.065, 0.03, 0x0a0a0a, 1, 8);
   const balls = [0xf0f0e8, 0xf0c020, 0x2040c0, 0xc02020, 0x6a2a8a, 0xe86a1a, 0x1a8a3a, 0x7a1a1a, 0x101010];
-  balls.forEach((c, i) => mb.box(bcx + 0.5 - (i % 4) * 0.1, bh + 0.05, bcz - 0.15 + Math.floor(i / 4) * 0.1, 0.07, 0.07, 0.07, c));
-  mb.box(bcx - 0.4, bh + 0.05, bcz + 0.05, 0.07, 0.07, 0.07, 0xf0f0e8);   // la blanca
-  mb.box(bcx - 0.2, bh + 0.06, bcz + 0.35, 1.5, 0.03, 0.03, 0xd8b070, 0, 0.3, 0);   // taco sobre la mesa
-  mb.box(P.x2 - 0.25, 0.8, P.z2 - 0.3, 0.03, 1.5, 0.03, 0xd8b070, 0.1, 0, 0.12);    // taco apoyado en el poste
-  // barra (PROPS barra) con botellas atrás, en el cerco, y 3 bancos
+  balls.forEach((c, i) => mb.sphere(bcx + 0.5 - (i % 4) * 0.075, bh + 0.045, bcz - 0.12 + Math.floor(i / 4) * 0.075, 0.035, 0.035, 0.035, c, 8));
+  mb.sphere(bcx - 0.45, bh + 0.045, bcz + 0.05, 0.035, 0.035, 0.035, 0xf8f8f0, 8);
+  wd.seg([bcx - 0.9, bh + 0.06, bcz + 0.1], [bcx + 0.5, bh + 0.08, bcz + 0.55], 0.014, 0.008, 0xd8b070, 5);   // taco sobre la mesa
+  wd.seg([P.x2 - 0.3, 0.02, P.z2 - 0.45], [P.x2 - 0.2, 1.45, P.z2 - 0.25], 0.015, 0.009, 0xd8b070, 5);        // taco en el poste
+  wd.seg([bcx, H, bcz], [bcx, 2.3, bcz], 0.012, 0.012, 0x2a2a2a, 4);                                         // lámpara del billar
+  mb.cyl(bcx, 2.0, bcz, 0.34, 0.3, 0x2f5a3a, 0.35, 12);
+  // tiki bar (PROPS barra) contra el cerco sur: frente de bambú, mostrador, estantes con botellas, alero de paja
   const [rx1, rx2, rz1, rz2, rh] = R.props.find(p => p.id === 'barra').box;
-  const rcx = (rx1 + rx2) / 2, rcz = (rz1 + rz2) / 2;
-  mb.box(rcx, rh / 2, rcz, rx2 - rx1, rh, rz2 - rz1, wood);
-  mb.box(rcx + 0.05, rh + 0.03, rcz, rx2 - rx1 + 0.2, 0.06, rz2 - rz1 + 0.2, 0xa87a4a);
-  for (let i = 0; i < 6; i++) mb.box(rx2 + 0.005, rh * 0.5, rz1 + 0.4 + i * 0.7, 0.01, rh * 0.8, 0.5, i % 2 ? 0x6a4a2a : 0x5a3a20);   // tablas del frente
-  const bottles = [0x3a8a3a, 0x8a4a1a, 0xd8d0b0, 0x2a5a8a, 0x8a1a1a];
-  for (let i = 0; i < 10; i++) mb.box(rcx - 0.15 + (i % 2) * 0.2, rh + 0.2, rz1 + 0.3 + i * 0.42, 0.08, 0.3, 0.08, bottles[i % 5]);
-  for (let i = 0; i < 3; i++) {
-    const sz = rz1 + 0.8 + i * 1.4;
-    mb.box(rx2 + 0.6, 0.35, sz, 0.08, 0.7, 0.08, dark);
-    mb.box(rx2 + 0.6, 0.72, sz, 0.36, 0.06, 0.36, 0xc83a2a);
+  const rcx = (rx1 + rx2) / 2, rl = rx2 - rx1;
+  mb.box(rcx, rh / 2, (rz1 + rz2) / 2, rl - 0.1, rh - 0.05, rz2 - rz1 - 0.1, 0x5a3a20);                          // cuerpo
+  for (let x = rx1 + 0.06; x < rx2; x += 0.115) wd.cyl(x, 0, rz2 - 0.04, 0.052, rh - 0.02, [0xc8b070, 0xb8a060, 0xd0b878][Math.round(x * 9) % 3], 1, 7);   // bambú
+  for (const y of [0.25, rh - 0.2]) wd.seg([rx1, y, rz2 + 0.02], [rx2, y, rz2 + 0.02], 0.03, 0.03, 0x8a6a3a, 6);                   // amarras
+  mb.box(rcx, rh + 0.04, (rz1 + rz2) / 2 + 0.08, rl + 0.25, 0.08, rz2 - rz1 + 0.35, 0xa87a4a);                                      // mostrador
+  wd.seg([rx1 - 0.12, rh + 0.04, rz2 + 0.2], [rx2 + 0.12, rh + 0.04, rz2 + 0.2], 0.05, 0.05, 0x8a5a34, 8);
+  const bottles = [0x2a6a2a, 0x8a4a1a, 0xd8d0b0, 0x2a5a8a, 0x8a1a1a, 0x3a2a14];
+  for (const sy of [1.45, 1.95]) {                                    // estantes atrás, contra el cerco
+    mb.box(rcx, sy, rz1 - 0.12, rl - 0.4, 0.05, 0.28, 0x6a4a2a);
+    for (let i = 0; i < 14; i++) {
+      const bx = rx1 + 0.4 + i * (rl - 0.8) / 13, c = bottles[(i + sy * 3) % 6 | 0], bhh = 0.22 + (i % 3) * 0.04;
+      mb.cyl(bx, sy + 0.03, rz1 - 0.12, 0.04, bhh, c, 1, 6); mb.cyl(bx, sy + 0.03 + bhh, rz1 - 0.12, 0.015, 0.1, c, 1, 5);
+    }
   }
-  // hamaca entre dos postes. F5.16 (Diego): tapaba la entrada del sendero del búnker (H2); va al borde norte de la palapa
-  const hx = -51, hz = 34.8;
-  mb.box(hx - 1.6, 0.9, hz, 0.12, 1.8, 0.12, wood); mb.box(hx + 1.6, 0.9, hz, 0.12, 1.8, 0.12, wood);
-  mb.box(hx, 0.7, hz, 2.9, 0.05, 0.9, 0xe0503a);
-  for (let i = 0; i < 4; i++) mb.box(hx - 1.2 + i * 0.8, 0.72, hz, 0.4, 0.06, 0.92, i % 2 ? 0xf0c040 : 0x3a8ac8);
-  // tablas de surf en un soporte y una red con boyas en un bastidor (F5.13: el rancho ya no tiene cercos)
-  mb.box(-46, 0.5, 19.4, 3, 0.08, 0.3, dark); mb.box(-46, 1.6, 19.4, 3, 0.08, 0.3, dark);
-  [[-47.2, 0xe86a3a], [-46.4, 0x3aa0d8], [-45.6, 0xf0e0a0], [-44.8, 0x5ab86a]].forEach(([x, c]) => {
-    mb.box(x, 1.05, 19.4, 0.5, 2.1, 0.07, c, 0.15, 0, 0);
-    mb.box(x, 1.05, 19.44, 0.51, 0.08, 0.075, 0xf0ead8, 0.15, 0, 0);
+  for (const x of [rx1 + 0.1, rx2 - 0.1]) wd.cyl(x, 0, rz1 - 0.15, 0.09, 3.2, log, 0.85, 8);                    // postes de atrás
+  for (let i = 0; i < 5; i++) {                                                                               // botellas y cocos arriba
+    const bx = rx1 + 0.5 + i * 1.0;
+    if (i % 2) mb.sphere(bx, rh + 0.16, rz2 - 0.15, 0.11, 0.1, 0.11, 0x6a4a2a, 7);
+    else { mb.cyl(bx, rh + 0.08, rz2 - 0.15, 0.04, 0.24, bottles[i % 6], 1, 6); mb.cyl(bx, rh + 0.32, rz2 - 0.15, 0.015, 0.09, bottles[i % 6], 1, 5); }
+  }
+  // alero de paja en voladizo (sin postes adelante: se camina por debajo)
+  const ay0 = 3.25, ay1 = 2.55, az0 = rz1 - 0.3, az1 = rz2 + 1.35;
+  quadOut(th, [rx1 - 0.4, ay0, az0], [rx2 + 0.4, ay0, az0], [rx2 + 0.4, ay1, az1], [rx1 - 0.4, ay1, az1], [rcx, 0, 0], 0xffffff, rl / 1.6, 1.4);
+  quadOut(tu, [rx1 - 0.4, ay0 - 0.1, az0], [rx2 + 0.4, ay0 - 0.1, az0], [rx2 + 0.4, ay1 - 0.1, az1], [rx1 - 0.4, ay1 - 0.1, az1], [rcx, 9, 40], 0x8a7458, rl / 1.6, 1.4);
+  for (let q = 0; q < 12; q++) lf.card(rx1 - 0.3 + (rl + 0.6) * (q + 0.5) / 12, ay1 - 0.5, az1, 0.55, 0.5, 0, 0, 0, 'thatch', 0xffffff);
+  for (const x of [rx1 + 0.1, rcx, rx2 - 0.1]) wd.seg([x, 2.2, rz1 - 0.15], [x, ay1 + 0.12, az1 - 0.2], 0.05, 0.04, logD, 5);   // tornapuntas
+  for (let i = 0; i < 4; i++) {                                                                               // banquetas
+    const sx = rx1 + 0.7 + i * (rl - 1.4) / 3, sz = rz2 + 0.75;
+    for (const [dx, dz] of [[-0.12, -0.12], [0.12, -0.12], [-0.12, 0.12], [0.12, 0.12]]) wd.seg([sx + dx * 1.3, 0, sz + dz * 1.3], [sx + dx * 0.6, 0.72, sz + dz * 0.6], 0.025, 0.02, logD, 5);
+    mb.cyl(sx, 0.72, sz, 0.21, 0.07, 0xc83a2a, 1, 10);
+  }
+  // máscaras tiki en los postes de atrás
+  for (const x of [rx1 + 0.1, rx2 - 0.1]) {
+    mb.box(x, 2.55, rz1 - 0.02, 0.34, 0.6, 0.1, 0x6a4a2a);
+    mb.box(x - 0.08, 2.65, rz1 + 0.04, 0.09, 0.12, 0.04, 0xf0e0a0); mb.box(x + 0.08, 2.65, rz1 + 0.04, 0.09, 0.12, 0.04, 0xf0e0a0);
+    mb.box(x, 2.42, rz1 + 0.04, 0.2, 0.08, 0.04, 0x2a1a0a); mb.box(x, 2.9, rz1 - 0.02, 0.42, 0.08, 0.12, 0xc83a2a);
+  }
+  // barriles y heladerita al lado del bar
+  for (const [x, z] of [[rx2 + 0.55, rz1 + 0.35], [rx2 + 1.2, rz1 + 0.3]]) {
+    wd.cyl(x, 0, z, 0.3, 0.85, 0x7a5a36, 0.92, 12);
+    for (const y of [0.12, 0.42, 0.72]) mb.cyl(x, y, z, 0.305 - y * 0.02, 0.05, 0x3a3a38, 1, 12);
+  }
+  mb.box(rx1 - 0.55, 0.22, rz1 + 0.4, 0.6, 0.44, 0.42, 0x3a8ac8); mb.box(rx1 - 0.55, 0.46, rz1 + 0.4, 0.62, 0.06, 0.44, 0xf0f0e8);
+  // hamaca curva entre dos troncos (borde norte de la palapa)
+  const hx = -51, hz = 34.8, hL = 2.9;
+  for (const sx of [-1, 1]) { wd.cyl(hx + sx * 1.65, 0, hz, 0.1, 1.9, log, 0.85, 8); wd.seg([hx + sx * 1.62, 1.45, hz], [hx + sx * hL / 2, 0.95, hz], 0.012, 0.012, rope, 4); }
+  for (let i = 0; i < 12; i++) {
+    const u0 = -1 + i / 6, u1 = u0 + 1 / 6, y0 = 0.55 + 0.4 * u0 * u0, y1 = 0.55 + 0.4 * u1 * u1;
+    const x0 = hx + u0 * hL / 2, x1 = hx + u1 * hL / 2, ang = Math.atan2(y1 - y0, x1 - x0);
+    mb.box((x0 + x1) / 2, (y0 + y1) / 2, hz, Math.hypot(x1 - x0, y1 - y0) + 0.01, 0.03, 0.95, [0xe0503a, 0xf0c040, 0x3a8ac8][i % 3], 0, 0, ang);
+  }
+  // antorchas tiki: flanquean la entrada del sendero (este), el bar y el paso al tortugario
+  const fmat = new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,230,140,1)', 'rgba(255,100,10,0.5)'), transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const fgeo = new THREE.PlaneGeometry(0.42, 0.7);
+  for (const [x, z] of [[-42.6, 25.3], [-42.6, 31.7], [rx1 - 0.2, rz2 + 1.8], [rx2 + 0.2, rz2 + 1.8], [-55.6, 23], [-55.6, 36.2]]) {
+    wd.cyl(x, 0, z, 0.045, 1.9, 0xc8b070, 0.9, 6);
+    wd.cyl(x, 1.9, z, 0.08, 0.22, 0x5a3a20, 1.5, 8);
+    for (const r of [0, Math.PI / 2]) {
+      const f = new THREE.Mesh(fgeo, fmat); f.position.set(x, 2.42, z); f.rotation.y = r;
+      f.userData.theme = false; scene.add(f); TEMPLEFX.flames.push(f);
+    }
+  }
+  // arco de entrada al final del sendero del lazo (x -42) con el cartel colgando
+  const gx = -42.3, gz1 = 25.9, gz2 = 31.1;
+  for (const z of [gz1, gz2]) { wd.cyl(gx, 0, z, 0.16, 3.4, log, 0.85, 8); wd.cyl(gx, 3.0, z, 0.17, 0.1, rope, 1, 8); }
+  wd.seg([gx, 3.25, gz1 - 0.4], [gx, 3.25, gz2 + 0.4], 0.13, 0.13, logD, 8);
+  for (const z of [(gz1 + gz2) / 2 - 0.9, (gz1 + gz2) / 2 + 0.9]) wd.seg([gx, 3.2, z], [gx, 2.72, z], 0.01, 0.01, rope, 4);
+  mb.box(gx, 2.45, (gz1 + gz2) / 2, 0.08, 0.6, 2.3, 0x8a6a3a);
+  for (let q = 0; q < 10; q++) lf.card(gx, 3.05, gz1 - 0.3 + (gz2 - gz1 + 0.6) * (q + 0.5) / 10, 0.5, 0.6, 0, Math.PI / 2, 0, 'vine', 0xffffff);
+  // tablas de surf contra la espesura del este y red con boyas en la esquina SO
+  [[33.4, 0xe86a3a], [34.3, 0x3aa0d8], [35.2, 0xf0e0a0], [36.1, 0x5ab86a]].forEach(([z, c], i) => {
+    mb.sphere(-42.75, 1.05, z, 0.05, 1.05, 0.3, c, 10, 0, 0, 0.14 + i * 0.02);
+    mb.box(-42.72, 1.05, z, 0.02, 1.9, 0.05, 0xf0ead8, 0, 0, 0.14 + i * 0.02);
   });
-  for (const z of [36.8, 38.9]) mb.box(-55.6, 1.1, z, 0.1, 2.2, 0.1, dark);
-  for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) mb.box(-55.6, 0.8 + j * 0.35, 37 + i * 0.4, 0.02, 0.02, 0.36, 0x6a5a3a);
-  [[37.3, 1.5, 0xe84a2a], [38.1, 1.1, 0xf0c030], [38.6, 1.8, 0xe84a2a]].forEach(([z, y, c]) => mb.box(-55.5, y, z, 0.2, 0.2, 0.2, c));
-  // F5.16: tortugario del tamaño del rancho: arena revuelta, nidos rotos, huesos de zombies y de tortugas, y la
-  // cueva de roca contra el borde oeste (la última tortuga viva se esconde adentro)
-  const PN = R.pen, CV = R.cave, rr = mulberry(34);
-  const bone = 0xd8d0b8, boneOld = 0xb8ae90;
-  for (let k = 0; k < 18; k++) {                                        // manchas de arena más oscura
+  wd.seg([-42.55, 0.3, 32.8], [-42.55, 0.3, 36.7], 0.06, 0.06, logD, 6);
+  for (const z of [19.2, 21.6]) wd.cyl(-55.6, 0, z, 0.07, 2.2, log, 0.85, 7);
+  for (let i = 0; i < 7; i++) wd.seg([-55.6, 0.5, 19.2 + i * 0.4], [-55.6, 2.0, 19.2 + i * 0.4], 0.006, 0.006, 0x8a7a5a, 3);
+  for (let j = 0; j < 5; j++) wd.seg([-55.6, 0.55 + j * 0.35, 19.2], [-55.6, 0.55 + j * 0.35, 21.6], 0.006, 0.006, 0x8a7a5a, 3);
+  [[19.8, 1.5, 0xe84a2a], [20.6, 1.1, 0xf0c030], [21.2, 1.8, 0xe84a2a]].forEach(([z, y, c]) => mb.sphere(-55.5, y, z, 0.13, 0.13, 0.13, c, 8));
+  // F5.16: tortugario: arena revuelta, nidos rotos, huesos de zombies y de tortugas
+  const PN = R.pen, CV = R.cave, rr = mulberry(34), bone = 0xe0d8c0, boneOld = 0xb8ae90;
+  for (let k = 0; k < 16; k++) {                                        // hojas secas y pisadas en la arena
     const x = PN.x1 + 1 + rr() * (PN.x2 - PN.x1 - 2), z = PN.z1 + 1 + rr() * (PN.z2 - PN.z1 - 2);
-    mb.box(x, 0.02, z, 1 + rr() * 2, 0.02, 1 + rr() * 2, k % 2 ? 0xc8b07a : 0xb89a66, 0, rr() * 3, 0);
+    lf.add(UNIT_PLANE, x, 0.02, z, 1.2 + rr(), 1.2 + rr(), 1, -Math.PI / 2, rr() * 6.3, 0, 0xffffff, FOLI.r.dead);
   }
-  // cueva: montículo de rocas en capas, boca oscura hacia el este y estalactitas
-  const rock = [0x5a5550, 0x6a645c, 0x4a4642, 0x7a7266];
-  for (let k = 0; k < 26; k++) {
-    const x = CV.x1 + rr() * (CV.x2 - CV.x1 + 0.8), z = CV.z1 - 0.6 + rr() * (CV.z2 - CV.z1 + 1.2), h = 1.2 + rr() * (CV.h - 0.8);
-    mb.box(x, h / 2, z, 1.2 + rr() * 1.6, h, 1.2 + rr() * 1.6, rock[k % 4], 0, rr() * 3, (rr() - 0.5) * 0.2);
-  }
-  mb.box((CV.x1 + CV.x2) / 2, CV.h + 0.3, (CV.z1 + CV.z2) / 2, CV.x2 - CV.x1 + 0.6, 0.8, CV.z2 - CV.z1 + 0.4, 0x3e5a2a);   // musgo arriba
-  const mx = CV.x2 + 0.02, mz = CV.mouth.z;
-  mb.box(mx, 1.0, mz, 0.04, 2.0, 2.4, 0x050404);                       // boca oscura
-  mb.box(mx + 0.2, 2.15, mz, 0.5, 0.35, 3.0, 0x4a4642);                // dintel de roca
-  for (const dz of [-1.35, 1.35]) mb.box(mx + 0.25, 1.0, mz + dz, 0.6, 2.0, 0.5, 0x5a5550);
-  for (let k = 0; k < 5; k++) mb.box(mx + 0.1, 1.85 - (k % 2) * 0.15, mz - 0.9 + k * 0.45, 0.08, 0.3, 0.08, 0x6a645c);   // estalactitas
-  mb.box(mx + 1.2, 0.04, mz, 2.2, 0.03, 2.2, 0x9a8458);                // huellas de la tortuga en la entrada
-  // huesos de zombies: calaveras, costillares, fémures, y alguna mano
-  const skull = (x, z, r) => { mb.box(x, 0.13, z, 0.24, 0.24, 0.28, bone, 0, r, 0); mb.box(x, 0.09, z + 0.12, 0.08, 0.05, 0.02, 0x1a1410, 0, r, 0);
-    mb.box(x - 0.06, 0.16, z + 0.14, 0.05, 0.05, 0.01, 0x100c0a, 0, r, 0); mb.box(x + 0.06, 0.16, z + 0.14, 0.05, 0.05, 0.01, 0x100c0a, 0, r, 0); };
-  const ribs = (x, z, r) => { mb.box(x, 0.05, z, 0.08, 0.06, 0.8, boneOld, 0, r, 0);
-    for (let q = 0; q < 5; q++) mb.box(x, 0.08, z - 0.3 + q * 0.15, 0.55, 0.04, 0.04, bone, 0, r, 0.2); };
-  const femur = (x, z, r) => { mb.box(x, 0.04, z, 0.06, 0.06, 0.55, bone, 0, r, 0); mb.box(x, 0.05, z + 0.28, 0.12, 0.08, 0.08, bone, 0, r, 0); };
-  for (let k = 0; k < 16; k++) {
+  const skull = (x, z, r) => {
+    rk.sphere(x, 0.12, z, 0.12, 0.11, 0.14, bone, 8, 0.3, r, 0);
+    rk.box(x + Math.sin(r) * 0.08, 0.05, z + Math.cos(r) * 0.08, 0.14, 0.05, 0.1, bone, 0, r, 0);           // mandíbula
+    for (const sx of [-1, 1]) rk.sphere(x + Math.cos(r) * sx * 0.05 + Math.sin(r) * 0.1, 0.14, z - Math.sin(r) * sx * 0.05 + Math.cos(r) * 0.1, 0.035, 0.035, 0.03, 0x14100c, 6);
+  };
+  const ribs = (x, z, r) => {
+    const c = Math.cos(r), sn = Math.sin(r);
+    rk.seg([x - sn * 0.45, 0.05, z - c * 0.45], [x + sn * 0.45, 0.05, z + c * 0.45], 0.03, 0.025, boneOld, 5);
+    for (let q = 0; q < 5; q++) {
+      const t = -0.3 + q * 0.15, bx = x + sn * t, bz = z + c * t;
+      for (const sd of [-1, 1]) rk.tube([[bx, 0.06, bz], [bx + c * sd * 0.2, 0.2, bz - sn * sd * 0.2], [bx + c * sd * 0.3, 0.05, bz - sn * sd * 0.3]], 0.018, 0.012, bone, 4, 4);
+    }
+  };
+  const femur = (x, z, r) => {
+    const c = Math.cos(r), sn = Math.sin(r), a = [x - sn * 0.25, 0.04, z - c * 0.25], b = [x + sn * 0.25, 0.04, z + c * 0.25];
+    rk.seg(a, b, 0.028, 0.028, bone, 6); rk.sphere(a[0], a[1], a[2], 0.05, 0.045, 0.05, bone, 6); rk.sphere(b[0], b[1], b[2], 0.05, 0.045, 0.05, bone, 6);
+  };
+  for (let k = 0; k < 18; k++) {
     const x = PN.x1 + 6.5 + rr() * (PN.x2 - PN.x1 - 7.5), z = PN.z1 + 1 + rr() * (PN.z2 - PN.z1 - 2), r = rr() * 6.3;
     if (k % 3 === 0) skull(x, z, r); else if (k % 3 === 1) ribs(x, z, r); else femur(x, z, r);
   }
-  // caparazones vacíos y huesitos de tortuga (se comieron a sus hermanas)
-  for (let k = 0; k < 7; k++) {
-    const x = PN.x1 + 6 + rr() * (PN.x2 - PN.x1 - 7), z = PN.z1 + 1.5 + rr() * (PN.z2 - PN.z1 - 3), r = rr() * 6.3;
-    mb.box(x, 0.18, z, 0.8, 0.26, 1.0, k % 2 ? 0x4a5a32 : 0x5a5030, (rr() - 0.5) * 0.8, r, (rr() - 0.5) * 0.8);
-    mb.box(x + 0.5, 0.04, z + 0.3, 0.06, 0.04, 0.3, boneOld, 0, r, 0);
-    mb.box(x - 0.4, 0.04, z - 0.4, 0.2, 0.04, 0.05, boneOld, 0, r, 0);
+  for (let k = 0; k < 7; k++) {                                        // caparazones vacíos, algunos dados vuelta
+    const x = PN.x1 + 6 + rr() * (PN.x2 - PN.x1 - 7), z = PN.z1 + 1.5 + rr() * (PN.z2 - PN.z1 - 3), r = rr() * 6.3, flip = k % 3 === 0;
+    rk.sphere(x, flip ? 0.24 : 0.02, z, 0.42, 0.26, 0.52, k % 2 ? 0x4a5a32 : 0x5a5030, 10, flip ? Math.PI : (rr() - 0.5) * 0.4, r, 0);
+    for (let q = 0; q < 4; q++) rk.blob(x + Math.sin(r + q * 1.6) * 0.18, flip ? 0.05 : 0.22, z + Math.cos(r + q * 1.6) * 0.2, 0.14, 0.05, 0.16, 0x6a6a3a, q);
   }
-  // nidos rotos con cáscaras
-  [[-58, 20], [-59.5, 23], [-57.5, 38.3], [-62, 20.5]].forEach(([x, z]) => {
-    mb.box(x, 0.08, z, 0.8, 0.1, 0.8, 0xd0b880);
-    for (let q = 0; q < 3; q++) mb.box(x - 0.2 + q * 0.2, 0.16, z + (q % 2) * 0.15, 0.1, 0.05, 0.1, 0xf4f0e0, 0.5, q, 0);
+  [[-58, 20], [-59.5, 23], [-57.5, 38.3], [-62, 20.5]].forEach(([x, z], i) => {   // nidos rotos con huevos y cáscaras
+    rk.lathe([[0.25, 0], [0.45, 0.06], [0.5, 0.14], [0.36, 0.16]], x, 0, z, 1, 1, 1, 0xc0a870, 10);
+    for (let q = 0; q < 4; q++) rk.sphere(x + Math.cos(q * 1.7 + i) * 0.14, 0.1, z + Math.sin(q * 1.7 + i) * 0.14, 0.07, 0.085, 0.07, q % 2 ? 0xf4f0e0 : 0xe8e0c8, 7);
+    for (let q = 0; q < 3; q++) rk.box(x + 0.5 + q * 0.12, 0.03, z - 0.3 + q * 0.2, 0.08, 0.02, 0.06, 0xf4f0e0, 0.4, q, 0.3);
   });
-  mb.box(-57, 1.0, 30, 0.08, 2.0, 0.08, dark);                         // poste del cartel
-  const m = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
-  if (m) { m.userData.theme = false; m.updateMatrix(); }
+  // cueva: rocas facetadas apiladas que tapan la caja sólida, con la boca oscura al este (la tortuga sale de ahí)
+  const ccx = (CV.x1 + CV.x2) / 2, ccz = (CV.z1 + CV.z2) / 2, mz = CV.mouth.z, rockC = [0x9a9284, 0x8a8274, 0xa89e8e, 0x7e776a];
+  rk.rock(ccx - 0.7, 0, ccz, 2.5, 4.3, 4.7, rockC[0], 1, 0, 0.2, 0);                       // núcleo
+  rk.rock(ccx - 1.2, 0, ccz - 3.1, 2.6, 3.3, 2.4, rockC[1], 2, 0, 1.1, 0.05);
+  rk.rock(ccx - 1.0, 0, ccz + 3.2, 2.7, 3.5, 2.5, rockC[2], 3, 0, 2.0, -0.05);
+  rk.rock(CV.x2 - 0.8, 0, mz - 2.2, 1.5, 2.9, 1.4, rockC[3], 4, 0, 0.6, 0.12);             // jambas de la boca (inclinadas)
+  rk.rock(CV.x2 - 0.8, 0, mz + 2.2, 1.5, 3.1, 1.4, rockC[0], 5, 0, 2.6, -0.12);
+  rk.rock(CV.x2 - 0.75, 2.45, mz - 0.9, 1.1, 0.9, 1.3, rockC[1], 6, 0, 0.4, 0.3);          // dintel en dos piedras (arco)
+  rk.rock(CV.x2 - 0.75, 2.5, mz + 0.9, 1.1, 0.95, 1.3, rockC[2], 7, 0, 1.4, -0.3);
+  rk.rock(CV.x2 - 0.9, 3.0, mz, 1.2, 0.8, 1.6, rockC[3], 0, 0, 0, 0);
+  for (const [dx, dz, w, h, sd] of [[0.2, -3.7, 1.0, 1.0, 1], [0.5, 3.9, 0.7, 0.7, 2], [0.9, -2.9, 0.5, 0.45, 3], [1.1, 2.9, 0.45, 0.4, 4],
+                                    [-0.3, -4.6, 1.3, 1.6, 5], [-0.4, 4.7, 1.2, 1.5, 6], [-3.4, -4.2, 1.5, 1.9, 7], [-3.3, 4.4, 1.4, 1.8, 0]])
+    rk.rock(CV.x2 + dx, 0, mz + dz, w, h, w * 1.1, rockC[sd % 4], sd, 0, sd, 0);             // piedras sueltas al pie
+  rk.rock(ccx - 2.6, 3.0, ccz - 1, 1.5, 1.2, 2.2, rockC[2], 3, 0, 0.9, 0);                  // cima
+  for (let q = 0; q < 9; q++) {                                                             // musgo y pasto arriba, sin tapar la forma
+    const x = ccx - 2.8 + (q % 3) * 1.3, z = ccz - 3 + Math.floor(q / 3) * 3, y = q === 4 ? 4.2 : 3.2 + (q % 2) * 0.5;
+    lf.clump(x, y - 0.15, z, 0.9, 0.6, 'grass', 0xe8f0d0, q);
+    if (q % 2) lf.clump(x + 0.3, y - 0.2, z - 0.2, 1.0, 0.8, 'ivy', 0xd8e8c8, q);
+  }
+  for (const [dz, w, h] of [[0, 1.6, 2.1], [-0.35, 1.3, 2.3], [0.35, 1.3, 2.25], [0, 1.0, 2.45]])
+    mb.box(CV.x2 - 0.45, h / 2, mz + dz, 0.8, h, w, 0x020201);                             // boca: hueco negro con forma de arco
+  for (let k = 0; k < 7; k++) {                                                             // estalactitas del dintel
+    const sz = mz - 0.9 + k * 0.3;
+    rk.cyl(CV.x2 - 0.1 + (k % 2) * 0.1, 2.3 - Math.abs(k - 3) * 0.06, sz, 0.07, 0.25 + (k % 3) * 0.12, rockC[k % 4], 0, 6, Math.PI, 0, 0);
+  }
+  for (let q = 0; q < 7; q++) lf.card(CV.x2 + 0.05, 2.5 - (0.8 + (q % 3) * 0.3), mz - 1.1 + q * 0.37, 0.4, 0.8 + (q % 3) * 0.3, 0, Math.PI / 2, 0, q % 2 ? 'moss' : 'vine', 0xffffff);
+  for (const dz of [-2.6, 2.7, -4.2, 4.3]) lf.clump(CV.x2 + 0.6, -0.1, mz + dz, 1.5, 1.2, 'leaf', 0xd8e4c4, dz);   // matas al pie
+  for (let q = 0; q < 4; q++) mb.box(CV.x2 + 0.8 + q * 0.45, 0.035, mz + (q % 2 ? 0.35 : -0.35), 0.28, 0.01, 0.06, 0x4a3a24, 0, 0.3, 0);   // arañazos
+  skull(CV.x2 + 1.6, mz - 1.3, 0.8); femur(CV.x2 + 2.2, mz + 1.2, 2.1); ribs(CV.x2 + 1.0, mz + 1.9, 0.5);
+  // ojos de la tortuga en la oscuridad (se esconden cuando sale)
+  const eg = new MeshBuilder();
+  for (const dz of [-0.28, 0.28]) eg.sphere(CV.x2 - 0.15, 0.75, mz + dz, 0.03, 0.06, 0.07, 0xf0e040, 6);
+  RANCHO.eyes = eg.mesh(new THREE.MeshBasicMaterial({ vertexColors: true }));
+  if (RANCHO.eyes) RANCHO.eyes.userData.theme = false;
+  wd.cyl(-57, 0, 30, 0.05, 2.0, logD, 0.9, 6);                                              // poste del cartel
+  const put = (B, mat) => { const m = B.mesh(mat); if (m) { m.userData.theme = false; m.updateMatrix(); } return m; };
+  put(wd, MAT.bark); put(lf, FOLI.mat); put(rk, MAT.rock); put(th, MAT.thatch); put(tu, MAT.thatchIn); put(mb, MAT.grimeV);
   // carteles
   const sign = (text, sub, x, y, z, ry, w) => {
     const tex = makeTex((c, s) => {
@@ -10379,21 +10820,37 @@ function buildRancho() {
     const s = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.5), new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide }));
     s.position.set(x, y, z); s.rotation.y = ry; scene.add(s);
   };
-  sign('RANCHO', 'DON MARENA', cx, P.h - 0.2, P.z1 - 0.12, Math.PI, 1.8);
+  sign('RANCHO', 'DON MARENA', cx, P.h - 0.35, P.z1 - 0.14, Math.PI, 1.8);
+  sign('RANCHO', 'DON MARENA', gx - 0.05, 2.45, (gz1 + gz2) / 2, Math.PI / 2, 2.1);
+  sign('TIKI BAR', 'OPEN 24/7', rcx, ay1 - 0.15, az1 + 0.02, 0, 1.4);
   sign('TURTLE PEN', 'DO NOT DISTURB', -57, 1.85, 30.06, 0, 1.2);
-  // foquitos colgando del borde de la palapa: un InstancedMesh MeshBasic que late (sin luces)
-  const n = 28, geo = new THREE.BoxGeometry(0.12, 0.16, 0.12);
-  const bulbs = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: 0xffd890 }), n);
-  const o = new THREE.Object3D();
-  for (let i = 0; i < n; i++) {
-    const t = i / n * 4, side = Math.floor(t), f = t - side;
+  // foquitos colgando del borde de la palapa: un InstancedMesh MeshBasic que late (sin luces), con su cable
+  const n = 28, geo = new THREE.SphereGeometry(0.075, 6, 5);
+  const bulbs = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: 0xffd890 }), n + 1);
+  const o = new THREE.Object3D(), cable = new MeshBuilder();
+  let prev = null;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n * 4, side = Math.min(3, Math.floor(t)), f = t - side;
     const x = side === 0 ? P.x1 + f * W : side === 1 ? P.x2 : side === 2 ? P.x2 - f * W : P.x1;
     const z = side === 0 ? P.z1 : side === 1 ? P.z1 + f * D : side === 2 ? P.z2 : P.z2 - f * D;
-    o.position.set(x, P.h - 0.35 - 0.12 * Math.sin(f * Math.PI), z); o.updateMatrix();
-    bulbs.setMatrixAt(i, o.matrix);
+    const y = H - 0.35 - 0.12 * Math.sin(f * Math.PI), pt = [x, y + 0.08, z];
+    if (prev) cable.seg(prev, pt, 0.008, 0.008, 0x1a1a1a, 3);
+    prev = pt;
+    if (i < n) { o.position.set(x, y, z); o.updateMatrix(); bulbs.setMatrixAt(i, o.matrix); }
   }
+  o.position.set(bcx, 2.1, bcz); o.scale.setScalar(1.4); o.updateMatrix(); bulbs.setMatrixAt(n, o.matrix);   // foco de la lámpara del billar
   scene.add(bulbs);
+  put(cable, MAT.grimeV);
   RANCHO.bulbs = bulbs;
+}
+// ojos de la tortuga: parpadean de vez en cuando y se apagan mientras la trampa la tiene afuera
+function updateRanchoEyes(dt) {
+  const E = RANCHO.eyes;
+  if (!E) return;
+  const out = TRAPS.turtles && TRAPS.turtles.list.some(tu => tu.state !== 'off');
+  RANCHO.blink -= dt;
+  if (RANCHO.blink < -0.15) RANCHO.blink = 2 + Math.random() * 4;
+  E.visible = !out && RANCHO.blink > 0;
 }
 
 // F5.11: reposeras (el sólido está en PROPS), sombrillas y canteros de flores. Un solo mesh
@@ -10430,45 +10887,86 @@ function buildGardenDecor() {
   if (m) { m.userData.theme = false; m.updateMatrix(); }
 }
 
-//--- F5.12: la jungla (solo dibujo; los troncos sólidos están en PROPS, planJungle). Un mesh para todo lo fijo
+//--- F5.12: la jungla (solo dibujo; los troncos sólidos están en PROPS, planJungle)
+// F5.17 (Diego: "que no sea tan Minecraft, más BO2"): troncos curvos (tubos) con raíces tablares y ramas, copas y
+// arbustos de hojas con alfa (FOLI), palmeras arqueadas, helechos, pasto y rocas deformadas. Por celdas de 32 m
+// (ChunkMB): la niebla recorta a 44 m y la cámara descarta las celdas lejanas (antes, un mesh que se dibujaba siempre).
+// Los arbustos de las paredes de espesura van DETRÁS de su cara caminable: antes se metían 1 m en los senderos y,
+// detrás de la pared este de la piscina, asomaban adentro (las "cosas verdes" junto a Double Tap)
 function buildJungle() {
-  const J = CONFIG.JUNGLE, mb = new MeshBuilder();
+  const J = CONFIG.JUNGLE, C = new ChunkMB(32), CL = new ChunkMB(32), CR = new ChunkMB(32);   // corteza, hojas, rocas
   let s = J.seed * 31 + 5;
   const rnd = (a, b) => { s = (s * 16807) % 2147483647; return a + (b - a) * s / 2147483647; };
-  const greens = [0x2f5a24, 0x3a6a2a, 0x264a1e, 0x4a7a32, 0x1e3e18];
-  const tree = (x, z, big, full) => {
-    const h = 5.5 + big * 3.5, g = greens[Math.floor(big * 5) % 5];
-    if (big < 0.3) {                                                   // palmera de jungla, curva
-      for (let i = 0; i < 7; i++) mb.box(x + i * 0.12, 0.5 + i * h / 7, z + i * 0.05, 0.42 - i * 0.02, h / 7 + 0.05, 0.42 - i * 0.02, i % 2 ? 0x6a5234 : 0x5a4428);
-      for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2; mb.box(x + 0.84 + Math.cos(a) * 1.3, h + 0.3, z + 0.35 + Math.sin(a) * 1.3, 2.8, 0.08, 0.6, g, 0, -a, -0.35); }
-      return;
-    }
-    mb.box(x, h / 2, z, 0.6, h, 0.6, 0x5a4028);                        // tronco
-    mb.box(x, 0.3, z, 1.1, 0.6, 1.1, 0x4a3420);                         // raíces
-    for (let k = 0; k < 3; k++) mb.box(x, h - 0.4 + k * 0.9, z, 4.2 - k * 1.1, 1.0, 4.2 - k * 1.1, greens[(k + Math.floor(big * 7)) % 5], 0, big * 3 + k, 0);   // copa en capas
-    if (!full) return;
-    for (let k = 0; k < 5; k++) {                                       // hojas grandes y lianas colgando
-      const a = k / 5 * Math.PI * 2 + big;
-      mb.box(x + Math.cos(a) * 2.2, h - 0.6, z + Math.sin(a) * 2.2, 1.8, 0.06, 0.7, g, 0, -a, -0.4);
-      if (k % 2 === 0) mb.box(x + Math.cos(a) * 1.6, h - 2.2 - big, z + Math.sin(a) * 1.6, 0.05, 3.2 + big * 1.5, 0.05, 0x3a5a22);
+  const bark = [0x8a7058, 0x7a6048, 0x6a5440, 0x9a7e62], leafT = [0xffffff, 0xe0ecd0, 0xc8dab8, 0xf0f8e0, 0xb8cca8];
+  const palmJ = (x, z, big) => {                                      // palmera de jungla, arqueada
+    const B = C.at(x, z), L = CL.at(x, z), h = 5 + big * 10, dir = rnd(0, 6.28), bend = rnd(0.6, 1.6), pts = [];
+    for (let i = 0; i <= 4; i++) { const k = i / 4; pts.push([x + Math.cos(dir) * bend * k * k * 1.5, h * k, z + Math.sin(dir) * bend * k * k * 1.5]); }
+    B.tube(pts, 0.24, 0.15, 0x8a7a60, 6, 7);
+    const t = pts[4], R = FOLI.r.palm, um = (R[0] + R[2]) / 2;
+    B.sphere(t[0], t[1], t[2], 0.3, 0.25, 0.3, 0x5a4a34, 6);
+    for (let k = 0; k < 8; k++) {
+      const a = k / 8 * 6.28 + rnd(0, 0.5), len = rnd(2.4, 3.3), l1 = len * 0.45, up = -0.3;
+      const ex = t[0] + Math.cos(up) * l1 * Math.cos(a), ey = t[1] - Math.sin(up) * l1, ez = t[2] - Math.cos(up) * l1 * Math.sin(a);
+      L.frond(t[0], t[1], t[2], l1, 1, a, up, null, 0xe8f0d0, [R[0], R[1], um, R[3]]);
+      L.frond(ex, ey, ez, len - l1, 0.9, a, rnd(0.5, 0.95), null, 0xe8f0d0, [um, R[1], R[2], R[3]]);
     }
   };
+  // árbol de hoja ancha: tronco curvo, raíces tablares, 3-4 ramas con una mata cada una y otra arriba
+  const tree = (x, z, big, full) => {
+    if (big < 0.3) return palmJ(x, z, big);
+    const B = C.at(x, z), L = CL.at(x, z), h = 5.5 + big * 3.5, r0 = 0.3 + big * 0.1;
+    const lean = rnd(0, 0.22), dir = rnd(0, 6.28), pts = [];
+    for (let i = 0; i <= 3; i++) { const k = i / 3; pts.push([x + Math.cos(dir) * lean * h * k * k, h * k, z + Math.sin(dir) * lean * h * k * k]); }
+    B.tube(pts, r0, r0 * 0.5, bark[Math.floor(big * 7) % 4], 5, 7);
+    for (let k = 0; k < 4; k++) {
+      const a = k * 1.57 + rnd(0, 0.8);
+      B.seg([x + Math.cos(a) * r0 * 0.4, 0.8 + big * 0.5, z + Math.sin(a) * r0 * 0.4],
+            [x + Math.cos(a) * (r0 + 0.8), -0.05, z + Math.sin(a) * (r0 + 0.8)], 0.17, 0.05, 0x6a5440, 5);
+    }
+    const top = pts[3], nb = full ? 4 : 3;
+    for (let k = 0; k < nb; k++) {
+      const a = k / nb * 6.28 + rnd(0, 1), len = 1.4 + big * 1.4;
+      const e = [top[0] + Math.cos(a) * len, top[1] - 0.2 + rnd(0, 1.2), top[2] + Math.sin(a) * len], w = 2.6 + big * 1.6;
+      B.seg([top[0], top[1] - 1.4, top[2]], e, 0.12, 0.05, bark[k % 4], 5);
+      L.clump(e[0], e[1] - w * 0.4, e[2], w, w * 0.8, 'leaf', leafT[k % 5], rnd(0, 3), true);
+      if (full && k % 2 === 0) { const vl = 2 + rnd(0, 2.5); L.card(e[0], e[1] - vl, e[2], 0.5, vl, 0, rnd(0, 3), 0, 'vine', 0xffffff); }
+    }
+    const w = 3.2 + big * 2;
+    L.clump(top[0], top[1] - 0.2, top[2], w, w * 0.75, 'leaf', leafT[Math.floor(big * 9) % 5], rnd(0, 3), true);
+  };
+  const bush = (x, z, w, t) => {
+    const L = CL.at(x, z);
+    L.clump(x, -0.1, z, w, w * 0.85, 'leaf', leafT[t % 5], rnd(0, 3), true);
+    L.clump(x + rnd(-0.4, 0.4), -0.1, z + rnd(-0.4, 0.4), w * 0.7, w * 1.05, 'leaf', leafT[(t + 2) % 5], rnd(0, 3), false);
+    if (t % 3 === 0) for (let k = 0; k < 3; k++)
+      L.card(x + rnd(-0.5, 0.5), 0, z + rnd(-0.5, 0.5), 0.9, 1.4, rnd(-0.3, 0.3), rnd(0, 6.3), rnd(-0.3, 0.3), 'bigleaf', 0xffffff);
+  };
+  const fern = (x, z, sc) => {
+    const L = CL.at(x, z);
+    for (let k = 0; k < 6; k++) L.frond(x, 0.04, z, 1.1 * sc, 0.45 * sc, k / 6 * 6.28 + rnd(0, 0.5), -rnd(0.25, 0.7), 'fern', leafT[k % 5]);
+  };
   for (const t of JUNGLE.trees) tree(t.x, t.z, t.big, true);
-  // F5.15: la espesura: árboles tupidos con sotobosque (sin collider: la pared la pone world.js buildThicketWalls),
-  // sin pisar lo caminable, y una hilera de arbustos altos sobre cada pared de vegetación
-  const bush = (x, z, w, g) => { mb.box(x, w * 0.5, z, w, w, w * 0.9, g, 0, rnd(0, 3), 0); mb.box(x + 0.2, w * 1.05, z - 0.1, w * 0.7, w * 0.6, w * 0.7, greens[(greens.indexOf(g) + 2) % 5], 0, rnd(0, 3), 0); };
+  // F5.15: la espesura: árboles tupidos con sotobosque (sin collider: la pared la pone world.js buildThicketWalls)
+  let nb = 0;
   for (let x = -74; x < 95; x += 3.4) for (let z = -23; z < 100; z += 3.4) {
     const tx = x + rnd(-1.2, 1.2), tz = z + rnd(-1.2, 1.2);
     if (![[0, 0], [1.3, 0], [-1.3, 0], [0, 1.3], [0, -1.3]].every(([a, b]) => inThicket(tx + a, tz + b))) continue;
     tree(tx, tz, rnd(0.25, 1), false);
-    bush(tx + rnd(-1.4, 1.4), tz + rnd(-1.4, 1.4), rnd(1.2, 2.2), greens[Math.floor(rnd(0, 5))]);
+    bush(tx + rnd(-1.4, 1.4), tz + rnd(-1.4, 1.4), rnd(1.4, 2.4), nb++);
   }
-  for (const s of THICKET.segs) {
-    const len = Math.max(s[1] - s[0], s[3] - s[2]), n = Math.ceil(len / 1.2);
+  // una hilera de arbustos sobre cada pared de vegetación, del lado de la espesura (su cara = la de la pared)
+  for (const sg of THICKET.segs) {
+    const horiz = sg[1] - sg[0] > sg[3] - sg[2], len = horiz ? sg[1] - sg[0] : sg[3] - sg[2], n = Math.ceil(len / 1.3);
+    const xm = (sg[0] + sg[1]) / 2, zm = (sg[2] + sg[3]) / 2;
+    const sd = horiz ? (inThicket(xm, sg[3] + 0.6) ? 1 : -1) : (inThicket(sg[1] + 0.6, zm) ? 1 : -1);
+    const face = horiz ? (sd > 0 ? sg[2] : sg[3]) : (sd > 0 ? sg[0] : sg[1]);
     for (let i = 0; i < n; i++) {
-      const k = (i + 0.5) / n, x = s[0] + (s[1] - s[0]) * k, z = s[2] + (s[3] - s[2]) * k;
-      bush(x, z, rnd(1.4, 2.2), greens[i % 5]);
-      if (i % 3 === 0) mb.box(x, 2.6, z, 0.05, rnd(1.2, 2.4), 0.05, 0x3a5a22);          // lianas colgando
+      const k = (i + 0.5) / n, w = rnd(1.5, 2.3), off = face + sd * w * 0.42;
+      const x = horiz ? sg[0] + (sg[1] - sg[0]) * k : off, z = horiz ? off : sg[2] + (sg[3] - sg[2]) * k;
+      bush(x, z, w, i);
+      if (i % 3 === 0) { const vl = rnd(1.2, 2.4); CL.at(x, z).card(x, 3 - vl, z, 0.5, vl, 0, rnd(0, 3), 0, 'vine', 0xffffff); }
+      const fx = horiz ? x + rnd(-0.4, 0.4) : face - sd * 0.2, fz = horiz ? face - sd * 0.2 : z + rnd(-0.4, 0.4), fr = roomAt(fx, fz);
+      if (i % 2 === 0 && fr && /jungle|grass|sand/.test(fr.floor)) fern(fx, fz, rnd(0.5, 0.8));   // no al pie de la pared de la piscina
     }
   }
   // franja tupida afuera del borde (tapa el vacío): dos filas alrededor
@@ -10481,8 +10979,8 @@ function buildJungle() {
   for (let x = 57; x <= 100; x += 3) for (let k = 0; k < J.outer; k += 2.5) ring.push([x, 53.5 - k]);
   for (let z = 53; z <= 104; z += 3) for (let k = 0; k < J.outer; k += 2.5) ring.push([96.5 + k, z]);
   for (let x = 53; x <= 100; x += 3) for (let k = 0; k < J.outer; k += 2.5) ring.push([x, 101.5 + k]);
-  for (const [x, z] of ring) tree(x + rnd(-1, 1), z + rnd(-1, 1), rnd(0.25, 1), false);
-  // helechos, rocas y flores: solo en la jungla, sin colisión
+  for (const [x, z] of ring) tree(x + rnd(-1, 1), z + rnd(-1, 1), rnd(0.3, 1), false);
+  // helechos, pasto, flores y rocas con musgo: solo en la jungla caminable, sin colisión
   const TCl = CONFIG.TEMPLE.clear;
   const inJungle = (x, z) => { const r = roomAt(x, z); return r && (r.id === 'R15' || r.id === 'R17' || r.id === 'R20') && r.floor === 'jungle' &&
     !(x > TCl[0] && x < TCl[1] && z > TCl[2] && z < TCl[3]); };   // F5.15: + el anexo (sin tapar el templo)
@@ -10490,20 +10988,26 @@ function buildJungle() {
     const x = rnd(-74.5, 94.5), z = rnd(-4, 99.5);
     if (!inJungle(x, z)) continue;
     n++;
-    const g = greens[n % 5], sc = rnd(0.6, 1.4);
-    for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2 + rnd(0, 1); mb.box(x + Math.cos(a) * 0.4 * sc, 0.3 * sc, z + Math.sin(a) * 0.4 * sc, 0.9 * sc, 0.05, 0.3 * sc, g, 0, -a, 0.5); }
-    if (n % 7 === 0) mb.box(x, 0.35, z, 0.14, 0.14, 0.14, [0xe83a5a, 0xf0c030, 0xc85af0][n % 3]);   // flor
+    fern(x, z, rnd(0.6, 1.3));
+    if (n % 5 === 0) CL.at(x, z).clump(x + 0.4, 0, z, 0.7, 0.7, 'flower', 0xffffff, rnd(0, 3));
+  }
+  for (let n = 0, tries = 0; n < J.ferns * 3 && tries < J.ferns * 18; tries++) {   // matas de pasto
+    const x = rnd(-74.5, 94.5), z = rnd(-4, 99.5);
+    if (!inJungle(x, z)) continue;
+    n++;
+    CL.at(x, z).clump(x, -0.02, z, rnd(0.6, 1.0), rnd(0.45, 0.8), 'grass', leafT[n % 5], rnd(0, 3));
   }
   for (let n = 0, tries = 0; n < J.rocks && tries < J.rocks * 6; tries++) {
     const x = rnd(-74, 94), z = rnd(-20, 99);
     if (!inJungle(x, z)) continue;
     n++;
-    const w = rnd(0.4, 1.1);
-    mb.box(x, w * 0.3, z, w, w * 0.6, w * 0.8, 0x6a6a62, 0, rnd(0, 3), 0);
-    mb.box(x + 0.1, w * 0.62, z, w * 0.5, 0.04, w * 0.4, 0x4a6a2a);    // musgo
+    const w = rnd(0.4, 1.1), R = CR.at(x, z);
+    R.rock(x, w * 0.22, z, w, w * 0.62, w * 0.82, [0x8a8a80, 0x7a7a70, 0x9a968a][n % 3], n, 0, rnd(0, 3), 0);
+    R.blob(x + 0.05, w * 0.55, z, w * 0.62, w * 0.16, w * 0.5, 0x4a6a2a, n);           // musgo
   }
-  const m = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
-  if (m) { m.userData.theme = false; m.updateMatrix(); }
+  for (const m of C.meshes(MAT.bark)) m.updateMatrix();
+  for (const m of CL.meshes(FOLI.mat)) m.updateMatrix();
+  for (const m of CR.meshes(MAT.rock)) m.updateMatrix();
   // niebla verde baja (planos transparentes)
   const mist = new THREE.MeshBasicMaterial({ color: 0xcfe8c8, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide });
   for (let n = 0, tries = 0; n < 24 && tries < 200; tries++) {
@@ -10973,6 +11477,7 @@ function updateGarden(dt) {
   updateTemple(t);                                                 // F5.13: antorchas
   updateBeach(dt, t);                                              // F7c: agua que se mueve y cangrejos
   if (RANCHO.bulbs) RANCHO.bulbs.material.color.setRGB(1, 0.8 + 0.08 * Math.sin(t * 3), 0.5 + 0.08 * Math.sin(t * 3));   // F5.10
+  updateRanchoEyes(dt);                                            // F5.17: ojos en la cueva
   for (const p of PLANTS) {
     p.cd = Math.max(0, p.cd - dt);
     const d = Math.hypot(P.x - p.x, P.z - p.z);
@@ -13577,6 +14082,7 @@ function init() {
   clock = new THREE.Clock();
 
   buildTextures();
+  buildFoliage();                       // F5.17: atlas de hojas con alfa (jungla, palmeras, techos de paja)
   buildMaterials();
   buildSky();
   buildLights();
