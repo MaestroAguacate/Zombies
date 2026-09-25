@@ -1242,57 +1242,81 @@ function buildPoolWater() {
 function buildBeachDecor() {
   const B = CONFIG.DECOR.beach, mb = new MeshBuilder();
   let s = 777; const r = (a, b) => { s = (s * 16807) % 2147483647; return a + (b - a) * s / 2147483647; };
-  for (const [x, z, rot, col] of B.towels) {                           // toalla a rayas
+  // F5.17c: formas curvas (sombrillas cónicas, castillo torneado, troncos, pelota, conchas) en vez de cajas
+  for (const [x, z, rot, col] of B.towels) {                           // toalla a rayas, con una punta doblada
     mb.box(x, 0.012, z, 0.9, 0.02, 1.8, col, 0, rot, 0);
     for (let k = -1; k <= 1; k += 2) mb.box(x + Math.sin(rot) * k * 0.6, 0.015, z + Math.cos(rot) * k * 0.6, 0.9, 0.02, 0.12, 0xf0ece0, 0, rot, 0);
+    mb.cyl(x - Math.sin(rot) * 0.8 + Math.cos(rot) * 0.3, 0.01, z - Math.cos(rot) * 0.8 - Math.sin(rot) * 0.3, 0.16, 0.05, col, 0.8, 8);
   }
-  for (const [x, z, col] of B.umbrellas) {                             // sombrilla: palo y gajos
-    mb.box(x, 1.1, z, 0.05, 2.2, 0.05, 0xe8e0d0, 0.08, 0, 0.05);
+  for (const [x, z, col] of B.umbrellas) {                             // sombrilla: palo, cono a gajos y flecos
+    mb.cyl(x, 0, z, 0.03, 2.25, 0xe8e0d0, 1, 6, 0.08, 0, 0.05);
+    const tx = x + Math.sin(0.05) * 2.2 * -1, tz = z + 0.08 * 2.2;
     for (let i = 0; i < 8; i++) {
-      const a = i / 8 * Math.PI * 2;
-      mb.box(x + Math.sin(a) * 0.55, 2.12, z + Math.cos(a) * 0.55, 0.62, 0.03, 1.1, i % 2 ? col : 0xf8f4ea, -0.3, a, 0);
+      const a0 = i / 8 * Math.PI * 2, a1 = (i + 1) / 8 * Math.PI * 2, R = 1.15, c = i % 2 ? col : 0xf8f4ea;
+      const P0 = [tx, 2.3, tz], P1 = [tx + Math.sin(a0) * R, 1.95, tz + Math.cos(a0) * R], P2 = [tx + Math.sin(a1) * R, 1.95, tz + Math.cos(a1) * R];
+      const up = [0, 1, 0], n1 = [Math.sin(a0) * 0.3, 1, Math.cos(a0) * 0.3], n2 = [Math.sin(a1) * 0.3, 1, Math.cos(a1) * 0.3];
+      const cy = (P1[2] - P0[2]) * (P2[0] - P0[0]) - (P1[0] - P0[0]) * (P2[2] - P0[2]);   // y de (P1-P0)x(P2-P0)
+      const [A1, A2, m1, m2] = cy > 0 ? [P1, P2, n1, n2] : [P2, P1, n2, n1], dn = [0, -1, 0];
+      mb.quadN([P0, A1, A2, P0], [up, m1, m2, up], [[0.5, 0], [0, 1], [1, 1], [0.5, 0]], c);
+      mb.quadN([P0, A2, A1, P0], [dn, dn, dn, dn], [[0.5, 0], [0, 1], [1, 1], [0.5, 0]], c);   // de abajo
+      mb.seg([tx, 2.28, tz], P1, 0.012, 0.012, 0xd8d0c0, 4);                       // varilla
     }
+    mb.sphere(tx, 2.32, tz, 0.05, 0.05, 0.05, 0xe8e0d0, 6);
   }
-  { const [x, z] = B.castle;                                           // castillo de arena con 4 torres y bandera
-    mb.box(x, 0.18, z, 1.0, 0.36, 1.0, 0xc8a878);
+  { const [x, z] = B.castle;                                           // castillo de arena: torres torneadas y almenas
+    mb.blob(x, 0.02, z, 0.8, 0.22, 0.8, 0xc8a878, 1);
+    mb.lathe([[0.58, 0], [0.55, 0.3], [0.5, 0.34], [0.46, 0.36]], x, 0, z, 1, 1, 1, 0xc8a878, 16);   // muralla
     for (const [dx, dz] of [[-0.45, -0.45], [0.45, -0.45], [-0.45, 0.45], [0.45, 0.45]]) {
-      mb.box(x + dx, 0.36, z + dz, 0.3, 0.72, 0.3, 0xbfa070);
-      for (let k = 0; k < 2; k++) mb.box(x + dx + (k ? 0.1 : -0.1), 0.76, z + dz, 0.08, 0.08, 0.08, 0xbfa070);
+      mb.lathe([[0.2, 0], [0.18, 0.6], [0.22, 0.62], [0.22, 0.72], [0.0, 0.72]], x + dx, 0, z + dz, 1, 1, 1, 0xbfa070, 10);
+      for (let k = 0; k < 4; k++) mb.box(x + dx + Math.cos(k * 1.57) * 0.16, 0.77, z + dz + Math.sin(k * 1.57) * 0.16, 0.07, 0.08, 0.07, 0xbfa070, 0, k * 1.57, 0);
     }
-    mb.box(x, 0.5, z, 0.4, 0.3, 0.4, 0xc8a878);
-    mb.box(x, 0.9, z, 0.02, 0.5, 0.02, 0x6a5040); mb.box(x + 0.1, 1.08, z, 0.18, 0.12, 0.01, 0xd8322a);
-    mb.box(x - 0.9, 0.09, z + 0.3, 0.3, 0.18, 0.28, 0xe8c030); mb.box(x - 0.9, 0.24, z + 0.3, 0.02, 0.2, 0.02, 0x3a3a3a);   // balde
+    mb.lathe([[0.26, 0], [0.22, 0.55], [0.26, 0.58], [0, 0.95]], x, 0.3, z, 1, 1, 1, 0xc8a878, 12);   // torre del medio, con punta
+    mb.cyl(x, 1.2, z, 0.012, 0.45, 0x6a5040, 1, 4); mb.box(x + 0.1, 1.55, z, 0.18, 0.12, 0.01, 0xd8322a);
+    mb.cyl(x - 0.9, 0, z + 0.3, 0.15, 0.22, 0xe8c030, 1.25, 10);                                 // balde con asa
+    mb.tube([[x - 1.07, 0.22, z + 0.3], [x - 0.9, 0.42, z + 0.3], [x - 0.73, 0.22, z + 0.3]], 0.01, 0.01, 0x3a3a3a, 6, 4);
+    mb.seg([x - 0.5, 0.02, z + 0.8], [x - 0.3, 0.25, z + 1.0], 0.02, 0.02, 0xd83a3a, 4);           // palita
+    mb.sphere(x - 0.52, 0.03, z + 0.78, 0.08, 0.02, 0.1, 0xd83a3a, 6);
   }
-  { const [x, z] = B.cooler; mb.box(x, 0.22, z, 0.6, 0.44, 0.4, 0x3a8ad8); mb.box(x, 0.46, z, 0.62, 0.06, 0.42, 0xf0f0f0);
-    mb.box(x, 0.5, z, 0.4, 0.03, 0.05, 0x2a2a2a); }
-  { const [x, z] = B.ball;                                             // pelota: gajos de colores
-    [0xd8322a, 0xf0f0f0, 0x3a8ad8, 0xf0c030].forEach((c, i) => mb.box(x, 0.2, z, 0.38, 0.38, 0.1, c, 0, i * Math.PI / 4, 0)); }
-  { const [x, z] = B.radio; mb.box(x, 0.16, z, 0.5, 0.3, 0.16, 0x2a2a2e); mb.box(x - 0.12, 0.16, z + 0.085, 0.16, 0.16, 0.01, 0x8a8a8a);
-    mb.box(x + 0.12, 0.16, z + 0.085, 0.16, 0.16, 0.01, 0x8a8a8a); mb.box(x + 0.2, 0.45, z, 0.02, 0.3, 0.02, 0xbababa, 0, 0, -0.4); }
-  for (const [x, z, rot] of B.logs) {                                  // troncos que trajo el mar
-    mb.box(x, 0.16, z, 2.4, 0.3, 0.32, 0x8a7a64, 0, rot, 0.05);
-    mb.box(x + Math.cos(rot) * 0.9, 0.3, z - Math.sin(rot) * 0.9, 0.5, 0.08, 0.08, 0x7a6a54, 0, rot + 0.8, 0.4);
+  { const [x, z] = B.cooler;                                           // heladerita con esquinas redondas y manija
+    mb.box(x, 0.22, z, 0.56, 0.42, 0.36, 0x3a8ad8);
+    for (const [dx, dz] of [[-0.28, -0.18], [0.28, -0.18], [-0.28, 0.18], [0.28, 0.18]]) mb.cyl(x + dx, 0.01, z + dz, 0.03, 0.42, 0x3a8ad8, 1, 6);
+    mb.box(x, 0.46, z, 0.62, 0.06, 0.42, 0xf0f0f0);
+    mb.tube([[x - 0.25, 0.46, z], [x - 0.2, 0.62, z], [x + 0.2, 0.62, z], [x + 0.25, 0.46, z]], 0.018, 0.018, 0x2a2a2a, 8, 4); }
+  { const [x, z] = B.ball;                                             // pelota: esfera a gajos (4 esferas aplastadas giradas)
+    [0xd8322a, 0xf0f0f0, 0x3a8ad8, 0xf0c030].forEach((c, i) => mb.sphere(x, 0.2, z, 0.19, 0.19, 0.06 + i * 0.01, c, 12, 0, i * Math.PI / 4, 0));
+    mb.sphere(x, 0.2, z, 0.185, 0.185, 0.185, 0xf0f0f0, 12); }
+  { const [x, z] = B.radio; mb.box(x, 0.16, z, 0.5, 0.3, 0.16, 0x2a2a2e);
+    for (const dx of [-0.12, 0.12]) mb.cyl(x + dx, 0.16, z + 0.08, 0.075, 0.01, 0x8a8a8a, 1, 12, Math.PI / 2, 0, 0);
+    mb.tube([[x - 0.2, 0.31, z], [x, 0.4, z], [x + 0.2, 0.31, z]], 0.015, 0.015, 0x3a3a3a, 6, 4);
+    mb.seg([x + 0.2, 0.31, z], [x + 0.32, 0.6, z], 0.008, 0.006, 0xbababa, 4); }
+  for (const [x, z, rot] of B.logs) {                                  // troncos que trajo el mar: curvos, con ramas y raíces
+    const c = Math.cos(rot), sn = Math.sin(rot), P = t => [x + c * t, 0.15 + Math.sin(t * 1.3) * 0.03, z - sn * t + Math.sin(t * 0.9) * 0.12];
+    mb.tube([P(-1.2), P(-0.4), P(0.4), P(1.2)], 0.17, 0.12, 0x8a7a64, 10, 7);
+    const q = P(0.5); mb.seg(q, [q[0] + Math.cos(rot + 0.8) * 0.6, 0.32, q[2] - Math.sin(rot + 0.8) * 0.6], 0.05, 0.02, 0x7a6a54, 5);
+    const e = P(-1.2); for (let k = 0; k < 4; k++) mb.seg(e, [e[0] - c * 0.35 + Math.cos(k * 1.6) * 0.25, 0.05 + k * 0.08, e[2] + sn * 0.35 + Math.sin(k * 1.6) * 0.25], 0.05, 0.015, 0x7a6a54, 4);
   }
   const [zs1, zs2] = B.shoreZ;
-  for (let i = 0; i < B.seaweed; i++) {                                // algas en la orilla
+  for (let i = 0; i < B.seaweed; i++) {                                // algas en la orilla: tiras curvas
     const x = r(-19, 19), z = r(zs1, zs2);
-    for (let k = 0; k < 4; k++) mb.box(x + r(-0.4, 0.4), 0.02, z + r(-0.3, 0.3), r(0.3, 0.7), 0.02, 0.08, k % 2 ? 0x2a4a2a : 0x3a5a2a, 0, r(0, 3), 0);
+    for (let k = 0; k < 4; k++) { const a = r(0, 3), l = r(0.3, 0.7), x0 = x + r(-0.4, 0.4), z0 = z + r(-0.3, 0.3);
+      mb.tube([[x0, 0.02, z0], [x0 + Math.cos(a) * l * 0.5 + 0.06, 0.03, z0 + Math.sin(a) * l * 0.5], [x0 + Math.cos(a) * l, 0.02, z0 + Math.sin(a) * l + 0.05]], 0.03, 0.015, k % 2 ? 0x2a4a2a : 0x3a5a2a, 4, 4); }
   }
   for (let i = 0; i < B.shells; i++) {                                 // conchas y estrellas de mar
     const x = r(-19, 19), z = r(zs1 - 0.2, -8);
-    if (i % 4 === 0) for (let k = 0; k < 5; k++) mb.box(x + Math.sin(k * 1.26) * 0.08, 0.02, z + Math.cos(k * 1.26) * 0.08, 0.05, 0.02, 0.16, 0xe8784a, 0, k * 1.26, 0);
-    else mb.box(x, 0.02, z, 0.1, 0.03, 0.08, [0xf0e8d8, 0xe8c8b0, 0xd8b8d8][i % 3], 0, r(0, 3), 0);
+    if (i % 4 === 0) for (let k = 0; k < 5; k++) mb.seg([x, 0.02, z], [x + Math.sin(k * 1.26) * 0.16, 0.015, z + Math.cos(k * 1.26) * 0.16], 0.035, 0.012, 0xe8784a, 4);
+    else mb.lathe([[0.06, 0], [0.05, 0.02], [0.02, 0.035], [0, 0.04]], x, 0.005, z, 1, 1, 0.8, [0xf0e8d8, 0xe8c8b0, 0xd8b8d8][i % 3], 7, 0, r(0, 3), 0);
   }
   const m = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
   if (m) { m.userData.theme = false; m.updateMatrix(); }
   // cangrejos: un pool fijo; caminan de costado por la orilla
   for (let i = 0; i < B.crabs; i++) {
     const g = new THREE.Group(), cb = new MeshBuilder();
-    cb.box(0, 0.08, 0, 0.26, 0.09, 0.2, 0xd8482a);
+    cb.sphere(0, 0.08, 0, 0.14, 0.05, 0.1, 0xd8482a, 10);                                    // F5.17c: caparazón curvo
     for (const sx of [-1, 1]) {
-      for (let k = -1; k <= 1; k++) cb.box(sx * 0.17, 0.05, k * 0.07, 0.12, 0.02, 0.02, 0xb8382a, 0, 0, sx * 0.5);   // patas
-      cb.box(sx * 0.12, 0.1, 0.15, 0.07, 0.06, 0.08, 0xe8583a);                                                   // pinzas
-      cb.box(sx * 0.05, 0.15, 0.08, 0.02, 0.05, 0.02, 0x1a1a1a);                                                  // ojos
+      for (let k = -1; k <= 1; k++) cb.tube([[sx * 0.1, 0.08, k * 0.05], [sx * 0.2, 0.1, k * 0.07], [sx * 0.26, 0.0, k * 0.08]], 0.012, 0.008, 0xb8382a, 4, 4);   // patas
+      cb.seg([sx * 0.08, 0.08, 0.08], [sx * 0.12, 0.1, 0.15], 0.015, 0.015, 0xb8382a, 4);
+      cb.sphere(sx * 0.12, 0.1, 0.17, 0.04, 0.03, 0.05, 0xe8583a, 8);                           // pinzas
+      cb.seg([sx * 0.04, 0.1, 0.08], [sx * 0.05, 0.16, 0.09], 0.008, 0.008, 0xb8382a, 4); cb.sphere(sx * 0.05, 0.165, 0.09, 0.015, 0.015, 0.015, 0x1a1a1a, 6);   // ojos
     }
     const cm = cb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
     scene.remove(cm); cm.matrixAutoUpdate = true; cm.userData.theme = false; g.add(cm);

@@ -710,8 +710,13 @@ fuera del camino, sacar lo verde junto al perk de la piscina. **La estación se 
 gigante** que se recorre adentro, con gradas, sangre verde viscosa que brilla, casi hasta z 90, más atrás en el
 claro (que crece).
 - Herramientas: formas curvas y hojas con alfa en el `MeshBuilder`, filtrado lineal, jungla por celdas (FPS).
-- Hecho en las áreas nombradas. **Queda para después (lo más Minecraft que sigue):** la casa (paredes y muebles de
-  cajas), los zombies y perros de cajas, el muelle y la playa. Propuesta: una pasada por área, como esta.
+- Hecho en las áreas nombradas.
+- **F5.17b:** cielo visible (domo barato: un draw call), rayo de luz sobre la mystery box, la pared playa ↔ playa del
+  calamar arde con H8, Stamin-Up arriba en el caparazón con hueco en la baranda, piso verde bajo la espesura.
+- **F5.17c:** zombies, perros, calamares y bosses con formas curvas; la casa (zócalos, molduras, guardasillas,
+  muebles redondeados), el muelle (pilotes redondos, sogas, faroles de hierro, bote torneado), la cabeza del calamar
+  (superficie curva con túnel en arco, pico, ojos, tentáculos) y la playa (sombrillas, castillo, botes, troncos).
+- Sigue siendo "de cajas": las estatuas de la cámara del calamar, los perks y el PaP, las armas en primera persona.
 
 ### Tanda E — Calamar y embarcadero
 - Embarcadero amplio y oscuro, sobre la arena al costado de la cabeza del calamar.

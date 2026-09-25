@@ -125,6 +125,25 @@ MeshBuilder.prototype.sphere = function (x, y, z, sx, sy, sz, color, seg, rx, ry
   const g = mbGeo('sph' + seg, () => new THREE.SphereGeometry(1, seg, Math.max(4, Math.round(seg * 0.6))));
   return this.add(g, x, y, z, sx, sy, sz, rx, ry, rz, color);
 };
+// F5.17c: caja con los 4 cantos a lo largo de x redondeados (radio r): cojines, colchones, gabinetes, refri.
+// Gira con rx/ry/rz como box()
+const _rbM = new THREE.Matrix4(), _rbL = new THREE.Matrix4(), _rbV = new THREE.Vector3(), _rbS = new THREE.Vector3(), _rbQ0 = new THREE.Quaternion();
+MeshBuilder.prototype.rbox = function (x, y, z, w, h, d, color, r, rx, ry, rz) {
+  r = Math.min(r || 0.06, h / 2 - 1e-3, d / 2 - 1e-3);
+  _mbE.set(rx || 0, ry || 0, rz || 0, 'YXZ');
+  _rbM.compose(_mbP.set(x, y, z), _mbQ.setFromEuler(_mbE), _mbS.set(1, 1, 1));
+  const cylX = mbGeo('cylX', () => new THREE.CylinderGeometry(1, 1, 1, 10, 1).rotateZ(Math.PI / 2));
+  const part = (geo, px, py, pz, sx, sy, sz) => { _rbL.compose(_rbV.set(px, py, pz), _rbQ0, _rbS.set(sx, sy, sz)).premultiply(_rbM); this.addM(geo, _rbL, color); };
+  part(UNIT_BOX, 0, 0, 0, w, h - 2 * r, d);
+  part(UNIT_BOX, 0, 0, 0, w, h, d - 2 * r);
+  for (const sy of [-1, 1]) for (const sz of [-1, 1]) part(cylX, 0, sy * (h / 2 - r), sz * (d / 2 - r), w, r, r);
+  return this;
+};
+// aro (toro) de radio R y grosor r, acostado en xz si no se gira (salvavidas, llantas, rollos)
+MeshBuilder.prototype.ring = function (x, y, z, R, r, color, rx, ry, rz) {
+  const k = Math.max(0.05, Math.min(0.9, r / R)).toFixed(2);
+  return this.add(mbGeo('tor' + k, () => new THREE.TorusGeometry(1, +k, 8, 20).rotateX(Math.PI / 2)), x, y, z, R, R, R, rx, ry, rz, color);
+};
 // roca: icosaedro deformado, caras planas y la base aplastada (se apoya). 8 variantes (seed)
 MeshBuilder.prototype.rock = function (x, y, z, sx, sy, sz, color, seed, rx, ry, rz) {
   const k = Math.abs(Math.floor(seed || 0)) % 8;
@@ -397,6 +416,7 @@ function themeMaterials() {
 function buildWallSkins() {
   const T = CONFIG.THEME, builders = {};
   const get = key => builders[key] || (builders[key] = new MeshBuilder());
+  const trims = new MeshBuilder(T.interiorTint), runs = [];     // F5.17c: zócalos, molduras y guardasillas
   const roomKey = (x, z) => {
     const r = roomAt(x, z);
     if (!r || (r.outdoor && !TEX.skin[r.id])) return 'EXT';   // porche, playa, muelle: fachada
@@ -431,17 +451,38 @@ function buildWallSkins() {
         const key = rail ? 'RAIL' : roomKey(q[0] + f.n[0] * 0.3, q[2] + f.n[2] * 0.3);
         if (runKey !== null && key !== runKey) {
           emitSkin(get(runKey), P, runStart, cuts[k], f.r[0], f.r[1], runKey);
+          runs.push([runStart, cuts[k], runKey]);
           runStart = cuts[k];
         }
         runKey = key;
       }
       emitSkin(get(runKey), P, runStart, f.s[1], f.r[0], f.r[1], runKey);
+      trimRun(trims, f, P, runs.concat([[runStart, f.s[1], runKey]]));
+      runs.length = 0;
     }
   }
+  trims.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
   for (const key in builders) {
     const room = ROOMS.find(r => r.id === key);
     const lit = key === 'EXT' || key === 'RAIL' || (room && room.outdoor);   // afuera no se tiñe
     builders[key].mesh(new THREE.MeshLambertMaterial({ map: TEX.skin[key], color: lit ? 0xffffff : T.interiorTint }));
+  }
+}
+// F5.17c: zócalo abajo, moldura redondeada arriba y guardasillas en sala y pasillo, a lo largo de cada tramo de pared
+// de un cuarto cerrado (ni fachada, ni baranda). Un solo mesh con color por vértice y el tinte de adentro
+function trimRun(b, f, P, runs) {
+  const along = f.t[0] !== 0;
+  for (const [s0, s1, key] of runs) {
+    if (!/^R[2-79]$/.test(key) || s1 - s0 < 0.3) continue;
+    const len = s1 - s0, bar = (y, h, dp, col, round) => {
+      const c = P((s0 + s1) / 2, y), x = c[0] + f.n[0] * dp / 2, z = c[2] + f.n[2] * dp / 2;
+      b.box(x, y, z, along ? len : dp, h, along ? dp : len, col);
+      if (round) { const a = P(s0, y + h / 2), e = P(s1, y + h / 2), o = dp * 0.9;
+        b.seg([a[0] + f.n[0] * o, a[1], a[2] + f.n[2] * o], [e[0] + f.n[0] * o, e[1], e[2] + f.n[2] * o], dp * 0.55, dp * 0.55, col, 6); }
+    };
+    if (f.r[0] < 0.1) bar(0.08, 0.16, 0.035, 0x5a4636, true);
+    if (f.r[1] > 3.6) bar(3.84, 0.14, 0.05, 0x7a6a54, true);
+    if ((key === 'R2' || key === 'R4') && f.r[0] < 0.8 && f.r[1] > 1.2) bar(0.84, 0.06, 0.03, 0x6a5440, true);
   }
 }
 function emitSkin(b, P, s0, s1, r0, r1, key) {
@@ -585,18 +626,19 @@ function buildOutside() {
     outer.position.set(P.x, 0, P.z); outer.rotation.y = P.rot; outer.userData.theme = true;
     outer.add(tilt); tilt.add(m); if (fm) tilt.add(fm);
     scene.add(outer);
-    b.box(P.x, 0.3, P.z, 0.42, 0.6, 0.42, 0x5e5044);                                  // tocón
+    b.cyl(P.x, 0, P.z, 0.24, 0.6, 0x5e5044, 0.85, 9);                                  // tocón
     return tilt;
   });
-  b.box(5, 0.18, -12, 3.2, 0.36, 0.8, 0x5f7f7a, 0, 0.3, 0);    // cayuco volteado
-  b.box(5, 0.38, -12, 3.0, 0.06, 0.12, 0x4a3a2c, 0, 0.3, 0);
-  b.box(-11, 0.22, -17, 3.4, 0.44, 0.9, 0x8e6a4a, 0, -0.2, 0);  // lancha volteada
-  b.box(-11, 0.46, -17, 3.1, 0.06, 0.14, 0xa8a090, 0, -0.2, 0);
-  b.box(-12.3, 0.3, -16.8, 0.08, 0.5, 0.7, 0x3a3a38, 0, -0.2, 0.1);   // motor fuera de borda
-  b.box(-4, 0.12, -9, 2.4, 0.22, 0.26, 0x8a7d6a, 0, 1.1, 0);    // troncos (decorativos, bajos)
-  b.box(8, 0.1, -6.5, 1.6, 0.18, 0.2, 0x7d7060, 0, -0.4, 0.05);
+  // F5.17c: botes volteados con casco torneado (medio huso boca abajo) y quilla; troncos curvos
+  const hull = [[0, -1], [0.45, -0.8], [0.8, -0.4], [1, 0], [0.8, 0.45], [0.45, 0.82], [0, 1]];
+  b.lathe(hull, 5, 0, -12, 0.42, 1.6, 0.38, 0x5f7f7a, 14, 0, 0.3, Math.PI / 2);       // cayuco volteado
+  b.lathe(hull, -11, 0, -17, 0.5, 1.7, 0.46, 0x8e6a4a, 14, 0, -0.2, Math.PI / 2);    // lancha volteada
+  b.rbox(-12.75, 0.35, -16.7, 0.25, 0.55, 0.3, 0x3a3a38, 0.08, 0, -0.2, 0.1);          // motor fuera de borda
+  b.cyl(-12.8, 0.05, -16.7, 0.04, 0.3, 0x2a2a28, 1, 6, 0, 0, 1.4);
+  b.tube([[-5.1, 0.12, -9.5], [-4, 0.14, -9.05], [-2.9, 0.12, -8.4]], 0.12, 0.09, 0x8a7d6a, 8, 7);   // troncos (decorativos, bajos)
+  b.tube([[7.25, 0.1, -6.2], [8, 0.11, -6.5], [8.75, 0.09, -6.85]], 0.1, 0.07, 0x7d7060, 6, 6);
   [[-7, -22.6], [-3.5, -23.1], [6, -22.8], [12, -23.2], [-14, -22.9]]                   // algas en la orilla
-    .forEach(p => b.box(p[0], 0.015, p[1], rnd(0.8, 1.6), 0.02, rnd(0.2, 0.4), 0x33402a, 0, rnd(0, 3), 0));
+    .forEach(p => { const a = rnd(0, 3), l = rnd(0.8, 1.6); b.tube([[p[0] - Math.cos(a) * l / 2, 0.02, p[1] + Math.sin(a) * l / 2], [p[0], 0.03, p[1] + 0.1], [p[0] + Math.cos(a) * l / 2, 0.02, p[1] - Math.sin(a) * l / 2]], 0.06, 0.03, 0x33402a, 5, 4); });
   // F1.1: laguna a los dos lados del puente C13. Agua apenas sobre la arena (no hace falta agujero);
   // fuera de todo cuarto: nadie la pisa. Va en este mismo mesh: sin draw call extra
   [[6.2, 15.8], [22.2, 35]].forEach(([x1, x2]) => {                                    // F5.8: la del este llega a x 35
@@ -604,8 +646,10 @@ function buildOutside() {
     b.box((x1 + x2) / 2, 0.022, 0.4, x2 - x1 - 1.4, 0.004, 5.2, 0x4d6c62);             // reflejo
   });
   [[7, 3.2], [8.2, -3.1], [15.1, 2.8], [23, -3.2], [29, 3.1], [26, -2.9]]               // juncos
-    .forEach(p => { for (let k = 0; k < 4; k++) b.box(p[0] + rnd(-0.3, 0.3), 0.35, p[1] + rnd(-0.2, 0.2), 0.04, rnd(0.5, 0.9), 0.04, 0x55603a, rnd(-0.2, 0.2), 0, rnd(-0.2, 0.2)); });
-  for (let z = -3.4; z <= 3.4; z += 2.27) [16, 22].forEach(x => b.box(x, -0.5, z, 0.22, 1.1, 0.22, 0x5e5446));
+    .forEach(p => { for (let k = 0; k < 5; k++) { const x = p[0] + rnd(-0.3, 0.3), z = p[1] + rnd(-0.2, 0.2), h = rnd(0.6, 1.1);
+      b.seg([x, 0, z], [x + rnd(-0.15, 0.15), h, z + rnd(-0.1, 0.1)], 0.02, 0.008, 0x55603a, 4);
+      if (k % 2) b.cyl(x + 0.02, h * 0.7, z, 0.035, 0.18, 0x5a3a24, 1, 6); } });   // juncos con espiga
+  for (let z = -3.4; z <= 3.4; z += 2.27) [16, 22].forEach(x => b.cyl(x, -1.05, z, 0.12, 1.1, 0x5e5446, 0.9, 8));
   // (F5.12: la laguna que bajaba al mar se sacó: ahí se pasa de la playa a la jungla este)
   const fb = new MeshBuilder();
   for (const P of CONFIG.GARDEN.palms) palm(b, P.x, P.z, P.segs, false, P.lean, P.rot, fb);
@@ -652,7 +696,8 @@ function buildTheme() {
 
   //--- R1 PORCHE ---
   let b = props('R1');
-  [[-6, -4], [6, -4], [-6, 3.7], [6, 3.7]].forEach(p => b.box(p[0], 1.95, p[1], 0.22, 3.9, 0.22, GRAY));   // postes
+  [[-6, -4], [6, -4], [-6, 3.7], [6, 3.7]].forEach(p => { b.cyl(p[0], 0, p[1], 0.14, 0.25, GRAY, 0.8, 10); b.cyl(p[0], 0.25, p[1], 0.1, 3.5, GRAY, 0.9, 10);
+    b.cyl(p[0], 3.72, p[1], 0.1, 0.18, GRAY, 1.4, 10); });   // postes (F5.17c: torneados)
   for (let x = -6; x <= 6; x += 2) strut(x, 3.9, -0.1, 0.18, 0.2, 7.9, 0x6a5a48);                          // vigas del techo
   strut(0, 3.8, -4, 12.3, 0.2, 0.2, 0x6a5a48);
   strut(0, 3.8, 0, 12.1, 0.16, 0.16, 0x5c4c3c);
@@ -693,40 +738,47 @@ function buildTheme() {
   //--- R2 SALA ---
   b = props('R2');
   b.setFrame(3.2, 0, 17.3, Math.PI);                                  // sofá viejo contra la pared norte
-  b.box(0, 0.22, 0, 2.3, 0.44, 0.9, 0x4f5244);
-  b.box(0, 0.62, -0.38, 2.3, 0.6, 0.18, 0x6b6f58);
-  b.box(-1.1, 0.42, 0, 0.2, 0.5, 0.9, 0x6b6f58); b.box(1.1, 0.42, 0, 0.2, 0.5, 0.9, 0x6b6f58);
-  b.box(-0.55, 0.5, 0.05, 1.0, 0.14, 0.72, 0x74785f);
-  b.box(0.35, 0.47, 0.1, 0.25, 0.05, 0.2, 0xd8d0b8);                   // relleno salido
-  b.box(0.9, 0.08, 0.95, 0.95, 0.14, 0.7, 0x74785f, 0, 0.4, 0.2);      // cojín en el piso
+  b.rbox(0, 0.24, 0, 2.3, 0.4, 0.9, 0x4f5244, 0.1);                   // F5.17c: cantos redondos
+  b.rbox(0, 0.66, -0.36, 2.3, 0.62, 0.22, 0x6b6f58, 0.1, -0.12, 0, 0);
+  for (const sx of [-1, 1]) { b.rbox(sx * 1.08, 0.42, 0.02, 0.22, 0.46, 0.92, 0x6b6f58, 0.1, 0, Math.PI / 2, 0); b.cyl(sx * 1.08, 0.62, 0.02, 0.13, 0.9, 0x6b6f58, 1, 10, Math.PI / 2, 0, 0); }
+  b.rbox(-0.5, 0.5, 0.05, 0.95, 0.16, 0.74, 0x74785f, 0.07); b.rbox(0.45, 0.5, 0.05, 0.95, 0.16, 0.74, 0x6e7259, 0.07, 0, 0, -0.08);
+  b.blob(0.45, 0.6, 0.1, 0.16, 0.06, 0.12, 0xd8d0b8, 2);                 // relleno salido
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.cyl(sx * 1.05, 0, sz * 0.38, 0.04, 0.06, 0x2a2018, 0.7, 6);   // patas
+  b.rbox(0.9, 0.08, 0.95, 0.95, 0.14, 0.7, 0x74785f, 0.06, 0, 0.4, 0.2); // cojín en el piso
   b.setFrame(-7.8, 0, 14.9, Math.PI / 2);                              // TV rota sobre mueble, pared oeste
   b.box(0, 0.25, 0.3, 1.2, 0.5, 0.5, 0x5a4636);
-  b.box(0.1, 0.8, 0.28, 0.9, 0.6, 0.45, DARK, 0, 0, 0.08);
+  b.rbox(0.1, 0.8, 0.28, 0.9, 0.6, 0.45, DARK, 0.08, 0, 0, 0.08); b.rbox(0.1, 0.8, 0.02, 0.7, 0.46, 0.3, 0x222222, 0.1, 0, 0, 0.08);
   deco.setFrame(-7.8, 0, 14.9, Math.PI / 2);
   deco.plane(0.1, 0.8, 0.506, 0.78, 0.5, 0, 0, 0.08, ATLAS.r.tv, IT);
   deco.setFrame(null); b.setFrame(null);
   b.box(-1, 0.006, 10.5, 3.2, 0.012, 2.4, 0x7a4a3e, 0, 0.1, 0);        // alfombra manchada
   b.box(-3.2, 0.22, 9.3, 1.2, 0.05, 0.6, 0x6a5440, 0.1, 0.2, 0.35);    // mesa volcada (a un costado: sólida, no corta D1->D3)
-  b.box(-3.75, 0.2, 9.1, 0.06, 0.4, 0.06, 0x5a4636, 0, 0, 0.35); b.box(-2.7, 0.05, 9.5, 0.06, 0.06, 0.4, 0x5a4636);
+  b.seg([-3.75, 0.02, 9.1], [-3.62, 0.4, 9.1], 0.03, 0.025, 0x5a4636, 6); b.seg([-2.7, 0.04, 9.3], [-2.7, 0.04, 9.7], 0.03, 0.025, 0x5a4636, 6);
   [[-5, 8, 0.4], [4.8, 6.5, -0.8], [-2.5, 15.5, 1.3]].forEach(p => b.box(p[0], 0.03, p[1], 1.4, 0.04, 0.18, 0x6e5a44, 0, p[2], 0));
-  [[-4.3, 7.7], [5.1, 7.2], [1.6, 15.8]].forEach(p => b.box(p[0], 0.1, p[1], 0.08, 0.08, 0.26, 0x4a6a4a, 0, rnd(0, 3), Math.PI / 2));  // botellas
+  [[-4.3, 7.7], [5.1, 7.2], [1.6, 15.8]].forEach(p => b.lathe([[0, 0], [0.04, 0], [0.04, 0.17], [0.015, 0.22], [0.015, 0.27], [0, 0.27]], p[0], 0.04, p[1], 1, 1, 1, 0x4a6a4a, 8, Math.PI / 2, rnd(0, 3), 0));  // botellas
 
   //--- R3 COCINA ---
   b = props('R3');
   b.box(15.6, 0.45, 13.5, 4.4, 0.9, 0.6, 0xb8b09a);                    // gabinete bajo
+  b.box(15.6, 0.05, 13.23, 4.4, 0.1, 0.04, 0x3a342c);                    // F5.17c: zócalo hundido
+  [13.4, 14.4, 15.4, 16.4, 17.4].forEach(x => b.seg([x, 0.78, 13.19], [x + 0.2, 0.78, 13.19], 0.012, 0.012, 0x9a9488, 4));   // tiradores
   b.box(15.6, 0.925, 13.47, 4.5, 0.05, 0.66, 0x6d675c);                // cubierta
   b.box(14.6, 0.955, 13.5, 0.6, 0.02, 0.4, 0x3a3a3a);                  // lavatrastos
+  b.tube([[14.6, 0.95, 13.72], [14.6, 1.25, 13.72], [14.6, 1.3, 13.6], [14.6, 1.2, 13.5]], 0.018, 0.015, 0xa8a8a0, 8, 5);   // canilla
   [13.9, 14.9, 15.9, 16.9].forEach(x => b.box(x, 0.45, 13.195, 0.02, 0.7, 0.01, 0x55504a));
   b.box(16.2, 0.02, 12.5, 0.5, 0.03, 0.7, 0xb0a890, 0, 0.3, 0);        // puerta caída
   b.box(13.9, 2.25, 13.62, 1.0, 0.7, 0.36, 0xa89f88);                  // alacenas
   b.box(17.2, 2.25, 13.62, 1.2, 0.7, 0.36, 0xa89f88);
   b.box(16.45, 2.25, 13.2, 0.5, 0.66, 0.02, 0x9f9680, 0, 0.9, 0);      // puerta abierta
-  b.box(8.8, 0.36, 11.7, 0.72, 0.72, 1.75, 0xc9c4b2);                  // refri volteado (de espaldas)
+  b.rbox(8.8, 0.36, 11.7, 1.75, 0.72, 0.72, 0xc9c4b2, 0.14, 0, Math.PI / 2, 0);   // refri volteado (de espaldas; F5.17c: cantos redondos)
   b.box(8.9, 0.79, 11.7, 0.66, 0.04, 1.6, 0xbeb8a4, 0, 0, -0.35);      // puerta entreabierta
   [[8.6, 0.73, 11.2], [9.0, 0.5, 12.3]].forEach(p => b.box(p[0], p[1], p[2], 0.2, 0.02, 0.15, 0x8a5a3a));
-  b.box(12.2, 0.25, 12.6, 0.45, 0.45, 0.05, 0x6a5440, 1.35, 0.4, 0);   // silla volcada
-  b.box(12.2, 0.22, 12.9, 0.45, 0.05, 0.45, 0x6a5440, 0, 0.4, 0);
-  [[11, 11.5], [13.2, 10.8], [9.8, 6.4]].forEach(p => b.box(p[0], 0.07, p[1], 0.14, 0.14, 0.14, 0x7c8084, 0, rnd(0, 3), 0));
+  b.rbox(12.2, 0.25, 12.6, 0.45, 0.45, 0.05, 0x6a5440, 0.02, 1.35, 0.4, 0);   // silla volcada
+  b.rbox(12.2, 0.22, 12.9, 0.45, 0.05, 0.45, 0x6a5440, 0.02, 0, 0.4, 0);
+  for (const [dx, dz] of [[-0.18, -0.18], [0.18, -0.18], [-0.18, 0.18], [0.18, 0.18]]) {
+    const c = Math.cos(0.4), sn = Math.sin(0.4), px = 12.2 + dx * c + dz * sn, pz = 12.9 - dx * sn + dz * c;
+    b.seg([px, 0.22, pz], [px + sn * 0.4, 0.3, pz + c * 0.4], 0.02, 0.018, 0x5a4636, 5); }
+  [[11, 11.5], [13.2, 10.8], [9.8, 6.4]].forEach(p => b.cyl(p[0], 0.04, p[1], 0.05, 0.12, 0x7c8084, 1, 10, Math.PI / 2, rnd(0, 3), 0));   // latas
 
   //--- R4 PASILLO ---
   b = props('R4');
@@ -742,20 +794,22 @@ function buildTheme() {
   deco.setFrame(null); b.setFrame(null);
   [[-3.75, 19.2, 0.25], [-3.75, 23.9, 0.35], [3.75, 21.3, -0.3], [3.75, 27.1, -0.2]]
     .forEach(p => b.box(p[0], 3.45, p[1], 0.02, 1.1, 0.42, 0xa3b6a2, 0, 0, p[2]));   // papel tapiz despegado
-  b.box(3.4, 0.4, 18.9, 0.6, 0.05, 0.45, 0x6a5440, 0, 0.2, 0.25);      // mesita volcada
-  b.box(3.1, 0.12, 19.5, 0.22, 0.24, 0.22, 0x8a5a3a);                  // maceta
-  b.box(3.1, 0.35, 19.5, 0.03, 0.3, 0.03, 0x6a5a3a, 0.3, 0, 0.2);      // planta seca
+  b.rbox(3.4, 0.4, 18.9, 0.6, 0.05, 0.45, 0x6a5440, 0.02, 0, 0.2, 0.25);  // mesita volcada
+  b.lathe([[0, 0], [0.08, 0], [0.13, 0.2], [0.14, 0.24], [0.12, 0.24]], 3.1, 0, 19.5, 1, 1, 1, 0x8a5a3a, 10);   // maceta
+  for (let k = 0; k < 4; k++) b.tube([[3.1, 0.22, 19.5], [3.1 + Math.cos(k * 1.6) * 0.1, 0.4, 19.5 + Math.sin(k * 1.6) * 0.1], [3.1 + Math.cos(k * 1.6) * 0.25, 0.3, 19.5 + Math.sin(k * 1.6) * 0.25]], 0.012, 0.005, 0x6a5a3a, 5, 4);   // planta seca
 
   //--- R5 DORMITORIO ---
   b = props('R5');
   b.box(5.3, 0.2, 19.3, 2.0, 0.3, 2.2, 0x5a4636, 0, 0, 0.04);          // cama
   b.box(5.3, 0.7, 18.28, 2.1, 1.1, 0.1, 0x5a4636);
-  b.box(5.3, 0.45, 19.35, 1.85, 0.2, 2.05, 0xb5ab8f, 0.03, 0.06, 0);
+  b.rbox(5.3, 0.45, 19.35, 1.85, 0.2, 2.05, 0xb5ab8f, 0.08, 0.03, 0.06, 0);   // colchón (F5.17c: redondo)
+  for (const dx of [-1, 1]) b.cyl(5.3 + dx * 1.05, 0, 18.28, 0.06, 1.35, 0x4a3a2c, 1, 8); 
   [[5.0, 19.8, 0.5, 0.6], [5.7, 19.1, 0.35, 0.3]].forEach(s => b.box(s[0], 0.555, s[1], s[2], 0.01, s[3], 0x7d6f55));
-  b.box(5.0, 0.6, 18.65, 0.6, 0.12, 0.35, 0xcfc6ae);
+  b.blob(5.0, 0.6, 18.65, 0.3, 0.08, 0.17, 0xcfc6ae, 4);                  // almohada
   b.box(6.35, 0.3, 19.6, 0.05, 0.45, 1.2, 0xc8c0aa, 0, 0, 0.15);       // sábana colgando
   b.box(6.75, 0.3, 18.55, 0.5, 0.6, 0.45, 0x6a5440);                   // mesa de noche
-  b.box(6.75, 0.7, 18.55, 0.12, 0.2, 0.12, 0x9a9080, 0, 0, 1.2);       // lámpara caída
+  b.lathe([[0.06, 0], [0.12, 0.18], [0.1, 0.2], [0.04, 0.02]], 6.75, 0.62, 18.55, 1, 1, 1, 0xd8c8a0, 10, 0, 0, 1.2);   // lámpara caída (pantalla)
+  b.seg([6.65, 0.62, 18.55], [6.9, 0.66, 18.55], 0.015, 0.015, 0x9a9080, 5);
   b.box(15.5, 1.1, 27.0, 0.6, 2.2, 1.5, 0x6a5440);                     // ropero
   b.box(15.05, 1.1, 26.05, 0.04, 2.0, 0.7, 0x5e4a38, 0, 0.9, 0);       // puerta abierta
   b.box(15.2, 1.3, 27.2, 0.3, 0.6, 0.3, 0x7a8a9a); b.box(15.2, 1.2, 26.7, 0.3, 0.5, 0.25, 0x9a6a5a);  // ropa
@@ -764,8 +818,8 @@ function buildTheme() {
 
   //--- R6 GARAJE ---
   b = props('R6');
-  b.box(-13.2, 1.1, 29.55, 0.52, 2.3, 0.07, 0xd8c890, 0.15, 0, 0);    // tabla de surf apoyada
-  b.box(-13.2, 1.1, 29.51, 0.12, 2.1, 0.02, 0x5f8fa0, 0.15, 0, 0);
+  b.sphere(-13.2, 1.1, 29.55, 0.27, 1.15, 0.04, 0xd8c890, 12, 0.15, 0, 0);   // tabla de surf apoyada (F5.17c: ovalada)
+  b.sphere(-13.2, 1.1, 29.52, 0.06, 1.05, 0.02, 0x5f8fa0, 8, 0.15, 0, 0);
   b.box(-12, 0.04, 28.2, 0.5, 0.06, 1.1, 0xd8c890, 0, 0.5, 0);         // la otra, partida
   b.setFrame(-6.6, 0, 28.9, 0);                                        // camioneta a medias (sin palangana)
   b.box(0, 0.55, 0, 3.6, 0.25, 1.7, 0x3a3a38);
@@ -775,16 +829,16 @@ function buildTheme() {
   b.box(0.32, 1.45, 0, 0.05, 0.55, 1.4, 0x2b3336, 0, 0, -0.3);
   b.box(1.0, 1.15, 0, 0.9, 0.1, 1.2, 0x2e2e2c);                        // motor
   [[-1.4, 0.6], [-1.4, -0.6]].forEach(p => b.box(-1.5, 0.5, p[1], 1.2, 0.12, 0.12, 0x2e2e2c));  // largueros
-  [[1.1, 0.8], [1.1, -0.8]].forEach(p => b.box(p[0], 0.35, p[1], 0.7, 0.7, 0.3, 0x1e1e1e));    // ruedas
+  [[1.1, 0.8], [1.1, -0.8]].forEach(p => { b.ring(p[0], 0.35, p[1], 0.26, 0.1, 0x1e1e1e, Math.PI / 2, 0, 0); b.cyl(p[0], 0.35, p[1] - 0.08, 0.17, 0.16, 0x8a8985, 1, 10, Math.PI / 2, 0, 0); });   // ruedas
   [[-1.4, 0.6], [-1.4, -0.6]].forEach(p => b.box(p[0], 0.2, p[1], 0.4, 0.4, 0.3, 0x8a8985));   // bloques
   [[0.6, 1.4, 0.83], [-0.9, 0.9, -0.83], [1.5, 1.05, 0.81]].forEach(p => b.box(p[0], p[1], p[2], 0.35, 0.25, 0.02, 0x8a5a3a));
   b.setFrame(null);
-  b.box(-4.7, 0.36, 26.9, 0.3, 0.7, 0.7, 0x1e1e1e, 0, 0, 0.2);         // rueda suelta
+  b.ring(-4.7, 0.36, 26.9, 0.25, 0.1, 0x1e1e1e, 0, 0, Math.PI / 2 - 0.2); // rueda suelta
   b.box(-15.45, 0.9, 26.8, 0.7, 0.08, 1.6, 0x6a5440);                  // banco de trabajo
   [[26.1], [27.5]].forEach(z => b.box(-15.45, 0.45, z[0], 0.6, 0.9, 0.06, 0x5a4636));
-  b.box(-15.3, 0.25, 25.9, 0.3, 0.4, 0.2, 0x8a3a2e);                   // bidón
+  b.rbox(-15.3, 0.25, 25.9, 0.2, 0.4, 0.3, 0x8a3a2e, 0.05, 0, Math.PI / 2, 0); b.cyl(-15.3, 0.45, 25.85, 0.04, 0.06, 0x2a2a2a, 1, 8);   // bidón
   b.box(-15.4, 0.97, 27.1, 0.4, 0.06, 0.1, 0x7c8084, 0, 0.4, 0);
-  [0.11, 0.33, 0.55].forEach((y, i) => b.box(-15.1, y, 21.9, 0.7, 0.22, 0.7, 0x1e1e1e, 0, i * 0.3, 0));  // llantas
+  [0.11, 0.33, 0.55].forEach((y, i) => b.ring(-15.1 + i * 0.03, y, 21.9, 0.26, 0.1, 0x1e1e1e, 0, i * 0.3, 0));  // llantas
 
   //--- R7 SÓTANO ---
   b = props('R7');
@@ -796,7 +850,7 @@ function buildTheme() {
   strut(-15.3, 2.4, 31.5, 0.12, 2.3, 0.12, 0x5a5a58);                  // escape
   for (let x = -13.5; x <= -11.5; x += 2) b.box(x, 0.9, 39.55, 0.06, 1.8, 0.4, 0x5a4636);   // estante
   [0.3, 0.9, 1.5].forEach(y => b.box(-12.5, y, 39.55, 2.1, 0.04, 0.42, 0x6a5440));
-  [[-13.1, 0.42], [-12.7, 0.42], [-12, 1.02], [-12.9, 1.62]].forEach(p => b.box(p[0], p[1], 39.5, 0.14, 0.2, 0.14, 0x7a8a6a));
+  [[-13.1, 0.32], [-12.7, 0.32], [-12, 0.92], [-12.9, 1.52]].forEach(p => { b.lathe([[0, 0], [0.07, 0], [0.07, 0.16], [0.05, 0.19], [0, 0.19]], p[0], p[1], 39.5, 1, 1, 1, 0x7a8a6a, 8); b.cyl(p[0], p[1] + 0.19, 39.5, 0.05, 0.03, 0x8a6a3a, 1, 8); });
   b.box(-5.0, 0.35, 31.0, 0.7, 0.7, 0.7, 0x6e5a44); b.box(-5.1, 0.95, 31.1, 0.5, 0.5, 0.5, 0x75604a, 0, 0.4, 0);   // cajas
   [[-8, 35.5, 2.6, 1.8], [-12.5, 36.8, 1.6, 1.2], [-6, 32.2, 1.2, 1.0], [-13.6, 33.6, 1.4, 1.0]]
     .forEach(p => floorDeco('puddle', p[0], p[1], p[2], p[3], rnd(0, 3), IT));
@@ -815,10 +869,11 @@ function buildTheme() {
   b.box((PL.x1 + PL.x2) / 2, 0.06, PL.z2, PL.x2 - PL.x1 + 0.3, 0.12, 0.3, CURB);
   b.box((PL.x1 + PL.x2) / 2, 0.005, PL.z1 - 0.1, PL.x2 - PL.x1, 0.01, 0.2, 0x8a8577);   // línea de la rampa
   // escalerillas: por acá (y la rampa) suben y bajan los zombies (POOL.ladders, F2.6)
-  [24.6, 25.4].forEach(x => b.box(x, -0.4, PL.z2 - 0.12, 0.05, 2.4, 0.05, 0xb8b8b0));   // norte
+  [24.6, 25.4].forEach(x => b.tube([[x, -1.6, PL.z2 - 0.12], [x, 0.2, PL.z2 - 0.12], [x, 0.7, PL.z2 + 0.05], [x, 0.3, PL.z2 + 0.35], [x, 0, PL.z2 + 0.35]], 0.025, 0.025, 0xb8b8b0, 12, 6));   // norte (F5.17c: pasamanos curvos)
   for (let y = -1.3; y < 0; y += 0.4) b.box(25, y, PL.z2 - 0.12, 0.8, 0.04, 0.05, 0xb8b8b0);
   [PL.x1 + 0.12, PL.x2 - 0.12].forEach(x => {                                          // oeste y este
-    [13.1, 13.9].forEach(z => b.box(x, -0.4, z, 0.05, 2.4, 0.05, 0xb8b8b0));
+    const o = x < 25 ? -1 : 1;
+    [13.1, 13.9].forEach(z => b.tube([[x, -1.6, z], [x, 0.2, z], [x + o * 0.17, 0.7, z], [x + o * 0.47, 0.3, z], [x + o * 0.47, 0, z]], 0.025, 0.025, 0xb8b8b0, 12, 6));
     for (let y = -1.3; y < 0; y += 0.4) b.box(x, y, 13.5, 0.05, 0.04, 0.8, 0xb8b8b0);
   });
   [[23, 14], [26.5, 12.8], [24.2, 16.2], [27.2, 15.6]]                                  // lama en el fondo
@@ -826,8 +881,10 @@ function buildTheme() {
   b.box(34.1, 0.3, 5.3, 1.1, 0.12, 1.7, 0xd8d2c4);                                      // reposera (F2.6: +1.1 en x; F5.8: +4)
   b.box(34.1, 0.62, 6.0, 1.1, 0.7, 0.1, 0xd8d2c4, -0.9, 0, 0);
   [[33.65, 4.55], [34.55, 4.55], [33.65, 6.05], [34.55, 6.05]].forEach(p => b.box(p[0], 0.13, p[1], 0.05, 0.26, 0.05, 0xb0aa9c));
-  b.box(34.35, 0.45, 17.1, 0.8, 0.9, 1.2, 0x9a5a3e);                                     // macetero con palma muerta (F5.8: +4 en x)
+  b.rbox(34.35, 0.45, 17.1, 1.2, 0.9, 0.8, 0x9a5a3e, 0.08, 0, Math.PI / 2, 0);            // macetero con palma muerta (F5.8: +4 en x)
   b.box(34.35, 0.91, 17.1, 0.7, 0.04, 1.1, 0x4a3a2c);
+  b.tube([[34.35, 0.9, 17.1], [34.4, 1.5, 17.0], [34.3, 2.1, 17.2]], 0.07, 0.05, 0x6a5a44, 6, 6);
+  for (let k = 0; k < 5; k++) { const a = k * 1.25; b.tube([[34.3, 2.1, 17.2], [34.3 + Math.cos(a) * 0.4, 2.2, 17.2 + Math.sin(a) * 0.4], [34.3 + Math.cos(a) * 0.8, 1.6, 17.2 + Math.sin(a) * 0.8]], 0.04, 0.01, 0x7a6a44, 6, 4); }
   const water = new THREE.Mesh(new THREE.PlaneGeometry(PL.x2 - PL.x1, PL.z2 - 11.2),
     new THREE.MeshLambertMaterial({ color: 0x3e5a2c, transparent: true, opacity: 0.8, depthWrite: false }));
   water.rotation.x = -Math.PI / 2;
@@ -845,8 +902,8 @@ function buildTheme() {
   [[23.2, 26.05], [23.2, 27.55]].forEach(p => b.box(p[0], 0.38, p[1], 0.06, 0.76, 0.06, 0x5a4636));
   b.box(23.5, 0.93, 27.1, 0.3, 0.2, 0.4, 0x3a3a38);                                      // radio
   onWall(b, 'z', 29.8, -1, 21);                                                          // salvavidas en la pared norte
-  [[0, 0.35], [0, -0.35], [0.35, 0], [-0.35, 0]].forEach((p, i) =>
-    b.box(p[0], 1.9 + p[1], 0.05, i < 2 ? 0.5 : 0.14, i < 2 ? 0.14 : 0.5, 0.1, i % 2 ? 0xe8e2d6 : 0xc8502e));
+  b.ring(0, 1.9, 0.1, 0.34, 0.1, 0xc8502e, Math.PI / 2, 0, 0);            // F5.17c: aro de verdad
+  [0, 1.57, 3.14, 4.71].forEach(a => b.rbox(Math.cos(a) * 0.34, 1.9 + Math.sin(a) * 0.34, 0.1, 0.1, 0.22, 0.22, 0xe8e2d6, 0.09, 0, 0, a));
   b.setFrame(null);
   onWall(b, 'x', 16.2, 1, 26.5);                                                         // redes colgadas
   for (let k = 0; k < 5; k++) b.box(0, 2.2 - k * 0.25, 0.04, 1.6 - k * 0.1, 0.02, 0.02, 0x8a7a5a, 0, 0, rnd(-0.1, 0.1));
@@ -857,22 +914,46 @@ function buildTheme() {
   [[0.4, -5.2, 2.2, 1.6, 0.2], [-6, -10, 3, 2, 0.8], [9, -15, 2.6, 1.8, -0.4]]
     .forEach(s => floorDeco('sand', s[0], s[1], s[2], s[3], s[4]));
   b = props('R11');
-  const pile = (x, z) => b.box(x, -0.95, z, 0.25, 2.1, 0.25, 0x5e5446);
-  // F5.6: tronco hasta z -44, plataforma z -50..-44, segundo tronco x -19..-15 y pasarela z -48..-44
-  for (let z = -25; z >= -44; z -= 3) [-2.15, 2.15].forEach(x => pile(x, z));                   // pilotes del tronco
-  for (let z = -44.15; z >= -50; z -= 2.9) pile(4.15, z);                                      // ...de la plataforma
-  [-3, 0, 3].forEach(x => pile(x, -50.15));
-  for (let z = -44.15; z >= -50; z -= 2.9) pile(-4.15, z);                                     // F5.16: plataforma oeste
+  // F5.17c: pilotes redondos con percebes que asoman 1 m como postes, soga que cuelga entre ellos, faroles de hierro
+  // con brazo curvo y bote de casco torneado
+  const pr = mulberry(311), posts = [];
+  const pile = (x, z, post) => {
+    b.cyl(x, -2.2, z, 0.15, post ? 3.2 : 2.3, [0x5e5446, 0x54493c, 0x665a4a][(pr() * 3) | 0], 0.92, 8, pr() * 0.04, pr() * 3, pr() * 0.04);
+    b.cyl(x, -0.55, z, 0.19, 0.3, 0x8a8a78, 0.9, 8);                                          // percebes en la línea del agua
+    b.cyl(x, -0.3, z, 0.17, 0.12, 0x4a6a3a, 1, 8);                                             // algas
+    if (post) { b.sphere(x, 1.0, z, 0.15, 0.06, 0.15, 0x4a4034, 8); posts.push([x, z]); }
+  };
+  const rope = (a, c) => {
+    const pts = []; for (let k = 0; k <= 6; k++) { const t = k / 6; pts.push([a[0] + (c[0] - a[0]) * t, 0.85 - Math.sin(Math.PI * t) * 0.22, a[1] + (c[1] - a[1]) * t]); }
+    b.tube(pts, 0.035, 0.035, 0xb8a47a, 8, 4);
+  };
+  // F5.6: tronco hasta z -44, plataforma z -50..-44 (F5.16: sin segundo tronco)
+  for (const x of [-2.15, 2.15]) { let prev = null; for (let z = -25; z >= -44; z -= 3) { pile(x, z, true); if (prev) rope([x, prev], [x, z]); prev = z; } }
+  for (const x of [-4.15, 4.15]) { let prev = null; for (let z = -44.15; z >= -50; z -= 2.9) { pile(x, z, true); if (prev) rope([x, prev], [x, z]); prev = z; } }
+  [-3, 0, 3].forEach(x => pile(x, -50.15, true));
+  rope([-4.15, -50.15], [-3, -50.15]); rope([-3, -50.15], [0, -50.15]); rope([0, -50.15], [3, -50.15]); rope([3, -50.15], [4.15, -50.15]);
+  for (const s of [-1, 1]) { pile(s * 3.1, -43.85, true); rope([s * 2.15, -44], [s * 3.1, -43.85]); rope([s * 3.1, -43.85], [s * 4.15, -44.15]); }
+  // tablones sueltos y rollo de soga en la plataforma
+  for (let k = 0; k < 3; k++) b.box(-3.2 + k * 0.1, 0.03 + k * 0.05, -45.2 + k * 0.3, 0.25, 0.05, 1.8, 0x6a5a44, 0, 0.2 + k * 0.3, 0);
+  { const pts = []; for (let k = 0; k <= 36; k++) { const a = k * 0.55, r = 0.35 - k * 0.006; pts.push([3.3 + Math.cos(a) * r, 0.05 + k * 0.004, -48.8 + Math.sin(a) * r]); } b.tube(pts, 0.04, 0.04, 0xb8a47a, 60, 4); }
   [[-1.85, -31], [3.85, -44.3], [-3.85, -44.3], [1.85, -38]].forEach(([x, z]) => {             // faroles
-    b.box(x, 1.3, z, 0.1, 2.6, 0.1, 0x2e2e2c);
-    b.box(x, 2.72, z, 0.28, 0.06, 0.28, 0x2e2e2c); b.box(x, 2.98, z, 0.3, 0.06, 0.3, 0x2e2e2c);
-    glow.box(x, 2.85, z, 0.22, 0.2, 0.22, 0xffd38a);
+    const s = x < 0 ? 1 : -1;
+    b.cyl(x, 0, z, 0.12, 0.3, 0x2e2e2c, 0.6, 8);
+    b.cyl(x, 0.3, z, 0.05, 2.5, 0x2e2e2c, 0.8, 6);
+    b.tube([[x, 2.7, z], [x, 3.05, z], [x + s * 0.2, 3.15, z], [x + s * 0.42, 3.0, z]], 0.035, 0.03, 0x2e2e2c, 8, 5);
+    const lx = x + s * 0.42;
+    b.cyl(lx, 2.56, z, 0.13, 0.05, 0x2e2e2c, 1, 8); b.cyl(lx, 2.9, z, 0.15, 0.12, 0x2e2e2c, 0.2, 8);
+    for (let k = 0; k < 4; k++) b.box(lx + Math.cos(k * 1.57 + 0.78) * 0.11, 2.74, z + Math.sin(k * 1.57 + 0.78) * 0.11, 0.025, 0.32, 0.025, 0x2e2e2c);
+    glow.sphere(lx, 2.74, z, 0.09, 0.14, 0.09, 0xffd38a, 8);
   });
-  // bote al costado este de la plataforma (el fondo queda para el Pack-a-Punch)
-  b.box(5.3, -0.28, -46, 1.3, 0.45, 3.2, 0x5f7f7a, 0.03, 0.12, 0.08);                    // bote amarrado
-  b.box(5.3, -0.04, -46, 1.1, 0.04, 2.8, 0x4a3a2c, 0.03, 0.12, 0.08);
-  b.box(4.4, 0.02, -45.2, 1.4, 0.03, 0.03, 0x9a8c70, 0, 0.5, 0.15);                      // cuerda a la bita
-  b.box(3.7, 0.15, -44.9, 0.25, 0.3, 0.25, 0x3a3a38);                                    // bita
+  // bote al costado este de la plataforma: casco torneado, bancos, remos
+  { const hull = [[0, -1.65], [0.32, -1.35], [0.55, -0.8], [0.66, 0], [0.62, 0.8], [0.45, 1.35], [0, 1.7]];
+    b.lathe(hull, 5.3, -0.25, -46, 1.05, 1, 0.55, 0x5f7f7a, 14, Math.PI / 2, 0.12, 0);
+    b.lathe(hull, 5.3, -0.22, -46, 0.9, 0.92, 0.1, 0x4a3a2c, 14, Math.PI / 2, 0.12, 0);
+    for (const d of [-0.6, 0.5]) b.box(5.3 + Math.sin(0.12) * d, 0.02, -46 + Math.cos(0.12) * d, 1.1, 0.05, 0.25, 0x6a5440, 0, 0.12, 0);
+    b.seg([4.9, 0.08, -46.8], [5.6, 0.12, -44.9], 0.03, 0.03, 0x8a6a48, 5); b.box(5.62, 0.12, -44.8, 0.14, 0.02, 0.4, 0x8a6a48, 0, 0.3, 0);
+    b.tube([[4.5, 0.1, -45.3], [4.0, 0.0, -45.1], [3.7, 0.25, -44.9]], 0.025, 0.025, 0x9a8c70, 6, 4);   // cuerda a la bita
+    b.cyl(3.7, 0, -44.9, 0.13, 0.3, 0x3a3a38, 0.8, 8); b.sphere(3.7, 0.3, -44.9, 0.15, 0.06, 0.15, 0x3a3a38, 8); }
 
   //--- vigas bajo el techo de lámina de cada cuarto interior + focos colgando ---
   for (const r of ROOMS) {

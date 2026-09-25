@@ -23,6 +23,8 @@ Leer primero `CLAUDE.md` (manda) y `ROADMAP-V2.md`. Esto es el resumen corto del
 
 ## Pendiente
 - Playtest de Diego: FPS (sobre todo Alto con sombras y el follaje), el caparazón, el rancho.
-- Lo que sigue siendo "Minecraft": la casa (paredes y muebles de cajas), zombies y perros de cajas, muelle y playa.
+- F5.17b/c hecho: cielo (domo), rayo de la caja, pared playa-calamar con H8, formas curvas en personajes, casa, muelle,
+  cabeza del calamar y playa. Sigue de cajas: estatuas del calamar, perks, PaP, armas en primera persona.
+- Diego está juntando sonidos para implementar (esperar su lista).
 - Tanda E: embarcadero oscuro al lado de la cabeza del calamar, animales de mar muertos (algunos alienígenas),
   Double Tap (hoy en la piscina), LMG, llegada del portal. Después F8 (cierre V2).

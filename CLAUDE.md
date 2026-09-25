@@ -38,7 +38,8 @@ viejos (`v1-final`…`v2-f5.5` solo existen en la copia local de Diego). F5.6–
 Falta el playtest de Diego (sobre todo FPS con sombras). **F5.16 (5 áreas, ver ROADMAP-V2): tandas A, B, C y D hechas**, sigue E (calamar y embarcadero) y después F8. **Todo el juego está en inglés** (textos visibles); el código y los comentarios siguen en español.
 **F5.17 (estilo BO2, "menos Minecraft"):** formas curvas y hojas con alfa en el `MeshBuilder`, jungla nueva por celdas,
 rancho, cueva, templo y jardines rediseñados, y el **caparazón de tortuga gigante** en lugar de la estación de policía
-(ver la sección F5.17). Para mirar el juego sin navegador: `node tools/shots.js vistas.json [carpeta]` (capturas headless).
+(ver la sección F5.17). **F5.17b/c:** cielo visible, rayo de la caja, pared playa-calamar con H8, y formas curvas en
+personajes, casa, muelle, cabeza del calamar y playa. Para mirar el juego sin navegador: `node tools/shots.js vistas.json [carpeta]` (capturas headless).
 
 ## Reglas no negociables
 - **Se edita `src/`, nunca `index.html`.** `node build.js` concatena `src/*.js` (en `build.js` ORDER) dentro
@@ -192,6 +193,9 @@ Nombres agregados en V2 (tampoco se renombran):
 · `buildFoliage()` · `texAniso()` · `TEX.bark/rock/thatch` · `MAT.bark/rock/grimeV/thatch/thatchIn` · `CONFIG.SHELL` · `shellK(x, z, m)`
 · `shellRim()` · `buildShellWalls()` · `buildShell()` · `SHELLFX` · `updateShellFX` · `UP.flights[].open` · tag `shell` / `shell:deck`
 · `RANCHO.eyes` · `updateRanchoEyes` · `buildGardenDress()` · `buildTempleDress()` · `LAMPS` · `CONFIG.TEMPLE.heads/stelae`
+· F5.17b/c: `SKYDOME` · `buildSkyDome()` · `updateSkyDome()` · `CONFIG.GFX.sky` · `CONFIG.BOX.beamColor/beamWidth/beamHeight`
+· `WORLD.beachWall` · `beachWall(on)` · `CONFIG.SHELL.jump` · `MeshBuilder.geometry/rbox/ring` · `zShapes()` · `dogShapes()`
+· `squidShapes()` · `bossShapes()` · `trimRun()`
 
 ## Mapa canónico (1 u = 1 m, grid 1x1, pared alto 4)
 | | Cuarto | [xMin,xMax,zMin,zMax] |
@@ -1259,6 +1263,33 @@ nombró (rancho, cueva, templo, jardines, estación → caparazón). La casa y l
   todo. Salida en `shots/` (ignorada por git).
 - Tests: `f516.js` (sección 9: el caparazón). Se adaptaron `roof.js` (la escalera del caparazón y sus barandas),
   `props.js` (cuartos con bordes no enteros).
+
+## Cielo, rayo de la caja y formas curvas en todo (V2 F5.17b/c) — manda sobre lo de arriba donde se contradice
+- **Cielo** (`SKYDOME`, `buildSkyDome`, `updateSkyDome` en gfx.js, `CONFIG.GFX.sky`): domo `ShaderMaterial` que sigue a
+  la cámara, de radio `camera.far - 3`, dibujado primero y sin profundidad. Abajo usa `scene.fog.color` (se funde con la
+  niebla), arriba un degradé día/noche/neblina morada, con sol, luna y estrellas en el shader. Un draw call: **ver el
+  cielo no cuesta FPS; lo que cuesta es ver lejos** (`camera.far`, que sigue atado a la niebla).
+- **Rayo de la mystery box** (`CONFIG.BOX.beamColor/beamWidth/beamHeight`): 3 planos aditivos cruzados sin niebla
+  (`buildBox`/`placeBox`), late, y se esconde mientras sale el oso o la caja se muda (`updateBox`).
+- **Pared playa ↔ playa del calamar** (`WORLD.beachWall`, cerco de x −41): arde y se abre con **H8** (`openDoor('H8')`
+  → `beachWall(false)`, 24 llamas en `buildBurns`); `openRooms()` suma R10–R19 con H8 abierta. Reset la vuelve a poner.
+- **Caparazón:** Stamin-Up en el entrepiso (`level: 1`, x −56.3, z 86.5) y hueco en la baranda norte (`SHELL.jump`,
+  en `UP.gaps`) para tirarse al medio.
+- **Espesura con piso verde** (`buildJungle`: plano de pasto bajo los rectángulos de `THICKET`).
+- **Personajes curvos:** geometrías compartidas por tipo (`zShapes`, `dogShapes`, `squidShapes`, `bossShapes`), armadas con
+  `MeshBuilder.geometry()` (la geometría sola, sin mesh). Los materiales llevan `vertexColors`: el color por vértice
+  multiplica el de cada zombie (piel, camisa) y el destello de daño sigue andando. Las partes que reciben balas son las
+  mismas (mismos `hitParts`, `userData.part`).
+- **Casa:** zócalo, moldura redondeada y guardasillas (sala y pasillo) en cada tramo de pared de cuarto cerrado
+  (`trimRun`, desde `buildWallSkins`: un mesh). Muebles con `MeshBuilder.rbox` (caja con cantos redondeados a lo
+  largo de x) y `ring` (toro): sofá, TV, refri, colchón, almohada, ruedas y llantas, salvavidas, frascos, botellas,
+  latas, escalerillas curvas. **Los `PROPS` (colisión) no cambiaron.**
+- **Muelle:** pilotes redondos con percebes que asoman como postes, soga que cuelga entre ellos, faroles de hierro con
+  brazo curvo, bote de casco torneado (`lathe`). **Playa:** sombrillas cónicas, castillo torneado, botes volteados,
+  troncos curvos, algas, conchas, cangrejos curvos.
+- **Cabeza del calamar** (`buildSquidHead`): superficie de superelipse (rebanadas a lo largo de z, se hunde en el mar
+  atrás), cara abombada con la boca, túnel y cámara en arco con costillas (carne con venas por canvas, `DoubleSide`),
+  pico negro con dientes, ojos lechosos con párpado, tentáculos con ventosas. Los sólidos invisibles no cambiaron.
 
 ## Audio (V2 F6) — `src/audio.js`, `CONFIG.AUDIO`
 - **Buses:** `sfx → compresor → master`, `amb → master`, `music → master` (F6), más 2 loops nuevos

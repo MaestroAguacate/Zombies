@@ -233,72 +233,156 @@ function buildShrimp() {
   QUEST.shrimp = g;
 }
 //--- F5.13: cabeza del calamar gigante muerto (CONFIG.SQUIDHEAD; lo sólido, en world.js buildSquidHeadShell).
-// Todo el dibujo va en un grupo que sube por ronda: carne (Lambert) y saliva que brilla (MeshBasic)
+// Todo el dibujo va en un grupo que sube por ronda: carne (Lambert) y saliva que brilla (MeshBasic).
+// F5.17b: superficies curvas (superelipse) en vez de rebanadas de cajas
 function buildSquidHead() {
-  const H = CONFIG.SQUIDHEAD, fl = new MeshBuilder(), gl = new MeshBuilder();
-  const cx = (H.x1 + H.x2) / 2, W = H.x2 - H.x1, [tx1, tx2, tz1, tz2] = H.tunnel, [cx1, cx2, cz1, cz2] = H.chamber;
-  const skin = [0x7a3a4e, 0x6a3044, 0x8a4658, 0x5e2a3c], inner = 0x4a1420, dark = 0x2a0a12;
-  const TH = H.tunnelH, CH = H.chamberH, eyeZ = cz2 - 1, eyeY = H.h * 0.55;   // F5.15: techos del túnel y la cámara
-  let n = 0;
-  const sk = () => skin[(n++ * 5) % 4];
-  // la cabeza: rebanadas a lo largo de z, más angostas y bajas hacia la boca (redondeada)
-  for (let z = H.z1; z < H.z2; z += 1) {
-    const k = (z - H.z1) / (H.z2 - H.z1), w = W * (1 - 0.25 * k * k), h = H.h * (1 - 0.3 * k * k) + 0.6;
-    const tun = z + 0.5 > tz1, cham = z + 0.5 > cz1 && z + 0.5 < cz2;
-    const ix1 = tun ? tx1 : cham ? cx1 : null, ix2 = tun ? tx2 : cham ? cx2 : null;
-    if (ix1 === null) fl.box(cx, h / 2, z + 0.5, w, h, 1.02, sk());
-    else {                                                            // paredes a los costados del hueco y techo
-      const L = cx - w / 2, R = cx + w / 2, top = tun ? TH : CH;
-      fl.box((L + ix1) / 2, h / 2, z + 0.5, ix1 - L, h, 1.02, sk());
-      fl.box((ix2 + R) / 2, h / 2, z + 0.5, R - ix2, h, 1.02, sk());
-      fl.box((ix1 + ix2) / 2, (top + h) / 2, z + 0.5, ix2 - ix1, h - top, 1.02, sk());
-      fl.box(ix1 + 0.05, top / 2, z + 0.5, 0.1, top, 1.02, inner);   // carne de adentro
-      fl.box(ix2 - 0.05, top / 2, z + 0.5, 0.1, top, 1.02, inner);
-      fl.box((ix1 + ix2) / 2, top - 0.05, z + 0.5, ix2 - ix1, 0.1, 1.02, inner);
-      fl.box((ix1 + ix2) / 2, 0.02, z + 0.5, ix2 - ix1, 0.04, 1.02, dark);
-    }
-    if ((z | 0) % 3 === 0) for (const s of [-1, 1]) fl.box(cx + s * (w / 2 + 0.02), h * 0.6, z + 0.5, 0.05, 0.6, 0.6, 0x9a5a70);   // manchas
+  const H = CONFIG.SQUIDHEAD, fl = new MeshBuilder(), gl = new MeshBuilder(), bk = new MeshBuilder(), rr = mulberry(71);
+  const cx = (H.x1 + H.x2) / 2, W = H.x2 - H.x1, L = H.z2 - H.z1, [tx1, tx2, tz1] = H.tunnel, [cx1, cx2, cz1, cz2] = H.chamber;
+  const TH = H.tunnelH, CH = H.chamberH, mz = H.z2, TW = tx2 - tx1, tcx = (tx1 + tx2) / 2, eyeZ = cz2 - 1, eyeY = H.h * 0.55;
+  const skin = [0xffffff, 0xf0e4e8, 0xe4d4dc], inner = 0xc07888, dark = 0x3a1018;
+  // F5.17b: piel de calamar (cromatóforos) y carne de adentro con venas, por canvas
+  const skinTex = makeTex((c, s) => {
+    c.fillStyle = '#7a3a4e'; c.fillRect(0, 0, s, s);
+    for (let i = 0; i < 90; i++) { c.fillStyle = ['rgba(150,70,90,.55)', 'rgba(60,20,34,.5)', 'rgba(190,120,130,.35)', 'rgba(110,40,60,.6)'][i % 4];
+      c.beginPath(); c.arc(Math.random() * s, Math.random() * s, 1.5 + Math.random() * 6, 0, 7); c.fill(); }
+    c.strokeStyle = 'rgba(40,10,20,.35)'; c.lineWidth = 1;
+    for (let i = 0; i < 8; i++) { let x = Math.random() * s, y = Math.random() * s; c.beginPath(); c.moveTo(x, y);
+      for (let k = 0; k < 5; k++) { x += (Math.random() - 0.5) * 40; y += (Math.random() - 0.5) * 40; c.lineTo(x, y); } c.stroke(); }
+    noise(c, s, 18);
+  }, 1, 128);
+  const fleshTex = makeTex((c, s) => {
+    c.fillStyle = '#6a2230'; c.fillRect(0, 0, s, s);
+    for (let i = 0; i < 40; i++) { c.fillStyle = ['rgba(140,50,70,.5)', 'rgba(40,8,16,.5)', 'rgba(170,90,100,.3)'][i % 3];
+      c.beginPath(); c.ellipse(Math.random() * s, Math.random() * s, 4 + Math.random() * 14, 2 + Math.random() * 6, Math.random() * 3, 0, 7); c.fill(); }
+    c.strokeStyle = 'rgba(30,4,10,.6)'; c.lineWidth = 2;
+    for (let i = 0; i < 12; i++) { let x = Math.random() * s, y = Math.random() * s; c.beginPath(); c.moveTo(x, y);
+      for (let k = 0; k < 6; k++) { x += (Math.random() - 0.5) * 30; y += Math.random() * 25; c.lineTo(x, y); } c.stroke(); }
+    noise(c, s, 20);
+  }, 1, 128);
+  const inn = new MeshBuilder();
+  // ---- afuera: rebanadas de superelipse (redondeada) a lo largo de z; atrás se hunde en el mar ----
+  const E = 2.6, sgn = v => (v < 0 ? -1 : 1);
+  const se = th => { const c = Math.cos(th), s = Math.sin(th); return [sgn(c) * Math.abs(c) ** (2 / E), Math.abs(s) ** (2 / E)]; };
+  const A = k => W / 2 * (1 - 0.22 * Math.max(0, k) ** 2) * (k < 0 ? 1 + 0.08 * k : 1);
+  const Hh = k => (k < 0 ? H.h * (1 + 0.12 * k) : H.h * (1 - 0.32 * k * k)) + 0.6;
+  const sink = k => (k < 0 ? -k * 16 : 0);
+  const bump = (k, th) => 1 + 0.035 * Math.sin(k * 23 + th * 5) + 0.025 * Math.sin(k * 41 - th * 9);
+  const P = (k, th) => { const [u, v] = se(th), b = bump(k, th); return [cx + A(k) * u * b, Hh(k) * v * b - sink(k), H.z1 + k * L]; };
+  const nrmOf = (f, a, b, e) => {                                       // normal por diferencias
+    const p = f(a, b), pa = f(a + e, b), pb = f(a, b + e);
+    const ux = pa[0] - p[0], uy = pa[1] - p[1], uz = pa[2] - p[2], vx = pb[0] - p[0], vy = pb[1] - p[1], vz = pb[2] - p[2];
+    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz) || 1;
+    return [nx / l, ny / l, nz / l];
+  };
+  const kEnd = 1 - 1 / L, kBeg = -0.8, NK = 44, NTH = 28;
+  for (let i = 0; i < NK; i++) for (let j = 0; j < NTH; j++) {
+    const k0 = kBeg + (kEnd - kBeg) * i / NK, k1 = kBeg + (kEnd - kBeg) * (i + 1) / NK, t0 = Math.PI * j / NTH, t1 = Math.PI * (j + 1) / NTH;
+    const q = [P(k0, t0), P(k1, t0), P(k1, t1), P(k0, t1)];
+    if (q.every(p => p[1] < -1.5)) continue;                           // bajo el agua
+    const n = [[k0, t0], [k1, t0], [k1, t1], [k0, t1]].map(([a, b2], m) => {       // normal hacia afuera
+      const v = nrmOf(P, a, b2, 1e-3), p = q[m], ox = (p[0] - cx) / A(a), oy = (p[1] + sink(a)) / Hh(a);
+      return v[0] * ox + v[1] * oy < 0 ? v.map(x => -x) : v;
+    });
+    const uv = [[k0 * L / 4, t0 * 3], [k1 * L / 4, t0 * 3], [k1 * L / 4, t1 * 3], [k0 * L / 4, t1 * 3]];
+    fl.quadN(q, n, uv, skin[(i + j) % 3]);
   }
-  for (const s of [-1, 1]) {                                          // ojos muertos a los costados
-    const x = cx + s * (W * 0.47);
-    fl.box(x, eyeY, eyeZ, 0.3, 3.4, 3.4, 0xc8c0b0);
-    fl.box(x + s * 0.12, eyeY, eyeZ, 0.1, 1.8, 1.8, 0x8a9a9a);
-    fl.box(x + s * 0.16, eyeY, eyeZ, 0.06, 0.5, 1.3, 0x3a3a3a);
+  // ---- la cara de la boca: se abomba hacia afuera (el centro en z2, el borde un metro atrás), con el hueco ----
+  const F = (r, th) => { const [u, v] = se(th), b = bump(kEnd, th); return [cx + A(kEnd) * u * b * r, Hh(kEnd) * v * b * r, mz - 1 + (1 - r * r)]; };
+  const inMouth = p => Math.abs(p[0] - tcx) < TW / 2 + 0.25 && p[1] < TH + 0.25;
+  for (let i = 0; i < 18; i++) for (let j = 0; j < 40; j++) {
+    const r0 = i / 18, r1 = (i + 1) / 18, t0 = Math.PI * j / 40, t1 = Math.PI * (j + 1) / 40;
+    const q = [F(r0, t0), F(r1, t0), F(r1, t1), F(r0, t1)];
+    if (q.some(inMouth)) continue;
+    const n = q.map(p => { const x = (p[0] - cx) / A(kEnd), y = p[1] / Hh(kEnd), l = Math.hypot(x * 0.9, y * 0.9, 1); return [x * 0.9 / l, y * 0.9 / l, 1 / l]; });
+    fl.quadN(q, n, [[r0 * 3, t0 * 3], [r1 * 3, t0 * 3], [r1 * 3, t1 * 3], [r0 * 3, t1 * 3]], skin[(i + j) % 3]);
   }
-  // pico alrededor de la boca, dientes y tentáculos tirados en la arena (sin colisión)
-  const mz = H.z2, TW = tx2 - tx1;
-  fl.box(tx1 - 0.3, TH / 2, mz + 0.2, 0.6, TH, 0.6, 0x1a1418); fl.box(tx2 + 0.3, TH / 2, mz + 0.2, 0.6, TH, 0.6, 0x1a1418);
-  fl.box(cx, TH + 0.3, mz + 0.2, TW + 1.2, 0.6, 0.6, 0x1a1418);
-  const nT = Math.round(TW / 0.64);
-  for (let i = 0; i < nT; i++) fl.box(tx1 + 0.4 + i * 0.64, TH - 0.5, mz + 0.3, 0.18, 0.5, 0.12, 0xe8e0c8, 0, 0, 0.3 * (i % 2 ? 1 : -1));
-  const tent = (x, z, a, len) => {
-    for (let i = 0; i < len; i++) {
-      const t = i / len, r = 0.7 * (1 - t) + 0.15, ang = a + Math.sin(i * 0.5) * 0.35;
-      x += Math.sin(ang) * 0.9; z += Math.cos(ang) * 0.9;
-      fl.box(x, r * 0.6, z, r * 1.8, r * 1.2, 1.0, i % 2 ? skin[0] : skin[2], 0, ang, 0);
-      if (i % 2 === 0) fl.box(x, r * 1.2 + 0.02, z, r * 0.6, 0.04, r * 0.6, 0xe0b0b8, 0, ang, 0);   // ventosa
+  // ---- adentro: túnel en arco (costillas cada 1.2 m) y cámara redondeada, carne con venas ----
+  const arch = (s, z, x1, x2, top) => {                                 // s 0..1: pared izq -> arco -> pared der
+    const w = (x2 - x1) / 2, xm = (x1 + x2) / 2, wall = top * 0.5, rib = 0.14 * Math.abs(Math.sin(z * Math.PI / 1.2));
+    const per = 2 * wall + Math.PI * w, d = s * per;
+    if (d < wall) return [x1 - rib, d, z, 1, 0];
+    if (d > per - wall) return [x2 + rib, per - d, z, -1, 0];
+    const a = Math.PI - (d - wall) / w, h = top - wall;
+    return [xm + Math.cos(a) * (w + rib), wall + Math.sin(a) * (h + rib), z, -Math.cos(a), -Math.sin(a)];
+  };
+  const tube2 = (x1, x2, z1, z2, top, nz, ns) => {
+    for (let i = 0; i < nz; i++) for (let j = 0; j < ns; j++) {
+      const za = z1 + (z2 - z1) * i / nz, zb = z1 + (z2 - z1) * (i + 1) / nz, s0 = j / ns, s1 = (j + 1) / ns;
+      const pts = [arch(s0, za, x1, x2, top), arch(s0, zb, x1, x2, top), arch(s1, zb, x1, x2, top), arch(s1, za, x1, x2, top)];
+      inn.quadN(pts.map(p => [p[0], p[1], p[2]]), pts.map(p => [p[3], p[4], 0]), [[s0 * 4, za / 3], [s0 * 4, zb / 3], [s1 * 4, zb / 3], [s1 * 4, za / 3]], [inner, 0xb06a7a, 0xc88494][(i + j) % 3]);
     }
   };
-  tent(tx1 - 1.2, mz, -0.9, 14); tent(tx2 + 1.2, mz, 0.9, 14);
-  tent(H.x1 + 0.5, mz - 2, -1.6, 12); tent(H.x2 - 0.5, mz - 2, 1.6, 12);
-  tent(tx1 - 2.2, mz - 0.5, -0.4, 10); tent(tx2 + 2.2, mz - 0.5, 0.4, 10);
-  // el manto se hunde en el mar hacia el sur
-  for (let i = 0; i < 12; i++) {
-    const z = H.z1 - 1 - i * 1.6, w = W * (0.92 - i * 0.05), h = H.h * (1 - i * 0.07) + 0.6, y = h / 2 - i * 0.55;
-    fl.box(cx + Math.sin(i * 0.4) * 0.4, y, z, w, h, 1.7, sk(), -0.08, 0, 0);
+  tube2(tx1, tx2, tz1, mz - 0.3, TH, 20, 16);
+  // la cámara: un túnel ancho de x, cerrado atrás y adelante por dos tapas en arco (la de adelante con el hueco del túnel)
+  tube2(cx1, cx2, cz1, cz2, CH, 16, 20);
+  for (const [z, face] of [[cz1, 1], [cz2, -1]]) {
+    const NS = 24, NR = 10;
+    for (let j = 0; j < NS; j++) for (let i = 0; i < NR; i++) {
+      const s0 = j / NS, s1 = (j + 1) / NS, r0 = i / NR, r1 = (i + 1) / NR;
+      const pt = (s, r) => { const a = arch(s, z, cx1, cx2, CH), xm = (cx1 + cx2) / 2; return [xm + (a[0] - xm) * r, a[1] * r + (1 - r) * 0.02 * 0, z - face * 0.4 * (1 - r) * 0]; };
+      const q = [pt(s0, r0), pt(s0, r1), pt(s1, r1), pt(s1, r0)];
+      if (face < 0 && q.some(p => Math.abs(p[0] - tcx) < TW / 2 && p[1] < TH)) continue;
+      inn.quadN(q, q.map(() => [0, 0, face]), [[s0 * 4, r0], [s0 * 4, r1], [s1 * 4, r1], [s1 * 4, r0]], [inner, 0xb06a7a][(i + j) % 2]);
+    }
   }
-  fl.box(cx, 0.5, H.z1 - 21, 3, 1.2, 4, skin[1], 0.4, 0.3, 0);         // aleta asomando
-  // saliva que brilla: charcos en el piso del túnel y la cámara, hilos del techo y el borde de la boca
-  let s = 97; const r = (a, b) => { s = (s * 16807) % 2147483647; return a + (b - a) * s / 2147483647; };
+  // costillas de cartílago en el techo de la cámara y el túnel
+  for (let z = cz1 + 1.2; z < cz2 - 0.5; z += 1.8) {
+    const pts = []; for (let k = 0; k <= 10; k++) { const a = arch(0.08 + 0.84 * k / 10, z, cx1 + 0.3, cx2 - 0.3, CH - 0.3); pts.push([a[0], a[1], a[2]]); }
+    fl.tube(pts, 0.18, 0.18, 0xd8a8b0, 20, 5);
+  }
+  // piso de carne oscura, con pliegues
+  const floor = (x1, x2, z1, z2) => { fl.box((x1 + x2) / 2, 0.02, (z1 + z2) / 2, x2 - x1, 0.04, z2 - z1, dark);
+    for (let i = 0; i < (x2 - x1) * (z2 - z1) / 6; i++) fl.blob(x1 + 0.4 + rr() * (x2 - x1 - 0.8), 0.02, z1 + 0.3 + rr() * (z2 - z1 - 0.6), 0.3 + rr() * 0.4, 0.06, 0.2 + rr() * 0.3, 0x5a1a28, i, 0, rr() * 3, 0); };
+  floor(tx1, tx2, tz1, mz); floor(cx1, cx2, cz1, cz2);
+  // ---- ojos muertos a los costados: globo lechoso con párpado caído ----
+  for (const s of [-1, 1]) {
+    const x = cx + s * (A((eyeZ - H.z1) / L) - 0.5);
+    bk.sphere(x, eyeY, eyeZ, 1.3, 1.9, 1.9, 0xd8d0c0, 16);
+    bk.sphere(x + s * 0.95, eyeY - 0.1, eyeZ + 0.1, 0.4, 1.0, 0.9, 0x6a7a7a, 12);
+    bk.sphere(x + s * 1.18, eyeY - 0.1, eyeZ + 0.1, 0.2, 0.55, 0.28, 0x1a1a1a, 10);
+    fl.blob(x + s * 0.3, eyeY + 1.25, eyeZ, 1.3, 0.8, 2.3, 0xffd0d8, s + 3);                        // párpado
+    fl.tube([[x + s * 0.2, eyeY - 1.6, eyeZ - 1.8], [x + s * 0.9, eyeY - 0.9, eyeZ], [x + s * 0.2, eyeY - 1.6, eyeZ + 1.8]], 0.3, 0.3, 0xffd0d8, 10, 6);
+  }
+  // ---- pico: dos mitades curvas negras alrededor de la boca, y dientes cónicos ----
+  const lipPts = [];
+  for (let k = 0; k <= 20; k++) {
+    const a = Math.PI * k / 20, x = tcx - Math.cos(a) * (TW / 2 + 0.5), y = Math.min(TH + 0.5, Math.sin(a) * (TH + 0.5) * 1.35);
+    lipPts.push([x, Math.max(0.1, y), mz - 0.05]);
+  }
+  lipPts.unshift([tx1 - 0.5, 0, mz - 0.05]); lipPts.push([tx2 + 0.5, 0, mz - 0.05]);
+  bk.tube(lipPts, 0.62, 0.62, 0x241a20, 48, 8);
+  fl.tube(lipPts.map(p => [p[0] + (p[0] < tcx ? -0.55 : 0.55), p[1] + 0.3, p[2] - 0.35]), 0.5, 0.5, 0xffc8d0, 40, 7);   // labio de carne
+  for (const s of [-1, 1]) bk.tube([[tcx + s * 1.2, TH + 0.9, mz + 0.1], [tcx + s * 0.4, TH + 0.2, mz + 0.9], [tcx + s * 0.15, TH - 0.6, mz + 0.6]], 0.45, 0.06, 0x181014, 12, 7);   // gancho del pico
+  for (let i = 0; i < 9; i++) {
+    const x = tx1 + 0.35 + i * (TW - 0.7) / 8, y = Math.min(TH, Math.sin(Math.PI * (x - tx1) / TW) * TH * 1.35) - 0.15;
+    bk.cyl(x, y, mz - 0.1, 0.13, 0.55, 0xe8e0c8, 0, 6, Math.PI, 0, 0.2 * (i % 2 ? 1 : -1));
+  }
+  // ---- tentáculos tirados en la arena, con ventosas ----
+  const tent = (x, z, a, len, r0) => {
+    const pts = []; let ang = a;
+    for (let i = 0; i <= len; i++) { pts.push([x, r0 * (1 - i / len) * 0.8 + 0.12, z]); ang += Math.sin(i * 0.7 + a * 3) * 0.28; x += Math.sin(ang) * 0.9; z += Math.cos(ang) * 0.9; }
+    fl.tube(pts, r0, 0.08, 0xffffff, len * 3, 8);
+    for (let i = 1; i < len; i += 1) { const p = pts[i], r = r0 * (1 - i / len); bk.cyl(p[0], p[1] + r * 0.55, p[2], r * 0.35, 0.08, 0xd8a0a8, 1, 8); }
+  };
+  tent(tx1 - 1.4, mz - 0.4, -0.9, 14, 0.8); tent(tx2 + 1.4, mz - 0.4, 0.9, 14, 0.8);
+  tent(H.x1 + 0.8, mz - 2.5, -1.6, 12, 0.7); tent(H.x2 - 0.8, mz - 2.5, 1.6, 12, 0.7);
+  tent(tx1 - 2.6, mz - 0.8, -0.35, 10, 0.6); tent(tx2 + 2.6, mz - 0.8, 0.35, 10, 0.6);
+  fl.blob(cx + 2, 0.4, H.z1 - 18, 2.4, 1.4, 3.4, 0xffffff, 2, 0.4, 0.3, 0);                          // aleta asomando del agua
+  // ---- saliva que brilla: charcos, hilos del techo y el borde de la boca ----
   for (let i = 0; i < 30; i++) {
-    const inT = i < 16, x = inT ? r(tx1 + 0.4, tx2 - 0.4) : r(cx1 + 0.4, cx2 - 0.4), z = inT ? r(tz1, tz2 - 0.3) : r(cz1 + 0.3, cz2);
-    gl.box(x, 0.06, z, r(0.4, 1.2), 0.02, r(0.4, 1.2), 0x6aff9a);
-    if (i % 2) gl.box(x, (inT ? TH : CH) - 0.6, z, 0.04, 1.2, 0.04, 0x8affc0);
+    const inT = i < 16, x = inT ? tx1 + 0.4 + rr() * (TW - 0.8) : cx1 + 0.4 + rr() * (cx2 - cx1 - 0.8), z = inT ? tz1 + rr() * (mz - tz1 - 0.3) : cz1 + 0.3 + rr() * (cz2 - cz1 - 0.3);
+    gl.blob(x, 0.05, z, 0.3 + rr() * 0.5, 0.03, 0.3 + rr() * 0.5, 0x6aff9a, i);
+    if (i % 2) { const top = inT ? TH : CH, hh = 0.6 + rr() * 1.2; gl.seg([x, top - 0.2, z], [x, top - 0.2 - hh, z], 0.03, 0.015, 0x8affc0, 4); gl.sphere(x, top - 0.25 - hh, z, 0.06, 0.09, 0.06, 0x8affc0, 6); }
   }
-  gl.box(cx, TH - 0.08, mz + 0.05, TW, 0.12, 0.08, 0x7affb0);
-  for (let i = 0; i < 6; i++) gl.box(tx1 + 0.5 + i * 0.75, TH - 0.7 - (i % 2) * 0.4, mz + 0.06, 0.05, 0.6 + (i % 2) * 0.4, 0.05, 0x8affc0);
+  for (let i = 0; i < 8; i++) { const p = lipPts[3 + i * 2], hh = 0.5 + (i % 3) * 0.4; gl.seg([p[0], p[1] - 0.4, p[2] + 0.1], [p[0], p[1] - 0.4 - hh, p[2] + 0.1], 0.04, 0.02, 0x8affc0, 4); }
   const g = new THREE.Group();
-  for (const [mb, mat] of [[fl, new THREE.MeshLambertMaterial({ vertexColors: true })], [gl, new THREE.MeshBasicMaterial({ vertexColors: true })]]) {
+  const mats = [
+    [fl, new THREE.MeshLambertMaterial({ vertexColors: true, map: skinTex })],
+    [inn, new THREE.MeshLambertMaterial({ vertexColors: true, map: fleshTex, side: THREE.DoubleSide, emissive: 0x220408 })],
+    [bk, new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 60, specular: 0x444444 })],
+    [gl, new THREE.MeshBasicMaterial({ vertexColors: true })]
+  ];
+  for (const [mb, mat] of mats) {
     const m = mb.mesh(mat);
     scene.remove(m); m.matrixAutoUpdate = true; m.userData.theme = false; g.add(m);
   }
