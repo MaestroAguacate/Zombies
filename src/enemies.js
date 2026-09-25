@@ -97,6 +97,30 @@ function dogDetail(mb, parent, mat) {
   parent.add(m);
   return m;
 }
+// F5.17c: formas del perro infernal (compartidas por todos; la hitbox queda parecida a las cajas de antes)
+const DSHAPE = {};
+let HOUND_EYEG = null;
+function dogShapes() {
+  if (DSHAPE.torso) return DSHAPE;
+  const W = 0xffffff, mange = 0x8a7a6a;
+  let b = new MeshBuilder();                                        // cuerpo (0.4 × 0.4 × 1.0, centrado)
+  b.blob(0, 0.02, 0.22, 0.2, 0.2, 0.26, W, 1);                       // pecho
+  b.blob(0, -0.02, -0.22, 0.16, 0.16, 0.26, W, 2);                   // cadera, más flaca
+  b.blob(0, 0.14, 0.34, 0.17, 0.1, 0.16, W, 3);                      // hombros encorvados
+  b.blob(0.12, 0.05, -0.1, 0.06, 0.08, 0.12, mange, 4); b.blob(-0.1, 0.1, 0.1, 0.05, 0.06, 0.1, mange, 5);   // sarna
+  DSHAPE.torso = b.geometry();
+  b = new MeshBuilder();                                            // pata (0.62, pivote arriba)
+  b.seg([0, 0.31, 0], [0, 0.02, -0.04], 0.07, 0.042, W, 7);
+  b.seg([0, 0.02, -0.04], [0, -0.26, 0.02], 0.04, 0.03, W, 6);
+  b.blob(0, -0.29, 0.05, 0.045, 0.03, 0.06, 0x3a2a22, 2);           // pata con garras
+  for (let k = 0; k < 3; k++) b.cyl(-0.025 + k * 0.025, -0.3, 0.1, 0.01, 0.05, 0xc9bb9c, 0, 4, Math.PI / 2 + 0.3, 0, 0);
+  DSHAPE.leg = b.geometry();
+  b = new MeshBuilder();                                            // cráneo (0.34, centrado)
+  b.blob(0, 0.02, -0.02, 0.15, 0.13, 0.17, W, 3);
+  b.sphere(0, 0.1, 0.1, 0.12, 0.05, 0.08, W, 8);                     // frente
+  DSHAPE.head = b.geometry();
+  return DSHAPE;
+}
 function createDog(i, breed) {
   const D = CONFIG.DOGS, furC = HOUND_FUR[breed];
   const fur = new THREE.MeshLambertMaterial({ color: furC });       // propio: flash de impacto
@@ -113,36 +137,41 @@ function createDog(i, breed) {
   const bL = zPart(lw, L, lw, fur, -lx, L, -lz, body, true), bR = zPart(lw, L, lw, fur, lx, L, -lz, body, true);
   const head = zPart(hs, hs, hs, fur, 0, hy, hz, body);
 
+  // F5.17c: formas en vez de cajas. Cuerpo, patas y cabeza con geometría propia (hitbox parecida) y los detalles
+  // (costillas, púas, carne, hocico, dientes) en tubos, conos y gotas
+  const DS = dogShapes();
+  torso.mesh.geometry = DS.torso; head.mesh.geometry = DS.head;
+  for (const p of [fl, fr, bL, bR]) p.mesh.geometry = DS.leg;
+  fur.vertexColors = true;
   const mt = new MeshBuilder(), mh = new MeshBuilder();          // detalles del cuerpo / de la cabeza (locales)
-  // costillas a la vista en los dos costados, carne expuesta y sangre
-  for (let k = 0; k < 5; k++) [-1, 1].forEach(s => mt.box(s * (bw / 2 + 0.006), -0.02, 0.22 - k * 0.1, 0.012, bh * 0.75, 0.035, HOUND_BONE));
-  mt.box(bw / 2 + 0.004, -0.02, 0.05, 0.008, bh * 0.6, 0.3, HOUND_FLESH);               // carne detrás de las costillas
-  mt.box(-bw / 2 - 0.004, -0.04, -0.02, 0.008, bh * 0.5, 0.22, HOUND_FLESH);
-  mt.box(bw / 2 + 0.01, -0.12, -0.3, 0.01, 0.14, 0.2, HOUND_BLOOD);                      // manchas de sangre
-  mt.box(-bw / 2 - 0.01, 0.08, 0.3, 0.01, 0.1, 0.16, HOUND_BLOOD);
-  mt.box(0, -bh / 2 - 0.005, 0.12, bw * 0.7, 0.01, 0.4, HOUND_FLESH);                    // panza abierta
-  for (let k = 0; k < 7; k++) mt.box(0, bh / 2 + 0.05 + (k % 2) * 0.04, 0.4 - k * 0.13, 0.05, 0.12 + (k % 2) * 0.06, 0.05, HOUND_BONE, 0.4);   // púas del lomo
-  mt.box(0, bh / 2 + 0.02, bl / 2 - 0.04, bw * 0.9, 0.12, 0.2, furC);                   // hombros encorvados
-  mt.box(0, bh * 0.25, -bl / 2 - 0.2, 0.05, 0.05, 0.42, HOUND_BONE, 0.5);                // cola de hueso
-  // cabeza: hocico largo con la boca abierta, dientes, encías, sangre, orejas rotas y ojos que brillan
-  mh.box(0, 0.03, hs / 2 + 0.14, 0.2, 0.12, 0.3, furC);                                  // hocico
-  mh.box(0, 0.075, hs / 2 + 0.28, 0.08, 0.05, 0.04, 0x0a0606);                           // nariz
-  mh.box(0, -0.12, hs / 2 + 0.12, 0.18, 0.06, 0.28, furC, -0.35);                        // mandíbula (abierta)
-  mh.box(0, -0.04, hs / 2 + 0.12, 0.16, 0.06, 0.26, HOUND_GUM, -0.17);                   // adentro de la boca
-  for (let k = 0; k < 5; k++) [-1, 1].forEach(s => {
-    mh.box(s * 0.08, -0.02, hs / 2 + 0.04 + k * 0.05, 0.02, 0.06, 0.02, HOUND_TOOTH);   // colmillos de arriba
-    mh.box(s * 0.075, -0.1, hs / 2 + 0.05 + k * 0.045, 0.02, 0.05, 0.02, HOUND_TOOTH, -0.35);
-  });
-  mh.box(0, -0.2, hs / 2 + 0.22, 0.14, 0.03, 0.06, HOUND_BLOOD);                          // sangre en el mentón
-  [[-0.05, -0.28], [0.06, -0.34]].forEach(([x, y]) => mh.box(x, y, hs / 2 + 0.2, 0.02, 0.1, 0.02, HOUND_BLOOD));   // gotas colgando
-  mh.box(-0.13, hs / 2 + 0.06, -0.06, 0.06, 0.16, 0.04, furC, 0, 0, 0.5);               // orejas rotas
-  mh.box(0.13, hs / 2 + 0.03, -0.06, 0.06, 0.1, 0.04, furC, 0, 0, -0.6);
-  mh.box(0.1, 0.05, hs / 2 - 0.02, 0.1, 0.02, 0.04, HOUND_FLESH, 0, 0, 0.4);             // cicatriz
+  for (let k = 0; k < 5; k++) for (const sd of [-1, 1]) {             // costillas a la vista
+    const z0 = 0.22 - k * 0.1;
+    mt.tube([[sd * 0.05, 0.17, z0], [sd * 0.19, 0.06, z0], [sd * 0.18, -0.1, z0 + 0.02], [sd * 0.08, -0.17, z0 + 0.03]], 0.014, 0.01, HOUND_BONE, 6, 4);
+  }
+  for (const sd of [-1, 1]) mt.blob(sd * 0.155, -0.02, 0.05, 0.04, 0.12, 0.2, HOUND_FLESH, sd + 2);   // carne detrás de las costillas
+  mt.blob(0.18, -0.1, -0.3, 0.03, 0.07, 0.1, HOUND_BLOOD, 1); mt.blob(-0.18, 0.06, 0.3, 0.03, 0.05, 0.08, HOUND_BLOOD, 2);
+  mt.blob(0, -0.19, 0.12, 0.13, 0.03, 0.2, HOUND_FLESH, 3);                                // panza abierta
+  for (let k = 0; k < 7; k++) mt.cyl(0, 0.17, 0.4 - k * 0.13, 0.03, 0.14 + (k % 2) * 0.07, HOUND_BONE, 0, 5, -0.4, 0, 0);   // púas del lomo
+  mt.tube([[0, 0.08, -0.46], [0, 0.18, -0.62], [0, 0.12, -0.84]], 0.035, 0.012, HOUND_BONE, 6, 5);                          // cola de hueso
+  // cabeza: hocico largo con la boca abierta, dientes, encías, sangre, orejas rotas
+  mh.seg([0, 0.04, 0.08], [0, 0.03, 0.42], 0.1, 0.06, furC, 8);                          // hocico
+  mh.sphere(0, 0.06, 0.43, 0.04, 0.03, 0.03, 0x0a0606, 6);                               // nariz
+  mh.seg([0, -0.06, 0.06], [0, -0.2, 0.36], 0.08, 0.045, furC, 8);                        // mandíbula (abierta)
+  mh.seg([0, -0.03, 0.08], [0, -0.1, 0.36], 0.06, 0.035, HOUND_GUM, 6);                   // adentro de la boca
+  for (let k = 0; k < 5; k++) for (const sd of [-1, 1]) {
+    mh.cyl(sd * 0.07, 0.0, 0.14 + k * 0.055, 0.013, 0.07, HOUND_TOOTH, 0, 5, Math.PI, 0, 0);          // colmillos de arriba
+    mh.cyl(sd * 0.055, -0.1 - k * 0.028, 0.14 + k * 0.05, 0.012, 0.06, HOUND_TOOTH, 0, 5, -0.4, 0, 0);
+  }
+  mh.blob(0, -0.24, 0.36, 0.06, 0.02, 0.04, HOUND_BLOOD, 1);                              // sangre en el mentón
+  [[-0.04, -0.32], [0.05, -0.36]].forEach(([x, y]) => mh.seg([x, -0.24, 0.35], [x, y, 0.35], 0.012, 0.008, HOUND_BLOOD, 4));   // babas de sangre
+  mh.cyl(-0.12, 0.12, -0.04, 0.05, 0.16, furC, 0.2, 6, 0, 0, 0.5); mh.cyl(0.12, 0.12, -0.04, 0.05, 0.1, furC, 0.3, 6, 0, 0, -0.6);   // orejas rotas
+  mh.blob(0.1, 0.05, 0.13, 0.05, 0.01, 0.03, HOUND_FLESH, 2);                              // cicatriz
   dogDetail(mt, torso.mesh, det);
   dogDetail(mh, head.mesh, det);
-  [-0.09, 0.09].forEach(x => {                                                          // ojos rojos
-    const e = new THREE.Mesh(zGeo(0.06, 0.035, 0.02), HOUND_EYE);
-    e.position.set(x, 0.07, hs / 2 + 0.005); e.rotation.z = x < 0 ? -0.3 : 0.3;
+  if (!HOUND_EYEG) HOUND_EYEG = new THREE.SphereGeometry(0.028, 8, 6);
+  [-0.075, 0.075].forEach(x => {                                                        // ojos rojos
+    const e = new THREE.Mesh(HOUND_EYEG, HOUND_EYE);
+    e.position.set(x, 0.07, 0.15); e.scale.set(1.2, 0.8, 1);
     head.mesh.add(e);
   });
 
@@ -211,6 +240,28 @@ function spawnDog() {
 const SQPOOL = [];
 const INK = { shots: [], splat: 0 };
 const SQUID_SKIN = [[0x6a2a7a, 0x4a1a5a, 0xc86ac8], [0x8a1e3a, 0x5a0e20, 0xe86a8a]];   // morado / rojo: piel, manchas, ventosas
+// F5.17c: formas del calamar (compartidas; hitbox parecida a las cajas de antes)
+const QSHAPE = {};
+function squidShapes() {
+  if (QSHAPE.mantle) return QSHAPE;
+  const W = 0xffffff;
+  let b = new MeshBuilder();                                                    // manto (0.72 × 0.5 × 1.15, acostado)
+  b.blob(0, 0, 0.05, 0.34, 0.24, 0.42, W, 1);
+  b.blob(0, 0.02, -0.4, 0.24, 0.18, 0.24, W, 2);                                // punta
+  QSHAPE.mantle = b.geometry();
+  b = new MeshBuilder();                                                        // cabeza (0.62 × 0.46 × 0.42)
+  b.blob(0, 0, 0, 0.3, 0.22, 0.2, W, 3);
+  QSHAPE.head = b.geometry();
+  const arm = L => {                                                            // tentáculo que cuelga del pivote
+    const t = new MeshBuilder();
+    t.tube([[0, L / 2, 0], [0.02, L / 6, 0.03], [-0.02, -L / 6, 0.04], [0.03, -L / 2, 0.02]], 0.085, 0.025, W, 10, 7);
+    return t.geometry();
+  };
+  QSHAPE.armF = arm(0.95); QSHAPE.armB = arm(0.8);
+  QSHAPE.eye = new THREE.SphereGeometry(0.085, 10, 8);
+  QSHAPE.pupil = new THREE.BoxGeometry(0.1, 0.022, 0.012);
+  return QSHAPE;
+}
 function createSquid(i) {
   const S = CONFIG.SQUID, [col, spot, suck] = SQUID_SKIN[i % 2];
   const skin = new THREE.MeshLambertMaterial({ color: col });
@@ -222,24 +273,29 @@ function createSquid(i) {
   // 4 tentáculos grandes que reciben balas: cuelgan del pivote y la animación los acuesta adelante/atrás
   const tl = zPart(0.16, 0.95, 0.16, skin, -0.24, 0.2, 0.7, body, true), tr = zPart(0.16, 0.95, 0.16, skin, 0.24, 0.2, 0.7, body, true);
   const bl = zPart(0.16, 0.8, 0.16, skin, -0.28, 0.2, -0.6, body, true), br = zPart(0.16, 0.8, 0.16, skin, 0.28, 0.2, -0.6, body, true);
+  // F5.17c: formas en vez de cajas: manto de gota, cabeza redonda con ojos saltones, tentáculos que se afinan
+  const QS = squidShapes();
+  torso.mesh.geometry = QS.mantle; head.mesh.geometry = QS.head;
+  tl.mesh.geometry = tr.mesh.geometry = QS.armF; bl.mesh.geometry = br.mesh.geometry = QS.armB;
+  skin.vertexColors = true;
   const mt = new MeshBuilder(), mh = new MeshBuilder();
-  for (let k = 0; k < 6; k++) mt.box((k % 2 ? 0.2 : -0.18), 0.26, 0.4 - k * 0.16, 0.16, 0.02, 0.14, spot);   // manchas del lomo
-  mt.box(0, 0.12, -0.62, 0.5, 0.3, 0.3, col);                                  // punta del manto
-  mt.box(-0.37, 0, -0.1, 0.03, 0.2, 0.6, spot); mt.box(0.37, 0, -0.1, 0.03, 0.2, 0.6, spot);   // aletas
-  for (let k = 0; k < 6; k++) [-1, 1].forEach(s => mt.box(s * 0.2, -0.26, 0.4 - k * 0.14, 0.12, 0.02, 0.1, suck));   // ventosas panza
-  // cabeza: ojos grandes (MeshBasic aparte), pico y tentáculos chicos colgando (solo visuales)
-  mh.box(0, -0.16, 0.22, 0.16, 0.12, 0.08, 0x1a1008);                          // pico
-  for (let k = 0; k < 6; k++) mh.box(-0.25 + k * 0.1, -0.3, 0.16, 0.06, 0.24 + (k % 3) * 0.08, 0.06, k % 2 ? col : spot, 0.4, 0, 0);
-  for (let k = 0; k < 3; k++) mh.box(-0.12 + k * 0.12, 0.26, 0.05, 0.05, 0.08, 0.05, spot);   // bultos feos
+  for (let k = 0; k < 7; k++) mt.blob((k % 2 ? 0.16 : -0.14), 0.2 - Math.abs(k - 3) * 0.01, 0.38 - k * 0.15, 0.08, 0.02, 0.07, spot, k);   // manchas del lomo
+  for (const sd of [-1, 1]) mt.blob(sd * 0.33, 0, -0.2, 0.06, 0.03, 0.34, spot, sd + 2, 0, 0, sd * 0.4);                      // aletas
+  for (let k = 0; k < 6; k++) for (const sd of [-1, 1]) mt.cyl(sd * 0.16, -0.21, 0.36 - k * 0.14, 0.04, 0.02, suck, 1, 8);   // ventosas de la panza
+  mh.cyl(0, -0.17, 0.2, 0.07, 0.1, 0x1a1008, 0, 6, Math.PI / 2 + 0.4, 0, 0);                                                     // pico
+  for (let k = 0; k < 6; k++) {                                                                                                   // tentáculos chicos
+    const x = -0.24 + k * 0.1;
+    mh.tube([[x, -0.18, 0.14], [x * 1.2, -0.34, 0.2], [x * 1.4, -0.46 - (k % 3) * 0.06, 0.12]], 0.035, 0.01, k % 2 ? col : spot, 6, 5);
+  }
+  for (let k = 0; k < 3; k++) mh.blob(-0.12 + k * 0.12, 0.2, 0.02, 0.05, 0.05, 0.05, spot, k);                                  // bultos feos
   dogDetail(mt, torso.mesh, det);
   dogDetail(mh, head.mesh, det);
   const eyeMat = new THREE.MeshBasicMaterial({ color: 0xf0e040 }), pupil = new THREE.MeshBasicMaterial({ color: 0x0a0a0a });
-  [-0.2, 0.2].forEach(x => {
-    const e = new THREE.Mesh(zGeo(0.16, 0.14, 0.02), eyeMat); e.position.set(x, 0.06, 0.215); head.mesh.add(e);
-    const p = new THREE.Mesh(zGeo(0.14, 0.03, 0.02), pupil); p.position.set(x, 0.06, 0.225); head.mesh.add(p);   // pupila rayada
+  [-0.2, 0.2].forEach(x => {                                                                                                      // ojos saltones
+    const e = new THREE.Mesh(QS.eye, eyeMat); e.position.set(x, 0.07, 0.17); head.mesh.add(e);
+    const p = new THREE.Mesh(QS.pupil, pupil); p.position.set(x, 0.07, 0.245); head.mesh.add(p);                                // pupila rayada
   });
-  // tentáculos: ventosas
-  [tl, tr, bl, br].forEach(t => { const mb = new MeshBuilder(); for (let k = 0; k < 5; k++) mb.box(0, -0.12 - k * 0.16, 0.085, 0.08, 0.06, 0.02, suck); dogDetail(mb, t.mesh, det); });
+  [tl, tr, bl, br].forEach(t => { const mb = new MeshBuilder(); for (let k = 0; k < 6; k++) mb.cyl(0, -0.1 - k * 0.13, 0.05 - k * 0.004, 0.028 - k * 0.002, 0.02, suck, 1, 8, Math.PI / 2, 0, 0); dogDetail(mb, t.mesh, det); });
   const z = {
     id: 300 + i, root, body,
     head: head.mesh, armL: tl.pivot, armR: tr.pivot, legL: bl.pivot, legR: br.pivot,

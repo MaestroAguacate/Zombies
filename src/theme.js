@@ -72,6 +72,17 @@ MeshBuilder.prototype.quad = function (a, b, c, d, uvs, color) {
   this.i.push(base, base + 1, base + 2, base, base + 2, base + 3);
   return this;
 };
+// F5.17c: la geometría sola (sin mesh ni escena): para piezas que se reusan (cuerpos de zombies, perros)
+MeshBuilder.prototype.geometry = function () {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(this.p, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(this.n, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(this.c, 3));
+  g.setIndex(this.i);
+  g.computeBoundingSphere(); g.computeBoundingBox();
+  return g;
+};
 MeshBuilder.prototype.mesh = function (mat) {
   if (!this.i.length) return null;
   const g = new THREE.BufferGeometry();

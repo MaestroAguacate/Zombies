@@ -143,12 +143,55 @@ function zPart(w, h, d, mat, x, y, z, parent, pivotTop) {
   m.position.set(x, y, z); parent.add(m);
   return { pivot: m, mesh: m };
 }
+// F5.17c (Diego: menos Minecraft): cuerpo con formas (antes cajas). Mismas piezas, pivotes y alturas, así la
+// animación, los golpes por parte y el desmembramiento no cambian. Geometrías armadas una vez y compartidas; el
+// color por vértice oscurece (mugre, sangre, boca) y se multiplica con el color de cada material (piel, camisa)
+const ZSHAPE = {};
+function zShapes() {
+  if (ZSHAPE.head) return ZSHAPE;
+  const W = 0xffffff, dirt = 0xb8ad9c, blood = 0x8a2a22, dark = 0x2a1410;
+  let b = new MeshBuilder();                                        // cabeza (centrada, ~0.4)
+  b.blob(0, 0.03, -0.01, 0.19, 0.22, 0.2, W, 1);                    // cráneo
+  b.sphere(0, -0.1, 0.05, 0.14, 0.09, 0.14, 0xe8e0d0, 8);             // quijada colgando
+  b.sphere(0, -0.08, 0.14, 0.07, 0.035, 0.03, dark, 8);               // boca abierta
+  b.box(0, 0.085, 0.165, 0.28, 0.05, 0.06, 0xd8ccb8);                 // ceja
+  b.sphere(0, 0.0, 0.19, 0.035, 0.05, 0.04, 0xe0d4c0, 6);             // nariz
+  for (const sx of [-1, 1]) { b.sphere(sx * 0.19, 0.0, 0, 0.035, 0.07, 0.05, 0xd8ccb8, 6); b.sphere(sx * 0.075, 0.03, 0.17, 0.05, 0.045, 0.02, dark, 6); }   // orejas, cuencas
+  b.blob(0.05, 0.16, -0.04, 0.14, 0.07, 0.15, 0x3a2e24, 2);          // mechones de pelo
+  b.blob(-0.1, 0.06, 0.12, 0.06, 0.05, 0.04, blood, 3);              // herida
+  ZSHAPE.head = b.geometry();
+  b = new MeshBuilder();                                            // torso (centrado, 0.68 de alto)
+  b.add(mbGeo('cyl10_1.18', () => { const c = new THREE.CylinderGeometry(1.18, 1, 1, 10, 1); c.translate(0, 0.5, 0); return c; }), 0, -0.34, 0, 0.21, 0.6, 0.13, 0, 0, 0, W);
+  for (const sx of [-1, 1]) b.sphere(sx * 0.22, 0.25, 0, 0.1, 0.09, 0.1, W, 8);   // hombros
+  b.cyl(0, 0.25, 0, 0.07, 0.12, 0xe0d8cc, 1, 8);                       // cuello
+  b.blob(0.06, -0.02, 0.12, 0.09, 0.12, 0.04, blood, 4);             // sangre en el pecho
+  b.blob(-0.1, -0.22, 0.11, 0.07, 0.06, 0.04, dark, 5);              // agujero
+  b.blob(0, -0.33, 0, 0.2, 0.06, 0.13, dirt, 1);                     // borde roto de la camisa
+  ZSHAPE.torso = b.geometry();
+  b = new MeshBuilder();                                            // brazo (0.62, pivote arriba: centrado en y)
+  b.seg([0, 0.3, 0], [0, 0.02, 0.01], 0.07, 0.06, W, 7);
+  b.sphere(0, 0.02, 0.01, 0.06, 0.06, 0.06, W, 6);
+  b.seg([0, 0.02, 0.01], [0, -0.24, 0.03], 0.058, 0.045, 0xe8e0d4, 7);
+  b.blob(0, -0.28, 0.03, 0.055, 0.07, 0.03, 0xe0d8cc, 2);             // mano
+  for (let k = 0; k < 4; k++) b.seg([-0.03 + k * 0.02, -0.32, 0.03], [-0.035 + k * 0.024, -0.36, 0.05], 0.011, 0.006, 0xc8bca8, 4);   // dedos
+  b.blob(0, 0.14, 0.05, 0.04, 0.05, 0.02, blood, 5);
+  ZSHAPE.arm = b.geometry();
+  b = new MeshBuilder();                                            // pierna (0.8, pivote arriba)
+  b.seg([0, 0.4, 0], [0, 0.0, 0.01], 0.115, 0.085, W, 8);
+  b.sphere(0, 0.0, 0.015, 0.085, 0.08, 0.085, W, 7);
+  b.seg([0, 0.0, 0.01], [0, -0.32, 0], 0.08, 0.065, dirt, 8);        // pantalón roto abajo
+  b.blob(0, -0.35, 0.05, 0.075, 0.05, 0.13, 0x2a2622, 3);            // zapato (se tiñe con el pantalón: oscuro)
+  ZSHAPE.leg = b.geometry();
+  ZSHAPE.eye = new THREE.SphereGeometry(0.032, 8, 6);
+  return ZSHAPE;
+}
 function createZombie(i) {
   const C = CONFIG.ZOMBIE;
   // materiales propios por zombie: permiten el flash de impacto individual
-  const skin  = new THREE.MeshLambertMaterial({ color: C.skinColor });
-  const shirt = new THREE.MeshLambertMaterial({ color: ZSHIRTS[i % ZSHIRTS.length] });
-  const pants = new THREE.MeshLambertMaterial({ color: 0x3f3a33 });
+  const skin  = new THREE.MeshLambertMaterial({ color: C.skinColor, vertexColors: true });
+  const shirt = new THREE.MeshLambertMaterial({ color: ZSHIRTS[i % ZSHIRTS.length], vertexColors: true });
+  const pants = new THREE.MeshLambertMaterial({ color: 0x3f3a33, vertexColors: true });
+  const ZS = zShapes();
   const root = new THREE.Group();
   const body = new THREE.Group();       // lo que colapsa al morir (pivote en los pies)
   root.add(body);
@@ -159,9 +202,12 @@ function createZombie(i) {
   const head  = zPart(0.40, 0.40, 0.40, skin,   0,    1.70, 0.03, body);
   const armL  = zPart(0.16, 0.62, 0.16, skin,  -0.37, 1.40, 0, body, true);
   const armR  = zPart(0.16, 0.62, 0.16, skin,   0.37, 1.40, 0, body, true);
-  const eyeL = new THREE.Mesh(zGeo(0.08, 0.05, 0.02), ZMAT.eye);
-  const eyeR = new THREE.Mesh(zGeo(0.08, 0.05, 0.02), ZMAT.eye);
-  eyeL.position.set(-0.09, 0.03, 0.205); eyeR.position.set(0.09, 0.03, 0.205);
+  // F5.17c: formas en vez de cajas (mismas medidas de golpe)
+  legL.mesh.geometry = legR.mesh.geometry = ZS.leg; torso.mesh.geometry = ZS.torso; head.mesh.geometry = ZS.head;
+  armL.mesh.geometry = armR.mesh.geometry = ZS.arm;
+  const eyeL = new THREE.Mesh(ZS.eye, ZMAT.eye);
+  const eyeR = new THREE.Mesh(ZS.eye, ZMAT.eye);
+  eyeL.position.set(-0.075, 0.03, 0.175); eyeR.position.set(0.075, 0.03, 0.175);
   head.mesh.add(eyeL); head.mesh.add(eyeR);
   const eyes = [eyeL, eyeR];                                     // F5.11: rojos en el búnker (setZombieEyes)
 

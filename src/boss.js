@@ -76,6 +76,50 @@ function buildBoss() {
     BOSS.squids.push({ g, active: false, p: new THREE.Vector3(), v: new THREE.Vector3() });
   }
 }
+// F5.17c: formas del Sombrerón / Calamarón (compartidas; misma escala que las cajas de antes)
+const BSHAPE = {};
+function bossShapes() {
+  if (BSHAPE.torso) return BSHAPE;
+  const W = 0xffffff, dark = 0x2a1a12;
+  let b = new MeshBuilder();                                            // torso (0.92 × 0.95 × 0.5): saco entallado
+  b.add(mbGeo('cyl12_1.3', () => { const c = new THREE.CylinderGeometry(1.3, 1, 1, 12, 1); c.translate(0, 0.5, 0); return c; }), 0, -0.47, 0, 0.3, 0.84, 0.2, 0, 0, 0, W);
+  for (const sx of [-1, 1]) b.sphere(sx * 0.38, 0.32, 0, 0.15, 0.13, 0.16, W, 10);   // hombros
+  b.cyl(0, 0.37, 0, 0.12, 0.12, 0xe0d8cc, 1, 10);                                    // cuello
+  for (const sx of [-1, 1]) b.box(sx * 0.12, 0.18, 0.21, 0.08, 0.36, 0.02, 0xd8d0c0, 0, 0, sx * 0.25);   // solapas
+  BSHAPE.torso = b.geometry();
+  b = new MeshBuilder();                                                // cabeza (0.55)
+  b.blob(0, 0.02, 0, 0.26, 0.29, 0.27, W, 1);
+  b.sphere(0, -0.13, 0.05, 0.2, 0.12, 0.2, 0xe8e0d0, 8);
+  b.sphere(0, 0, 0.26, 0.05, 0.07, 0.05, 0xe0d4c0, 6);                 // nariz
+  b.box(0, 0.11, 0.22, 0.38, 0.06, 0.08, 0xd8ccb8);                     // ceja
+  for (const sx of [-1, 1]) b.sphere(sx * 0.1, 0.05, 0.22, 0.07, 0.05, 0.03, dark, 6);   // cuencas
+  BSHAPE.head = b.geometry();
+  b = new MeshBuilder();                                                // brazo (1.05, pivote arriba)
+  b.seg([0, 0.52, 0], [0, 0.02, 0.02], 0.13, 0.11, W, 8);
+  b.sphere(0, 0.02, 0.02, 0.11, 0.1, 0.11, W, 8);
+  b.seg([0, 0.02, 0.02], [0, -0.45, 0.04], 0.105, 0.09, W, 8);
+  b.cyl(0, -0.52, 0.04, 0.1, 0.08, 0xd8d0c0, 1, 8);                     // puño de la camisa
+  BSHAPE.arm = b.geometry();
+  b = new MeshBuilder();                                                // pierna (1.15, pivote arriba)
+  b.seg([0, 0.57, 0], [0, 0.0, 0.02], 0.17, 0.13, W, 8);
+  b.sphere(0, 0.0, 0.02, 0.13, 0.12, 0.13, W, 8);
+  b.seg([0, 0.0, 0.02], [0, -0.45, 0], 0.125, 0.105, W, 8);
+  BSHAPE.leg = b.geometry();
+  b = new MeshBuilder();                                                // mano grande
+  b.blob(0, 0, 0.02, 0.14, 0.14, 0.1, W, 3);
+  for (let k = 0; k < 4; k++) b.seg([-0.08 + k * 0.055, -0.08, 0.05], [-0.09 + k * 0.06, -0.2, 0.09], 0.03, 0.022, W, 5);
+  b.seg([0.12, 0, 0.05], [0.17, -0.08, 0.1], 0.03, 0.022, W, 5);
+  BSHAPE.hand = b.geometry();
+  b = new MeshBuilder();                                                // ala del sombrero: plato con el borde levantado
+  b.lathe([[0.3, 0.02], [0.72, -0.02], [0.84, 0.03], [0.88, 0.1], [0.86, 0.12], [0.7, 0.03], [0.3, 0.06]], 0, 0, 0, 1, 1, 1, W, 28);
+  BSHAPE.brim = b.geometry();
+  b = new MeshBuilder();                                                // copa
+  b.lathe([[0.02, 0.28], [0.26, 0.26], [0.3, 0.1], [0.32, -0.24], [0.02, -0.24]], 0, 0, 0, 1, 1, 1, W, 20);
+  b.blob(0, 0.2, 0, 0.22, 0.08, 0.22, 0xbfb8b0, 2);                    // hundido de arriba
+  BSHAPE.crown = b.geometry();
+  BSHAPE.eye = new THREE.SphereGeometry(0.045, 8, 6);
+  return BSHAPE;
+}
 function createBoss(id, variant) {
   const B = CONFIG.BOSS, CQ = variant === 'calamar';
   const suit = new THREE.MeshLambertMaterial({ color: CQ ? B.calamar.suit : BOSS_SUIT });
@@ -89,45 +133,49 @@ function createBoss(id, variant) {
   const head = zPart(0.55, 0.55, 0.55, skin, 0, 2.38, 0.02, body);
   const armL = zPart(0.26, 1.05, 0.26, suit, -0.6, 2.02, 0, body, true);
   const armR = zPart(0.26, 1.05, 0.26, suit,  0.6, 2.02, 0, body, true);
-  // manos grandes y botas con espuelas (siguen a brazos y piernas)
-  [armL, armR].forEach(a => { const h = new THREE.Mesh(zGeo(0.32, 0.3, 0.32), skin); h.position.y = -0.62; a.mesh.add(h); });
+  // F5.17c: formas en vez de cajas (misma hitbox aproximada): traje de charro con saco entallado, manos grandes,
+  // botas con espuelas, guitarra redonda en la espalda; el Calamarón con cabeza de calamar y tentáculos
+  const BS = bossShapes();
+  suit.vertexColors = skin.vertexColors = felt.vertexColors = true;
+  legL.mesh.geometry = legR.mesh.geometry = BS.leg; torso.mesh.geometry = BS.torso; head.mesh.geometry = BS.head;
+  armL.mesh.geometry = armR.mesh.geometry = BS.arm;
+  [armL, armR].forEach(a => { const h = new THREE.Mesh(BS.hand, skin); h.position.y = -0.62; a.mesh.add(h); });
   [legL, legR].forEach(l => {
     const mb = new MeshBuilder();
-    mb.box(0, -0.52, 0.06, 0.4, 0.16, 0.52, 0x0b0b0d);                     // bota
-    mb.box(0, -0.5, -0.24, 0.1, 0.06, 0.1, BOSS_SILVER);                  // espuela
-    mb.box(0.19, -0.1, 0, 0.02, 0.9, 0.06, BOSS_SILVER);                  // botonadura del pantalón
-    mb.box(-0.19, -0.1, 0, 0.02, 0.9, 0.06, BOSS_SILVER);
+    mb.blob(0, -0.52, 0.08, 0.2, 0.1, 0.3, 0x0b0b0d, 1);                   // bota
+    mb.cyl(0, -0.46, 0.04, 0.17, 0.14, 0x141416, 1.05, 10);               // caña de la bota
+    mb.seg([0, -0.5, -0.2], [0, -0.5, -0.3], 0.02, 0.02, BOSS_SILVER, 5); mb.cyl(0, -0.5, -0.32, 0.05, 0.02, BOSS_SILVER, 1, 8, Math.PI / 2, 0, 0);   // espuela
+    for (let i = 0; i < 7; i++) for (const sx of [-1, 1]) mb.sphere(sx * 0.175, 0.3 - i * 0.12, 0, 0.022, 0.022, 0.022, BOSS_SILVER, 6);   // botonadura
     bossDetail(mb, l.mesh);
   });
-  // saco: botonadura de plata, cinturón, moño; guitarra en la espalda (el Calamarón: ventosas en el pecho)
   const mt = new MeshBuilder();
-  for (let i = 0; i < 4; i++) { mt.box(-0.2, 0.3 - i * 0.18, 0.26, 0.06, 0.06, 0.02, BOSS_SILVER); mt.box(0.2, 0.3 - i * 0.18, 0.26, 0.06, 0.06, 0.02, BOSS_SILVER); }
-  mt.box(0, -0.42, 0.01, 0.96, 0.1, 0.54, 0x2a1a10);                      // cinturón
-  mt.box(0, -0.42, 0.28, 0.16, 0.1, 0.02, BOSS_SILVER);                   // hebilla
+  for (let i = 0; i < 4; i++) for (const sx of [-0.2, 0.2]) mt.sphere(sx, 0.3 - i * 0.18, 0.25, 0.035, 0.035, 0.02, BOSS_SILVER, 6);
+  mt.cyl(0, -0.47, 0, 0.47, 0.1, 0x2a1a10, 1, 16);                        // cinturón
+  mt.blob(0, -0.42, 0.26, 0.09, 0.06, 0.02, BOSS_SILVER, 2);              // hebilla
   if (!CQ) {
-    mt.box(0, 0.44, 0.26, 0.26, 0.1, 0.03, 0x7a0f14);                     // moño rojo
-    mt.box(0.05, -0.05, -0.36, 0.56, 0.72, 0.14, BOSS_WOOD, 0, 0, 0.25);   // guitarra: caja
-    mt.box(0.05, -0.05, -0.44, 0.16, 0.16, 0.02, 0x1a0e06, 0, 0, 0.25);    //   boca
-    mt.box(-0.12, 0.62, -0.36, 0.1, 0.8, 0.06, 0x3b2410, 0, 0, 0.25);      //   mástil
-    mt.box(-0.24, 1.04, -0.36, 0.14, 0.18, 0.07, 0x2a180a, 0, 0, 0.25);    //   clavijero
+    mt.blob(-0.07, 0.44, 0.25, 0.08, 0.05, 0.03, 0x7a0f14, 1); mt.blob(0.07, 0.44, 0.25, 0.08, 0.05, 0.03, 0x7a0f14, 2);   // moño rojo
+    mt.lathe([[0.01, 0], [0.26, 0.08], [0.3, 0.3], [0.22, 0.5], [0.26, 0.68], [0.18, 0.84], [0.01, 0.88]], 0.05, -0.5, -0.36, 1, 1, 0.35, BOSS_WOOD, 12, Math.PI / 2 * 0, 0, 0.25);   // guitarra
+    mt.cyl(0.05 + 0.02, -0.12, -0.46, 0.07, 0.02, 0x1a0e06, 1, 12, Math.PI / 2, 0, 0.25);                                    //   boca
+    mt.seg([-0.07, 0.33, -0.36], [-0.28, 1.0, -0.36], 0.04, 0.035, 0x3b2410, 6);                                         //   mástil
+    mt.blob(-0.3, 1.08, -0.36, 0.07, 0.1, 0.04, 0x2a180a, 3);                                                            //   clavijero
   } else {
-    for (let i = 0; i < 6; i++) mt.box((i % 2 ? 0.12 : -0.12), 0.35 - i * 0.12, 0.27, 0.1, 0.1, 0.02, 0xc86ac8);   // ventosas
-    for (let i = 0; i < 4; i++) mt.box(-0.35 + i * 0.23, -0.35, -0.3, 0.1, 0.9, 0.1, B.calamar.skin, 0.5, 0, (i - 1.5) * 0.15);   // tentáculos por la espalda
+    for (let i = 0; i < 6; i++) mt.cyl((i % 2 ? 0.12 : -0.12), 0.35 - i * 0.12, 0.25, 0.05, 0.03, 0xc86ac8, 1, 8, Math.PI / 2, 0, 0);   // ventosas
+    for (let i = 0; i < 4; i++) { const x = -0.35 + i * 0.23; mt.tube([[x, 0.1, -0.24], [x * 1.2, -0.3, -0.4], [x * 1.4, -0.8, -0.3]], 0.07, 0.02, B.calamar.skin, 8, 6); }   // tentáculos por la espalda
   }
   bossDetail(mt, torso.mesh);
-  // cara: bigote (o tentáculos colgando), ojos que brillan (MeshBasic: sin luces) y lágrimas (debajo del 10%)
+  // cara: bigote (o cabeza de calamar con tentáculos), ojos que brillan (MeshBasic: sin luces) y lágrimas (debajo del 10%)
   const mh = new MeshBuilder();
   if (!CQ) {
-    mh.box(0, -0.1, 0.285, 0.36, 0.07, 0.03, 0x0a0806);
-    mh.box(-0.16, -0.16, 0.285, 0.06, 0.1, 0.03, 0x0a0806); mh.box(0.16, -0.16, 0.285, 0.06, 0.1, 0.03, 0x0a0806);
+    mh.tube([[-0.2, -0.2, 0.25], [-0.12, -0.1, 0.28], [0, -0.09, 0.29], [0.12, -0.1, 0.28], [0.2, -0.2, 0.25]], 0.035, 0.035, 0x0a0806, 12, 6);   // bigote
+    mh.blob(0, -0.18, 0.2, 0.14, 0.06, 0.08, 0x3a2a20, 2);                // quijada con barba de días
   } else {
-    mh.box(0, 0.42, 0, 0.7, 0.55, 0.7, B.calamar.skin);                   // manto de calamar
-    mh.box(0, 0.78, -0.05, 0.4, 0.3, 0.45, 0x7a3a7a);
-    for (let k = 0; k < 8; k++) mh.box(-0.24 + (k % 4) * 0.16, -0.3 - (k > 3 ? 0.12 : 0), 0.3, 0.07, 0.45 + (k % 3) * 0.1, 0.07, k % 2 ? 0x5a1a5a : 0x7a2a7a);   // tentáculos en la cara
+    mh.blob(0, 0.45, -0.04, 0.36, 0.34, 0.38, B.calamar.skin, 1);         // manto de calamar
+    mh.blob(0, 0.8, -0.1, 0.2, 0.18, 0.24, 0x7a3a7a, 2);
+    for (let k = 0; k < 8; k++) { const x = -0.24 + (k % 4) * 0.16; mh.tube([[x, -0.12, 0.24], [x * 1.1, -0.35, 0.3], [x * 1.3, -0.6 - (k % 3) * 0.1, 0.24]], 0.04, 0.012, k % 2 ? 0x5a1a5a : 0x7a2a7a, 8, 5); }   // tentáculos en la cara
   }
   bossDetail(mh, head.mesh);
   const eyeMat = new THREE.MeshBasicMaterial({ color: BOSS_EYE.normal });
-  [-0.12, 0.12].forEach(x => { const e = new THREE.Mesh(zGeo(0.1, 0.05, 0.02), eyeMat); e.position.set(x, 0.05, 0.285); head.mesh.add(e); });
+  [-0.1, 0.1].forEach(x => { const e = new THREE.Mesh(BS.eye, eyeMat); e.position.set(x, 0.05, 0.25); e.scale.set(1.3, 0.8, 1); head.mesh.add(e); });
   const tears = new THREE.Group();
   const tearMat = new THREE.MeshBasicMaterial({ color: 0x9fd4ff });
   [-0.12, 0.12].forEach(x => { const t = new THREE.Mesh(zGeo(0.03, 0.14, 0.02), tearMat); t.position.set(x, -0.04, 0.29); tears.add(t); });
@@ -135,11 +183,11 @@ function createBoss(id, variant) {
   // sombrero: ala enorme + copa. Recibe ×3 (part 'hat'); sale volando en la fase 2. El Calamarón no tiene
   const hat = new THREE.Group();
   hat.position.set(0, 0.32, 0);
-  const brim = new THREE.Mesh(zGeo(1.7, 0.08, 1.7), felt); hat.add(brim);
-  const crown = new THREE.Mesh(zGeo(0.62, 0.5, 0.62), felt); crown.position.y = 0.28; hat.add(crown);
+  const brim = new THREE.Mesh(BS.brim, felt); hat.add(brim);
+  const crown = new THREE.Mesh(BS.crown, felt); crown.position.y = 0.28; hat.add(crown);
   const mhat = new MeshBuilder();
-  mhat.box(0, 0.08, 0, 0.66, 0.1, 0.66, BOSS_SILVER);                     // cinta de plata
-  mhat.box(0, 0.045, 0, 1.74, 0.02, 1.74, 0x3a3a44);                      // borde del ala
+  mhat.cyl(0, 0.05, 0, 0.32, 0.1, BOSS_SILVER, 0.98, 20);                 // cinta de plata
+  for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; mhat.sphere(Math.cos(a) * 0.72, 0.06, Math.sin(a) * 0.72, 0.03, 0.02, 0.03, BOSS_SILVER, 5); }   // bordado del ala
   bossDetail(mhat, hat);
   if (!CQ) head.mesh.add(hat);
 
@@ -165,18 +213,18 @@ function createBoss(id, variant) {
   const gun = new THREE.Group();
   gun.position.set(0, -0.62, 0.05);
   const gm = new MeshBuilder();
-  gm.box(0, -0.2, 0, 0.34, 0.4, 0.34, 0x3a3d44);                           // cuerpo
-  gm.box(0.26, -0.15, 0, 0.26, 0.3, 0.3, 0x6a4a2a);                        // tambor de cocos
-  gm.box(0.26, -0.15, 0.16, 0.2, 0.2, 0.02, 0x3a2410);
+  gm.cyl(0, -0.4, 0, 0.17, 0.4, 0x3a3d44, 1, 12);                         // cuerpo
+  gm.sphere(0.26, -0.15, 0, 0.15, 0.15, 0.15, 0x6a4a2a, 10);               // tambor de cocos
+  gm.cyl(0.26, -0.15, 0.13, 0.08, 0.03, 0x3a2410, 1, 10, Math.PI / 2, 0, 0);
   bossDetail(gm, gun);
   const barrels = new THREE.Group();
   barrels.position.y = -0.4;
   const bm = new MeshBuilder();
   for (let i = 0; i < 6; i++) {
     const a = i / 6 * Math.PI * 2;
-    bm.box(Math.cos(a) * 0.1, -0.45, Math.sin(a) * 0.1, 0.06, 0.9, 0.06, 0x24262b);
+    bm.seg([Math.cos(a) * 0.1, 0, Math.sin(a) * 0.1], [Math.cos(a) * 0.1, -0.9, Math.sin(a) * 0.1], 0.03, 0.03, 0x24262b, 6);
   }
-  bm.box(0, -0.85, 0, 0.28, 0.06, 0.28, 0x3a3d44);                          // aro de la boca
+  bm.cyl(0, -0.88, 0, 0.15, 0.06, 0x3a3d44, 1, 12);                         // aro de la boca
   bossDetail(bm, barrels);
   gun.add(barrels);
   gun.visible = false;
