@@ -36,7 +36,7 @@ function shade(hex, k) { const c = new THREE.Color(hex); return c.multiplyScalar
 
 function buildBunker() {
   buildPortals();
-  buildPolice();                                                                       // F5.16 tanda D                                                                      // F5.16
+  buildShell();                                                                        // F5.17: el caparazón (F5.16: la estación de policía)
   const B = CONFIG.BUNKER, y0 = B.y, y1 = B.y + B.h, mb = new MeshBuilder(), lit = (x, z) => 0.16 + 0.7 * bunkerLight(x, z);
   // piso y techo por baldosa de 1 m (la luz pintada), paredes por metro
   for (let x = B.x1; x < B.x2; x++) for (let z = B.z1; z < B.z2; z++) {
@@ -501,46 +501,308 @@ function updatePortals(dt, t) {
     A.core.material.opacity = (PORTAL.cd > 0 ? 0.15 : 0.35) + 0.15 * Math.sin(t * 3);
   }
 }
-// F5.16 tanda D: la estación de policía (CONFIG.POLICE). Dibujo: escritorios volcados, lockers, papeles, cinta,
-// cartel, policías muertos con sangre, y 3 zombies arrodillados comiéndose a uno (solo dibujo: brazos que suben a
-// la boca). Al abrirse la barricada (D21) se paran: salen 3 zombies de verdad donde estaban (extra de la ronda)
+// F5.17 (Diego): el caparazón de una tortuga gigante en lugar de la estación de policía (CONFIG.SHELL). Cúpula de
+// placas afuera y de hueso y carne adentro, armadas a mano (anillos × gajos) para dejar los huecos: la boca, las 4
+// patas y la cola (con escombros y baba) y el tragaluz y dos placas rotas arriba. Adentro: la columna y las
+// costillas pegadas a la cúpula (como en una tortuga de verdad), el entrepiso de andamios, sangre verde que brilla
+// (MeshBasic: ninguna luz nueva) con gotas que caen, y los 3 zombies comiéndose a un policía (solo dibujo: al
+// abrirse la barricada D21 se paran y salen 3 zombies de verdad donde estaban, extra de la ronda)
 const POLICE = { feeders: [], woke: false };
-function buildPolice() {
-  const P = CONFIG.POLICE, [sx1, sx2, sz1, sz2] = P.station, [mx1, mx2, mz1, mz2] = P.mini, mb = new MeshBuilder(), rr = mulberry(21);
-  const blood = 0x5a0a08, navy = 0x1e2a44, skin = 0xc89a7a;
-  // escritorios volcados, sillas, lockers abiertos, archivero, papeles
-  mb.box(-54.6, 0.45, 62.5, 0.9, 0.9, 1.8, 0x6a5a48, 0, 0, 1.3);
-  mb.box(-45.4, 0.4, 60.2, 1.8, 0.8, 0.8, 0x6a5a48, 0.2, 0.4, 0);
-  for (let k = 0; k < 4; k++) mb.box(-47.5 + k * 0.62, 1.0, 67.55, 0.58, 2.0, 0.45, k % 2 ? 0x4a5a6a : 0x3e4e5e);   // lockers
-  mb.box(-44.7, 0.6, 63.8, 0.5, 1.2, 0.6, 0x5a5a5a, 0, 0, -0.5);        // archivero caído
-  for (let k = 0; k < 28; k++) mb.box(sx1 + 1 + rr() * (sx2 - sx1 - 2), 0.02, sz1 + 1 + rr() * (sz2 - sz1 - 2), 0.25, 0.01, 0.32, 0xe8e4d8, 0, rr() * 6, 0);
-  // cinta policial en la barricada y cartel POLICE arriba de la puerta
-  for (let k = 0; k < 2; k++) mb.box((P.door.x1 + P.door.x2) / 2, 0.7 + k * 0.45, sz1 - 0.25, 3.4, 0.08, 0.02, 0xf0d020, 0, 0, k ? 0.12 : -0.1);
-  mb.box((P.door.x1 + P.door.x2) / 2, 3.4, sz1 - 0.22, 2.6, 0.5, 0.04, 0x1e2a44);
-  mb.box((P.door.x1 + P.door.x2) / 2, 3.4, sz1 - 0.25, 2.2, 0.12, 0.01, 0xe8e8e8);
-  // policías muertos: uniforme azul, charco de sangre, gorra tirada
-  const deadCop = (x, z, r) => {
-    mb.box(x, 0.03, z, 1.8, 0.02, 1.4, blood, 0, r, 0);
-    mb.box(x, 0.16, z, 0.5, 0.28, 1.0, navy, 0, r, 0);
-    mb.box(x + Math.sin(r) * 0.65, 0.16, z + Math.cos(r) * 0.65, 0.3, 0.26, 0.3, skin, 0, r, 0);
-    mb.box(x - Math.sin(r) * 0.8, 0.1, z - Math.cos(r) * 0.8, 0.4, 0.18, 0.6, 0x1a1e2a, 0, r, 0);
-    mb.box(x + Math.cos(r) * 0.6, 0.06, z - Math.sin(r) * 0.6, 0.3, 0.08, 0.3, 0x141a2a, 0, r + 0.5, 0);   // gorra
-    mb.box(x + 0.2, 0.2, z + 0.1, 0.06, 0.04, 0.08, 0xd8c040, 0, r, 0);   // placa
+const SHELLFX = { goo: null, halo: null, drops: [], dropMesh: null, shafts: [], eyes: null };
+function buildShell() {
+  const S = CONFIG.SHELL, A = S.a, B = S.b, H = S.h, cx = S.x, cz = S.z, T = 0.55, rr = mulberry(55);
+  const ex = new MeshBuilder(), inn = new MeshBuilder(), bn = new MeshBuilder(), goo = new MeshBuilder(), wd = new MeshBuilder(),
+        lf = new MeshBuilder(), rk = new MeshBuilder(), mb = new MeshBuilder(), halo = new MeshBuilder();
+  const PMAX = S.skylight, NP = 18, NT = 72;
+  // ---- texturas: placas del caparazón (1/8 de la vuelta, todo el alto) y carne con venas ----
+  const scutes = makeTexWH(256, 512, (c, w, h) => {
+    c.fillStyle = '#3a2e1c'; c.fillRect(0, 0, w, h);
+    const plate = (pts, base) => {
+      const cxp = pts.reduce((a, p) => a + p[0], 0) / pts.length, cyp = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+      for (let k = 0; k < 6; k++) {                                   // anillos de crecimiento hacia el centro
+        const f = 1 - k * 0.15, col = ['#5a4626', '#6a5430', '#5e4a2a', '#7a6438', '#6e5a34', '#86703e'][k];
+        c.fillStyle = k === 0 ? base : col; c.beginPath();
+        pts.forEach((p, i) => { const x = cxp + (p[0] - cxp) * f, y = cyp + (p[1] - cyp) * f; i ? c.lineTo(x, y) : c.moveTo(x, y); });
+        c.closePath(); c.fill();
+      }
+      c.strokeStyle = '#1e160c'; c.lineWidth = 7; c.beginPath();
+      pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.stroke();
+    };
+    for (let k = 0; k < 3; k++) plate([[k * 85 + 4, 448], [k * 85 + 81, 448], [k * 85 + 81, 508], [k * 85 + 4, 508]], '#4a3a20');   // marginales
+    plate([[20, 196], [128, 180], [236, 196], [250, 320], [236, 444], [20, 444], [6, 320]], '#56442a');                   // costal
+    plate([[-108, 8], [0, -10], [108, 8], [118, 100], [108, 192], [-108, 192]], '#5a4a2c');                                // vertebral (partida:
+    plate([[148, 8], [256, -10], [364, 8], [374, 100], [364, 192], [148, 192]], '#5a4a2c');                                //  las dos mitades)
+    noise(c, w, 26, 0, h);
+    for (let i = 0; i < 40; i++) { c.fillStyle = ['rgba(150,160,110,.35)', 'rgba(90,110,60,.3)', 'rgba(200,190,150,.25)'][i % 3];
+      c.beginPath(); c.arc(Math.random() * w, Math.random() * h, 3 + Math.random() * 9, 0, 7); c.fill(); }             // líquenes
+  });
+  const flesh = makeTex((c, s) => {
+    c.fillStyle = '#8a6a5a'; c.fillRect(0, 0, s, s);
+    for (let i = 0; i < 30; i++) { c.fillStyle = ['rgba(120,70,60,.4)', 'rgba(200,170,150,.3)', 'rgba(60,40,30,.35)'][i % 3];
+      c.beginPath(); c.ellipse(Math.random() * s, Math.random() * s, 6 + Math.random() * 18, 3 + Math.random() * 8, Math.random() * 3, 0, 7); c.fill(); }
+    c.strokeStyle = 'rgba(70,20,20,.55)'; c.lineWidth = 1.5;
+    for (let i = 0; i < 14; i++) { let x = Math.random() * s, y = Math.random() * s; c.beginPath(); c.moveTo(x, y);
+      for (let k = 0; k < 6; k++) { x += (Math.random() - 0.5) * 30; y += (Math.random() - 0.5) * 30; c.lineTo(x, y); } c.stroke(); }
+    noise(c, s, 22);
+  }, 1, 128);
+  flesh.repeat.set(1, 1);
+  // ---- la cúpula: punto, normal y huecos ----
+  const rad = (ph, inner) => [inner ? A - T : A, inner ? H - T : H, inner ? B - T : B];
+  const flare = ph => 1 + 0.06 * Math.max(0, 1 - ph / 0.22);         // el borde se abre un poco (placas marginales)
+  const pt = (ph, th, inner) => { const [a, h, b] = rad(ph, inner), r = Math.cos(ph) * flare(ph);
+    return [cx + a * r * Math.cos(th), h * Math.sin(ph), cz + b * r * Math.sin(th)]; };
+  const nrm = (p, inner) => { const [a, h, b] = rad(0, inner), x = (p[0] - cx) / (a * a), y = p[1] / (h * h), z = (p[2] - cz) / (b * b), l = Math.hypot(x, y, z) * (inner ? -1 : 1);
+    return [x / l, y / l, z / l]; };
+  const legTh = [-Math.PI / 2 - 0.78, -Math.PI / 2 + 0.78, Math.PI / 2 - 0.8, Math.PI / 2 + 0.8];
+  const legs = legTh.map(th => [cx + A * Math.cos(th), cz + B * Math.sin(th)]);
+  const broken = [pt(1.02, 0.35), pt(0.95, 3.55)];
+  const hole = (x, y, z) => {
+    const dx = x - cx, dz = z - cz;
+    if (dz < 0 && (dx / 2.3) ** 2 + (y / 3.45) ** 2 < 1) return 'mouth';
+    for (const [lx, lz] of legs) if (((x - lx) / 2.0) ** 2 + (y / 2.1) ** 2 + ((z - lz) / 2.0) ** 2 < 1) return 'leg';
+    if (dz > 0 && (dx / 1.5) ** 2 + (y / 1.9) ** 2 < 1) return 'tail';
+    for (const b of broken) if ((x - b[0]) ** 2 + (y - b[1]) ** 2 + (z - b[2]) ** 2 < 1.6) return 'broken';
+    return null;
   };
-  for (const [x, z, r] of P.bodies) deadCop(x, z, r);
-  const [cx, cz] = P.cop;                                               // el que se están comiendo
-  mb.box(cx, 0.03, cz, 2.6, 0.02, 2.2, blood);
-  mb.box(cx, 0.14, cz, 0.5, 0.24, 1.0, navy, 0, 0.3, 0); mb.box(cx + 0.2, 0.14, cz + 0.62, 0.3, 0.24, 0.3, skin);
-  mb.box(cx - 0.3, 0.1, cz - 0.2, 0.5, 0.06, 0.4, 0x8a1a14);           // tripas
-  // búnker chico: cajas de munición, un catre, una lámpara rota (sin luz) y un mapa en la pared
-  for (let k = 0; k < 4; k++) mb.box(mx1 + 1.2 + (k % 2) * 0.9, 0.3 + Math.floor(k / 2) * 0.6, mz2 - 1, 0.8, 0.55, 0.6, 0x4a5a32);
-  mb.box(mx2 - 1, 0.35, mz1 + 1.5, 0.9, 0.3, 2.0, 0x5a6a4a);
-  mb.box(mx1 + 0.25, 2.2, (mz1 + mz2) / 2 + 2.5, 0.02, 1.2, 1.8, 0xc8b890);
-  const m = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
-  if (m) { m.userData.theme = false; m.updateMatrix(); }
+  for (let i = 0; i < NP; i++) for (let j = 0; j < NT; j++) {
+    const p0 = i / NP * PMAX, p1 = (i + 1) / NP * PMAX, t0 = j / NT * Math.PI * 2, t1 = (j + 1) / NT * Math.PI * 2;
+    for (const inner of [false, true]) {
+      const q = [pt(p0, t0, inner), pt(p0, t1, inner), pt(p1, t1, inner), pt(p1, t0, inner)];
+      const m = [(q[0][0] + q[2][0]) / 2, (q[0][1] + q[2][1]) / 2, (q[0][2] + q[2][2]) / 2];
+      if (hole(m[0], m[1], m[2])) continue;
+      const n = q.map(p => nrm(p, inner));
+      if (!inner) {
+        const top = (p0 + p1) / 2 / PMAX, moss = top > 0.55 && rr() < 0.35, dirt = top < 0.12;
+        const col = moss ? 0xa8c090 : dirt ? 0xb0a490 : [0xffffff, 0xf2eadc, 0xe6dccb][(i + j) % 3];
+        const uv = [[t0 / (Math.PI * 2) * 8, p0 / PMAX], [t1 / (Math.PI * 2) * 8, p0 / PMAX], [t1 / (Math.PI * 2) * 8, p1 / PMAX], [t0 / (Math.PI * 2) * 8, p1 / PMAX]];
+        ex.quadN(q, n, uv, col);
+      } else {
+        const uv = [[t0 * 3, p0 * 4], [t1 * 3, p0 * 4], [t1 * 3, p1 * 4], [t0 * 3, p1 * 4]];
+        inn.quadN(q, n, uv, [0xb89484, 0xa88474, 0xc0a090][(i * 3 + j) % 3]);
+      }
+    }
+  }
+  // borde del tragaluz y de las placas rotas: aro de hueso (tapa el grosor entre las dos caras)
+  for (let j = 0; j < 24; j++) { const th = j / 24 * Math.PI * 2, p = pt(PMAX, th); bn.blob(p[0], p[1] - 0.1, p[2], 0.6, 0.4, 0.6, 0xd8ccb0, j); }
+  for (const b of broken) for (let j = 0; j < 9; j++) { const a = j / 9 * Math.PI * 2;
+    rk.rock(b[0] + Math.cos(a) * 1.25, b[1] - 0.1, b[2] + Math.sin(a) * 1.25, 0.45, 0.3, 0.45, 0x6a5a3a, j, rr(), rr() * 3, rr()); }
+  // placas marginales: el borde festoneado de afuera
+  for (let j = 0; j < 44; j++) {
+    const th = j / 44 * Math.PI * 2, p = pt(0.07, th);
+    if (hole(p[0], 0.4, p[2])) continue;
+    rk.blob(p[0], 0.4, p[2], 1.0, 0.5, 1.0, [0x6a5638, 0x5e4c30, 0x74603e][j % 3], j, 0, -th, 0);
+  }
+  // labio de la boca, escombros y baba en las patas y la cola
+  const lip = [];                                                        // labio liso de la boca (tapa el grosor de la cúpula)
+  for (let k = 0; k <= 16; k++) {
+    const ps = k / 16 * Math.PI, x = cx + 2.4 * Math.cos(ps), y = Math.max(0.05, 3.5 * Math.sin(ps)), rz = 1 - ((x - cx) / A) ** 2 - (y / H) ** 2;
+    const z = cz - B * Math.sqrt(Math.max(0, rz)) + 0.3;
+    lip.push([x, y, z]);
+    if (k > 3 && k < 13 && k % 2) lf.card(x, y - 1.3, z - 0.3, 0.45, 1.3, 0, 0, 0, 'moss', 0xffffff);
+  }
+  rk.tube(lip, 0.38, 0.38, 0x5e4c34, 32, 8);
+  for (const sd of [-1, 1]) rk.rock(cx + sd * 2.7, 0, lip[0][2] - 0.1, 0.7, 0.8, 0.7, 0x6a5a44, sd + 3, 0, sd, 0);
+  for (const [lx, lz] of legs) {
+    const dx = lx - cx, dz = lz - cz, l = Math.hypot(dx, dz), ox = dx / l, oz = dz / l;
+    for (let k = 0; k < 3; k++) {                                    // el hueco tapado de escombros (se ve que no se pasa)
+      const f = k - 1;
+      rk.rock(lx + oz * f * 1.25, 0, lz - ox * f * 1.25, 0.95, 1.9 - Math.abs(f) * 0.5, 0.95, [0x7a6a50, 0x6a5a44, 0x8a7a5e][k], k + 2, 0, rr() * 3, 0);
+    }
+    for (let k = 0; k < 7; k++) rk.rock(lx + ox * (rr() * 1.2 - 0.2) + oz * (rr() - 0.5) * 3, 1.2 * rr(), lz + oz * (rr() * 1.2 - 0.2) - ox * (rr() - 0.5) * 3,
+      0.4 + rr() * 0.5, 0.35 + rr() * 0.6, 0.4 + rr() * 0.5, [0x7a6a50, 0x6a5a44, 0x8a7a5e][k % 3], k, rr(), rr() * 3, rr());
+    goo.blob(lx + ox * 1.6, 0.03, lz + oz * 1.6, 1.3, 0.08, 1.1, 0xffffff, 1);              // baba que sale
+    goo.tube([[lx, 1.4, lz], [lx + ox * 0.8, 0.7, lz + oz * 0.8], [lx + ox * 1.5, 0.08, lz + oz * 1.5]], 0.14, 0.06, 0xffffff, 6, 5);
+    halo.add(UNIT_PLANE, lx + ox * 1.6, 0.06, lz + oz * 1.6, 4, 4, 1, -Math.PI / 2, 0, 0, 0xffffff);
+  }
+  { const tx = cx, tz = cz + B;                                                            // cola
+    for (let k = 0; k < 3; k++) rk.rock(tx + (k - 1) * 1.05, 0, tz + 0.1, 0.85, 1.75 - Math.abs(k - 1) * 0.4, 0.8, 0x74644c, k + 5, 0, rr() * 3, 0);
+    for (let k = 0; k < 5; k++) rk.rock(tx + (rr() - 0.5) * 2.6, 0.8 * rr(), tz + 0.3 + rr() * 0.8, 0.4 + rr() * 0.4, 0.4 + rr() * 0.5, 0.4 + rr() * 0.4, 0x6a5a44, k + 3, rr(), rr() * 3, rr());
+    goo.blob(tx, 0.03, tz + 1.4, 1.6, 0.08, 1.2, 0xffffff, 2); halo.add(UNIT_PLANE, tx, 0.06, tz + 1.4, 4.5, 4.5, 1, -Math.PI / 2, 0, 0, 0xffffff); }
+  // musgo, pasto y lianas sobre la cúpula; percebes abajo
+  const surfPlane = (B2, p, n, w, reg, col) => {
+    _mbQ.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(n[0], n[1], n[2]));
+    _mbL.compose(new THREE.Vector3(p[0] + n[0] * 0.04, p[1] + n[1] * 0.04, p[2] + n[2] * 0.04), _mbQ, new THREE.Vector3(w, w, 1));
+    B2.addM(UNIT_PLANE, _mbL, col, FOLI.r[reg]);
+  };
+  for (let k = 0; k < 70; k++) {
+    const ph = 0.45 + rr() * (PMAX - 0.5), th = rr() * Math.PI * 2, p = pt(ph, th), n = nrm(p, false);
+    if (hole(p[0], p[1], p[2])) continue;
+    if (k % 3) surfPlane(lf, p, n, 1.6 + rr() * 1.8, 'ivy', 0xe0ecd0);
+    else lf.clump(p[0], p[1] - 0.15, p[2], 0.9 + rr() * 0.6, 0.6 + rr() * 0.5, k % 2 ? 'grass' : 'fern', 0xe8f0d8, rr() * 3);
+  }
+  for (let k = 0; k < 26; k++) {                                                           // lianas colgando del borde
+    const th = rr() * Math.PI * 2, p = pt(0.35 + rr() * 0.3, th);
+    if (hole(p[0], p[1], p[2])) continue;
+    const L = 1.2 + rr() * 2.2;
+    lf.card(p[0] + Math.cos(th) * 0.3, p[1] - L, p[2] + Math.sin(th) * 0.3, 0.5, L, 0, -th + Math.PI / 2, 0, k % 3 ? 'vine' : 'moss', 0xffffff);
+  }
+  for (let k = 0; k < 60; k++) {
+    const ph = 0.05 + rr() * 0.3, th = rr() * Math.PI * 2, p = pt(ph, th);
+    if (hole(p[0], p[1], p[2])) continue;
+    rk.rock(p[0], p[1], p[2], 0.12 + rr() * 0.12, 0.1 + rr() * 0.1, 0.12 + rr() * 0.12, 0xd8d0c0, k);   // percebes
+  }
+  // ---- adentro: columna y costillas pegadas a la cúpula ----
+  const Ai = A - T - 0.15, Hi = H - T - 0.15, Bi = B - T - 0.15, spine = [];
+  for (let k = 0; k <= 22; k++) {
+    const u = -0.92 + k / 22 * 1.84, z = cz + Bi * u, kz = Math.sqrt(Math.max(0, 1 - u * u)), y = Hi * kz;
+    spine.push([cx, y, z]);
+    bn.blob(cx, y - 0.1, z, 0.5, 0.32, 0.36, 0xe0d4b8, k);                                  // vértebras
+    if (k % 2 === 0 && k > 1 && k < 21) {                                                  // costillas a los dos lados
+      for (const sd of [-1, 1]) {
+        const pts = [];
+        for (let q = 0; q <= 6; q++) { const ps = Math.PI / 2 - q / 6 * (Math.PI / 2 - 0.12); pts.push([cx + sd * Ai * kz * Math.cos(ps), Hi * kz * Math.sin(ps) - 0.05, z]); }
+        bn.tube(pts, 0.2, 0.09, 0xd8ccb0, 10, 6);
+        if (k % 4 === 0) {                                                                 // baba que chorrea de la costilla
+          const d = pts[2 + (k % 3)], L = 0.6 + rr() * 1.4;
+          goo.tube([[d[0], d[1], d[2]], [d[0], d[1] - L * 0.6, d[2]], [d[0], d[1] - L, d[2]]], 0.07, 0.04, 0xffffff, 4, 5);
+          goo.sphere(d[0], d[1] - L - 0.05, d[2], 0.09, 0.13, 0.09, 0xffffff, 6);
+          SHELLFX.drops.push({ x: d[0], z: d[2], y0: d[1] - L - 0.1, y: d[1] - L - 0.1 - rr() * 3, v: 0 });
+        }
+      }
+    }
+  }
+  bn.tube(spine, 0.22, 0.22, 0xcfc2a4, 40, 6);
+  // venas verdes por la cúpula y chorros que bajan hasta el piso
+  const onIn = (ph, th, d) => { const p = pt(ph, th, true), n = nrm(p, true); return [p[0] + n[0] * d, p[1] + n[1] * d, p[2] + n[2] * d]; };
+  for (let k = 0; k < 14; k++) {
+    let ph = 0.25 + rr() * 0.9, th = rr() * Math.PI * 2; const pts = [];
+    for (let q = 0; q < 6; q++) { pts.push(onIn(ph, th, 0.04)); ph += (rr() - 0.5) * 0.18; th += (rr() - 0.5) * 0.2; }
+    if (hole(...pts[0]) || hole(...pts[5])) continue;
+    goo.tube(pts, 0.035, 0.02, 0xb8d8a8, 12, 4);
+  }
+  for (let k = 0; k < 9; k++) {
+    const th = rr() * Math.PI * 2, pts = [];
+    for (let q = 0; q <= 7; q++) pts.push(onIn(1.05 - q / 7 * 1.03, th + Math.sin(q * 1.3 + k) * 0.05, 0.08));
+    if (pts.some(p => hole(...p))) continue;
+    goo.tube(pts, 0.07, 0.13, 0xffffff, 14, 5);
+    const b = pts[7]; goo.blob(b[0] * 0.97 + cx * 0.03, 0.03, b[2] * 0.97 + cz * 0.03, 1.1, 0.07, 1.1, 0xffffff, k);
+    halo.add(UNIT_PLANE, b[0], 0.07, b[2], 3.2, 3.2, 1, -Math.PI / 2, 0, 0, 0xffffff);
+  }
+  // piso de adentro: tierra oscura y húmeda, con charcos de baba, huesos y papeles
+  const floorG = new THREE.CircleGeometry(1, 56).rotateX(-Math.PI / 2);
+  mb.add(floorG, cx, 0.03, cz, A - T - 0.05, 1, B - T - 0.05, 0, 0, 0, 0x4a4034);
+  for (const [px, pz, w] of [[-53, 82.5, 2.4], [-49, 80, 1.6], [-56, 86, 1.8], [-46, 76.5, 1.5], [-51, 89, 2.2], [-59.5, 79, 1.4], [-43, 84, 1.6]]) {
+    goo.blob(px, 0.035, pz, w, 0.06, w * 0.8, 0xffffff, Math.round(px));
+    halo.add(UNIT_PLANE, px, 0.08, pz, w * 2.6, w * 2.6, 1, -Math.PI / 2, 0, 0, 0xffffff);
+  }
+  const bone = 0xe0d8c0;
+  for (let k = 0; k < 22; k++) {
+    const a = rr() * Math.PI * 2, d = Math.sqrt(rr()) * 0.85, x = cx + Math.cos(a) * d * (A - 2), z = cz + Math.sin(a) * d * (B - 2);
+    if (x > S.ramp.x1 - 0.5 && x < S.ramp.x2 && z > S.ramp.z1 - 0.3 && z < S.ramp.z2 + 0.3) continue;
+    if (k % 3 === 0) { rk.sphere(x, 0.12, z, 0.12, 0.11, 0.14, bone, 8, 0.3, a, 0); rk.box(x + Math.sin(a) * 0.08, 0.05, z + Math.cos(a) * 0.08, 0.14, 0.05, 0.1, bone, 0, a, 0); }
+    else if (k % 3 === 1) rk.seg([x - Math.sin(a) * 0.3, 0.04, z - Math.cos(a) * 0.3], [x + Math.sin(a) * 0.3, 0.04, z + Math.cos(a) * 0.3], 0.03, 0.03, bone, 5);
+    else mb.box(x, 0.035, z, 0.25, 0.01, 0.32, 0xe8e4d8, 0, a, 0);                          // papeles de la policía
+  }
+  // ---- entrepiso de andamios: postes de tronco, vigas, tablas de abajo y cruces ----
+  const [ox1, ox2, oz1, oz2] = S.deck.outer, [ix1, ix2, iz1, iz2] = S.deck.inner, Y = UP.y, log = 0x9a7a58, logD = 0x6a4e34, ud = new MeshBuilder();
+  for (const [x, z] of S.posts) { wd.cyl(x, 0, z, 0.15, Y - 0.3, log, 0.9, 8); wd.cyl(x, Y - 0.7, z, 0.17, 0.1, 0xc8a870, 1, 8); }
+  for (const z of [oz1 + 0.15, iz1 - 0.1, iz2 + 0.1, oz2 - 0.15]) wd.seg([ox1, Y - 0.42, z], [ox2, Y - 0.42, z], 0.12, 0.12, logD, 7);
+  for (const x of [ox1 + 0.15, ix1 - 0.1, ix2 + 0.1, ox2 - 0.15]) wd.seg([x, Y - 0.42, oz1], [x, Y - 0.42, oz2], 0.12, 0.12, logD, 7);
+  for (const [x1, x2, z1, z2] of [[ox1, ox2, oz1, iz1], [ox1, ox2, iz2, oz2], [ox1, ix1, iz1, iz2], [ix2, ox2, iz1, iz2]])
+    for (let q = 0; q < 6; q++) ud.box((x1 + x2) / 2, Y - 0.29 - q * 0.001, z1 + (z2 - z1) * (q + 0.5) / 6, x2 - x1 - 0.05, 0.02, (z2 - z1) / 6 - 0.04, [0x8a6440, 0x7a5a38, 0x94704a][q % 3]);
+  for (const [a, b] of [[[ox1, oz1], [ox1, oz2]], [[ox2, oz1], [ox2, oz2]], [[ox1, oz2], [ox2, oz2]]]) {   // cruces de San Andrés en los lados
+    const n = Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / 3.4);
+    for (let q = 0; q < n; q++) {
+      const f0 = q / n, f1 = (q + 1) / n, p0 = [a[0] + (b[0] - a[0]) * f0, a[1] + (b[1] - a[1]) * f0], p1 = [a[0] + (b[0] - a[0]) * f1, a[1] + (b[1] - a[1]) * f1];
+      wd.seg([p0[0], 0.3, p0[1]], [p1[0], Y - 0.6, p1[1]], 0.05, 0.05, logD, 5);
+      wd.seg([p1[0], 0.3, p1[1]], [p0[0], Y - 0.6, p0[1]], 0.05, 0.05, logD, 5);
+    }
+  }
+  // escalera abierta del hueco al lado este (UP.flights con open: el techo no la dibuja maciza)
+  { const R = S.ramp, n = R.steps, run = (R.x2 - R.x1) / n;
+    for (let q = 0; q < n; q++) {
+      const x = R.x1 + (q + 0.5) * run, y = (q + 1) * Y / n;
+      wd.box(x, y - 0.04, (R.z1 + R.z2) / 2, run + 0.06, 0.08, R.z2 - R.z1 - 0.1, [0x9a7048, 0x8a6440][q % 2]);
+    }
+    for (const z of [R.z1 + 0.05, R.z2 - 0.05]) {
+      wd.seg([R.x1 - 0.2, 0, z], [R.x2, Y - 0.05, z], 0.07, 0.07, logD, 6);                          // zancas
+      wd.seg([R.x1, 1.0, z], [R.x2, Y + 0.95, z], 0.035, 0.035, log, 5);                             // pasamanos
+      for (let q = 0; q <= 4; q++) { const x = R.x1 + (R.x2 - R.x1) * q / 4, y = Y * q / 4; wd.seg([x, y, z], [x, y + 1.0, z], 0.03, 0.03, log, 5); }
+    }
+  }
+  // faroles de obra colgando del entrepiso (MeshBasic: brillan sin luz) y un generador portátil de la policía
+  const bulb = new MeshBuilder();
+  for (const [x, z] of [[ox1 + 0.4, oz1 + 0.4], [ox2 - 0.4, oz2 - 0.4], [ox2 - 0.4, oz1 + 0.4], [ox1 + 0.4, oz2 - 0.4]]) {
+    wd.seg([x, Y - 0.45, z], [x, Y - 1.1, z], 0.01, 0.01, 0x222222, 3);
+    mb.cyl(x, Y - 1.25, z, 0.16, 0.2, 0x2a2a2a, 0.55, 8);
+    bulb.sphere(x, Y - 1.3, z, 0.09, 0.11, 0.09, 0xffe2a0, 6);
+  }
+  // policías muertos (3 adentro, 2 afuera) y el que se están comiendo
+  const blood = 0x5a0a08, navy = 0x1e2a44, skin = 0xc89a7a;
+  const deadCop = (x, z, r) => {
+    mb.blob(x, 0.02, z, 1.0, 0.02, 0.8, blood, 3, 0, r, 0);
+    mb.box(x, 0.16, z, 0.5, 0.28, 1.0, navy, 0, r, 0);
+    mb.sphere(x + Math.sin(r) * 0.65, 0.15, z + Math.cos(r) * 0.65, 0.15, 0.14, 0.16, skin, 8);
+    mb.box(x - Math.sin(r) * 0.8, 0.1, z - Math.cos(r) * 0.8, 0.4, 0.18, 0.6, 0x1a1e2a, 0, r, 0);
+    mb.cyl(x + Math.cos(r) * 0.6, 0.02, z - Math.sin(r) * 0.6, 0.16, 0.08, 0x141a2a, 0.8, 8);              // gorra
+    mb.box(x + 0.2, 0.31, z + 0.1, 0.06, 0.02, 0.08, 0xd8c040, 0, r, 0);                                    // placa
+    mb.box(x - Math.cos(r) * 0.5, 0.03, z + Math.sin(r) * 0.5, 0.22, 0.05, 0.08, 0x1a1a1a, 0, r + 0.8, 0);  // pistola
+  };
+  for (const [x, z, r] of S.bodies) deadCop(x, z, r);
+  const [kx, kz] = S.cop;
+  mb.blob(kx, 0.02, kz, 1.3, 0.02, 1.1, blood, 4);
+  mb.box(kx, 0.14, kz, 0.5, 0.24, 1.0, navy, 0, 0.3, 0); mb.sphere(kx + 0.2, 0.14, kz + 0.62, 0.15, 0.14, 0.16, skin, 8);
+  mb.tube([[kx - 0.4, 0.06, kz - 0.3], [kx - 0.1, 0.1, kz - 0.1], [kx - 0.3, 0.07, kz + 0.2], [kx - 0.6, 0.06, kz + 0.05]], 0.05, 0.05, 0x8a1a14, 10, 5);   // tripas
+  // ---- afuera: jeep de la policía volcado, cinta de cuarentena, caballetes, cartel de peligro ----
+  const J = S.jeep, jx = (J[0] + J[1]) / 2, jz = (J[2] + J[3]) / 2, jw = J[1] - J[0], jl = J[3] - J[2];
+  mb.box(jx, 0.75, jz, jw, 0.9, jl, 0xe8e8e4, 0.04, 0, 0.06);
+  mb.box(jx, 0.8, jz, jw + 0.02, 0.18, jl + 0.02, 0x1e2a44, 0.04, 0, 0.06);                                 // franja azul
+  mb.box(jx, 1.45, jz + 0.3, jw - 0.2, 0.55, jl * 0.5, 0x2a2e34, 0.04, 0, 0.06);
+  mb.box(jx, 1.78, jz + 0.2, 0.9, 0.12, 0.25, 0xc82020, 0.04, 0, 0.06); mb.box(jx + 0.25, 1.79, jz + 0.2, 0.4, 0.12, 0.26, 0x2040d8, 0.04, 0, 0.06);
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) mb.cyl(jx + sx * (jw / 2 + 0.02), 0.38, jz + sz * (jl / 2 - 0.8), 0.38, 0.28, 0x151515, 1, 12, 0, 0, Math.PI / 2);
+  mb.box(jx - jw / 2 - 0.5, 0.9, jz - 0.4, 0.06, 0.8, 1.0, 0xe8e8e4, 0, 0.9, 0);                            // puerta abierta
+  for (const [x, z] of [[-55.5, 68.6], [-46.5, 68.6], [-59, 67]]) {                                         // caballetes
+    wd.seg([x - 0.7, 0.9, z], [x + 0.7, 0.9, z], 0.05, 0.05, 0xf0f0f0, 5);
+    for (const sx of [-0.6, 0.6]) { wd.seg([x + sx, 0, z - 0.3], [x + sx, 0.95, z], 0.03, 0.03, 0x6a6a6a, 4); wd.seg([x + sx, 0, z + 0.3], [x + sx, 0.95, z], 0.03, 0.03, 0x6a6a6a, 4); }
+  }
+  for (const [a, b] of [[[-59, 67], [-55.5, 68.6]], [[-55.5, 68.6], [-53.3, 70.2]], [[-48.7, 70.2], [-46.5, 68.6]]])   // cinta
+    mb.seg([a[0], 0.85, a[1]], [b[0], 0.8, b[1]], 0.025, 0.025, 0xf0d020, 3);
+  // barricada D21 (hija del bloque invisible de la puerta: al abrirse se va con él)
+  const D = S.door, dm = new MeshBuilder(), dcx = (D.x1 + D.x2) / 2;
+  for (let q = 0; q < 3; q++) dm.box(dcx, 0.3 + q * 0.38, D.z, D.x2 - D.x1 + 0.4, 0.22, 0.08, [0x8a6440, 0x7a5a38, 0x6a4a2a][q], 0, 0, (q - 1) * 0.07);
+  for (const sd of [-1, 1]) dm.box(dcx + sd * 1.1, 0.6, D.z, 0.1, 1.2, 0.1, 0x5a3e24, 0, 0, sd * 0.3);
+  for (let q = 0; q < 7; q++) dm.blob(D.x1 + 0.3 + q * 0.57, 0.18, D.z + 0.35, 0.34, 0.2, 0.26, 0xa89868, q);   // bolsas de arena
+  dm.box(dcx, 0.95, D.z - 0.06, D.x2 - D.x1 + 0.8, 0.06, 0.02, 0xf0d020, 0, 0, 0.05);                      // cinta
+  const dmesh = dm.mesh(MAT.grimeV), door = state.doors[D.id];
+  if (dmesh && door) { scene.remove(dmesh); dmesh.userData.theme = false; dmesh.matrixAutoUpdate = true; dmesh.position.copy(door.mesh.position).negate(); door.mesh.add(dmesh); }
+  wd.cyl(-57.3, 0, 68.25, 0.04, 1.0, 0x5a5a5a, 1, 5); wd.cyl(-45, 0, 68.75, 0.04, 1.2, 0x5a5a5a, 1, 5);   // postes de los carteles
+  // ---- materiales y mallas ----
+  const put = (B2, mat) => { const m = B2.mesh(mat); if (m) { m.userData.theme = false; m.updateMatrix(); } return m; };
+  put(ex, new THREE.MeshLambertMaterial({ map: scutes, vertexColors: true }));
+  put(inn, new THREE.MeshLambertMaterial({ map: flesh, vertexColors: true, emissive: 0x1c1410 }));
+  put(bn, new THREE.MeshLambertMaterial({ map: TEX.bark, vertexColors: true, emissive: 0x16140e }));
+  put(wd, MAT.bark); put(lf, FOLI.mat); put(rk, MAT.rock); put(mb, MAT.grimeV);
+  put(ud, new THREE.MeshLambertMaterial({ map: TEX.grime, vertexColors: true, emissive: 0x241810 }));   // tablas vistas desde abajo
+  put(bulb, new THREE.MeshBasicMaterial({ vertexColors: true }));
+  SHELLFX.goo = new THREE.MeshBasicMaterial({ color: CONFIG.SHELL.goo || 0x7dff4a, vertexColors: true });
+  put(goo, SHELLFX.goo);
+  SHELLFX.halo = new THREE.MeshBasicMaterial({ map: radialTex('rgba(150,255,110,1)', 'rgba(60,200,40,.45)'), transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, vertexColors: true, opacity: 0.5 });
+  put(halo, SHELLFX.halo);
+  // haces de luz del tragaluz (aditivos, creados una vez)
+  const shaftMat = new THREE.MeshBasicMaterial({ map: TEX.shaft, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+    side: THREE.DoubleSide, opacity: 0.22, color: 0xd8ffd0 });
+  for (const r of [0, Math.PI / 2]) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, H - 0.5), shaftMat);
+    m.position.set(cx, (H - 0.5) / 2, cz); m.rotation.y = r; m.userData.theme = false; scene.add(m); SHELLFX.shafts.push(m);
+  }
+  // gotas que caen (un InstancedMesh, sin crear nada en el juego)
+  const dg = new THREE.SphereGeometry(0.06, 6, 4), dmat = new THREE.MeshBasicMaterial({ color: 0x9dff6a });
+  SHELLFX.dropMesh = new THREE.InstancedMesh(dg, dmat, SHELLFX.drops.length);
+  SHELLFX.dropMesh.userData.theme = false; scene.add(SHELLFX.dropMesh);
+  // carteles: cuarentena en la boca y peligro biológico
+  const sign = (t1, t2, x, y, z, ry, w, bg, fg) => {
+    const tex = makeTex((c, s) => { c.fillStyle = bg; c.fillRect(0, 0, s, s); c.fillStyle = fg; c.textAlign = 'center';
+      c.font = 'bold ' + Math.floor(s * 0.19) + 'px monospace'; c.fillText(t1, s / 2, s * 0.42);
+      c.font = 'bold ' + Math.floor(s * 0.12) + 'px monospace'; c.fillText(t2, s / 2, s * 0.66); }, 1, 128);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.5), new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide }));
+    m.position.set(x, y, z); m.rotation.y = ry; m.userData.theme = false; scene.add(m);
+  };
+  sign('QUARANTINE', 'POLICE LINE', -57.3, 1.3, 68.2, 0.3, 1.3, '#f0d020', '#1a1a1a');
+  sign('BIOHAZARD', 'DO NOT ENTER', -45, 1.5, 68.7, -0.2, 1.2, '#e8e8e0', '#b01818');
   // los que comen: figuras de zombie arrodilladas (un grupo por cada uno, con los brazos aparte)
   const zskin = CONFIG.ZOMBIE.skinColor;
-  for (const [x, z, r] of P.feeders) {
+  for (const [x, z, r] of S.feeders) {
     const g = new THREE.Group(), b = new MeshBuilder();
     b.box(0, 0.25, -0.1, 0.5, 0.3, 0.7, 0x3f3a33);                    // piernas dobladas
     b.box(0, 0.75, 0.05, 0.56, 0.62, 0.3, 0x5a4a3a, 0.45, 0, 0);       // torso inclinado
@@ -558,14 +820,33 @@ function buildPolice() {
     POLICE.feeders.push({ g, arms, x, z, ph: rr() * 6 });
   }
 }
+// la baba late, las gotas caen desde las costillas (cada una desde su punto, en loop) y los haces respiran
+function updateShellFX(dt, t) {
+  if (!SHELLFX.goo) return;
+  const k = 0.5 + 0.5 * Math.sin(t * 2.2);
+  SHELLFX.goo.color.setRGB(0.45 + 0.2 * k, 1, 0.3 + 0.15 * k);
+  SHELLFX.halo.opacity = 0.35 + 0.25 * k;
+  for (const s of SHELLFX.shafts) s.material.opacity = 0.16 + 0.08 * Math.sin(t * 0.7);
+  const M = SHELLFX.dropMesh, o = _shellO;
+  if (!M) return;
+  SHELLFX.drops.forEach((d, i) => {
+    d.v += 9.8 * dt; d.y -= d.v * dt;
+    if (d.y < 0.05) { d.y = d.y0; d.v = 0; }
+    o.position.set(d.x, d.y, d.z); o.scale.set(1, 1 + Math.min(2, d.v * 0.25), 1); o.updateMatrix();
+    M.setMatrixAt(i, o.matrix);
+  });
+  M.instanceMatrix.needsUpdate = true;
+}
+const _shellO = new THREE.Object3D();
 function updatePolice(dt, t) {
+  updateShellFX(dt, t);                                               // F5.17
   if (!POLICE.woke) {
     for (const f of POLICE.feeders) {                                 // mastican: brazos a la boca, cabeza que tira
       const k = Math.sin(t * 5 + f.ph);
       f.arms[0].rotation.x = -1.2 + 0.5 * k; f.arms[1].rotation.x = -1.2 - 0.5 * k;
       f.g.position.y = 0.03 * Math.abs(k);
     }
-    const d = state.doors[CONFIG.POLICE.door.id];
+    const d = state.doors[CONFIG.SHELL.door.id];
     if (d && d.open) policeWake();
   }
 }

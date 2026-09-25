@@ -33,7 +33,7 @@ check(under > 0 && free === 0, 'celdas bajo props: bloqueadas', `(${under} celda
 player.pos.set(0, 1.7, 10); G.updateFlowField(true);
 const rooms = G.ROOMS.filter(r => !r.hidden);
 const unreached = rooms.filter(r => {
-  for (let x = r.x1; x < r.x2; x++) for (let z = r.z1; z < r.z2; z++) if (G.flowAt(x, z) >= 0) return false;
+  for (let x = Math.floor(r.x1); x < r.x2; x++) for (let z = Math.floor(r.z1); z < r.z2; z++) if (G.flowAt(x, z) >= 0) return false;   // F5.17: cuartos con bordes no enteros
   return true;
 });
 check(unreached.length === 0, `los ${rooms.length} cuartos conectados`, unreached.length ? `(sin llegar: ${unreached.map(r => r.id)})` : '');

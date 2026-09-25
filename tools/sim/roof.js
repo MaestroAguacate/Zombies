@@ -37,14 +37,14 @@ over.forEach(c => { c.solid = false; }); G.buildNavGrid();
 const same = NAV.cells.every((v, i) => v === withRoof[i]);
 over.forEach(c => { c.solid = true; }); G.buildNavGrid();
 check(same, 'el techo (barandas y macetas incluidas) no cambia el grid del piso', `(${over.length} colliders de arriba)`);
-const indoor = G.ROOMS.filter(r => !r.outdoor && r.id !== 'R21');   // F5.16: la estación queda fuera del grid de arriba (su techo es solo collider)
+const indoor = G.ROOMS.filter(r => !r.outdoor);   // (F5.17: R21 ya es el caparazón, al aire libre)
 check(indoor.every(r => G.roofAt((r.x1 + r.x2) / 2, (r.z1 + r.z2) / 2)), 'todos los cuartos cerrados tienen techo', indoor.map(r => r.id).join(','));
 check([[8.5, 16], [15, 16], [17, 19], [0, 29]].every(([x, z]) => G.roofAt(x, z)), 'los huecos entre cuartos están tapados');
 const T = CONFIG.TEMPLE.top;
-check(UP.flights.every(S => S.stone) && UP.flights.length === CONFIG.TEMPLE.ramps.length, 'F5.16: sin escaleras en la casa (solo las rampas del templo)');
+check(UP.flights.every(S => S.stone || S === CONFIG.SHELL.ramp) && UP.flights.length === CONFIG.TEMPLE.ramps.length + 1, 'F5.16: sin escaleras en la casa (F5.17: las rampas del templo y la escalera del caparazón)');
 check([[20, 25], [11, 25], [11, 10], [0, 11], [-7.5, 11], [-10, 24]].every(([x, z]) => !G.walkAt(x, z) && G.roofAt(x, z)) &&
       G.walkAt((T.x1 + T.x2) / 2 - 3, (T.z1 + T.z2) / 2 - 5), 'F5.16: el techo de la casa no se camina; la cima del templo sí');
-check(!WORLD.colliders.some(c => c.tag === 'roofrail' && c.minX < 55), 'F5.16: sin barandas en el techo de la casa (quedan las de la cima del templo)');
+check(!WORLD.colliders.some(c => c.tag === 'roofrail' && c.maxX > -17 && c.minX < 36 && c.maxZ > 3 && c.minZ < 41), 'F5.16: sin barandas en el techo de la casa (quedan las del templo y del caparazón)');
 // F5.7: caídas proporcionales (nada debajo de 2 m, 60 desde el techo, nunca mata)
 const fall = (hp, drop) => { state.health = hp; state.gameOver = false; G.fallDamage(drop); return state.health; };
 check(fall(100, 1.9) === 100 && Math.abs(fall(100, 3.15) - 70) < 1e-6 && Math.abs(fall(100, 4.3) - 40) < 1e-6 && fall(20, 4.3) === 1 && !state.gameOver,

@@ -487,7 +487,7 @@ const CONFIG = {
       jugg:   { name: 'JUGGERNOG',    abbr: 'JG', cost: 2500, room: 'R11', x: 0, z: -49.4, rot: 0,     color: 0xd8322a },   // F5.16: al final del muelle (un solo acceso)
       speed:  { name: 'SPEED COLA',   abbr: 'SC', cost: 3000, room: 'R14', x: -52, z: 39.45, rot: Math.PI,     color: 0x3ac85a },   // F5.13: rancho, contra el cerco norte
       dtap:   { name: 'DOUBLE TAP',   abbr: 'DT', cost: 2000, room: 'R8',  x: 34.45, z: 10,    rot: -Math.PI / 2, color: 0xe8a22a },   // F5.8: pared este nueva
-      stamin: { name: 'STAMIN-UP',    abbr: 'SU', cost: 2000, room: 'R21', x: -46,   z: 67.55, rot: Math.PI,     color: 0xe8d24a },   // F5.16: estación de policía  // F5.11: pared norte de la caseta (la escalera ancha ocupa su lugar)
+      stamin: { name: 'STAMIN-UP',    abbr: 'SU', cost: 2000, room: 'R21', x: -63.25, z: 81,    rot: Math.PI / 2, color: 0xe8d24a },   // F5.17: adentro del caparazón, lado oeste  // F5.16: estación de policía
       // F5.11: Mule Kick (3 armas) en el búnker, contra la pared oeste (y = piso del búnker)
       mule:   { name: 'MULE KICK',    abbr: 'MK', cost: 4000, room: 'R16', x: -37.55, z: -78, rot:  Math.PI / 2, color: 0x4aa84a, y: -8 }
     },
@@ -638,7 +638,10 @@ const CONFIG = {
                doors: [['z', 87, 85.5, 88], ['x', 82, 89, 91.5]] },
     river: { w: [60, 63, 66, 100], s: [60, 95, 66, 69],            // brazo oeste y brazo sur [x1, x2, z1, z2]
              bridges: [['w', 76, 80], ['w', 90, 94], ['s', 83, 87]] },   // F5.16: el del sur, con la rampa
-    clear: [58, 95, 64, 100]                                        // sin árboles de jungla adentro
+    clear: [58, 95, 64, 100],                                       // sin árboles de jungla adentro
+    // F5.17: cabezas colosales de piedra a los lados del camino del puente sur y estelas talladas (sólidas: PROPS)
+    heads: [[80.5, 71.5, 0.25], [89.5, 71.5, -0.25]],
+    stelae: [[71, 83.6, Math.PI / 2], [71, 96.4, Math.PI / 2], [81, 76.2, 0], [89, 76.2, 0]]
   },
   // F5.12: cercos que se compran y se queman (son puertas: CONFIG.DOORS, DOOR_LINKS). Al comprarlo arde `time` s
   // (llamas de un pool fijo a lo largo del cerco, se pone negro y se hunde) y después se abre
@@ -654,7 +657,7 @@ const CONFIG = {
   // F5.15: la espesura: la jungla vieja [x1, x2, z1, z2]. Lo que cae acá y no es un área ni un sendero no se
   // camina: world.js buildThicketWalls pone una pared de vegetación en cada borde con lo caminable
   THICKET: [[-75, 55, 40, 74], [-75, -20, -24, -4], [-75, -24, -4, 18], [-75, -27, 18, 40], [20, 55, -24, -4], [35, 55, -4, 40],
-            [55, 95, 55, 100]],
+            [55, 95, 55, 100], [-75, -20, 74, 98]],   // F5.17: la espesura alrededor del patio del caparazón (claro hasta z 95)
   thicketWallH: 3,
   // F5.12: jungla. Árboles con tronco sólido cada ~spacing m (al azar con semilla fija, lejos de lo que hay que
   // usar), helechos, rocas, lianas y flores; y una franja tupida afuera del borde que tapa el vacío
@@ -674,21 +677,29 @@ const CONFIG = {
     loungers: [[-19, 54.5, 'z'], [-17.4, 54.5, 'z'], [7, 54.5, 'z'], [8.6, 54.5, 'z'], [25, 54.5, 'z'], [26.6, 54.5, 'z'],
                [-64, -9, 'x'], [-64, -7, 'x']],               // F5.15: a la costa del calamar (la jungla oeste es espesura)
     umbrellas: [[-18.2, 53.2], [7.8, 53.2], [25.8, 53.2], [-62.6, -8]],
-    flowers: [[-22, -16, 40.4, 41.2], [0, 6, 40.4, 41.2], [18, 26, 40.4, 41.2], [-23.6, -22.9, 2, 10],
+    flowers: [[-22, -16, 40.4, 41.2], [0, 6, 40.4, 41.2], [18, 26, 40.4, 41.2], [-23.6, -22.9, 1.5, 5.8], [-23.6, -22.9, 8.3, 10],   // F5.17: sin pisar la caja de almas
               [34.2, 34.9, 35, 39.5], [-26.6, -25.9, 42, 50]]   // F5.15: el de x 34 no tapa H7
   },
   // F5.11: búnker bajo tierra (R16). No está literalmente debajo del sótano: es una zona aparte (x,z libres,
   // piso en y = `y`) a la que se baja por la escotilla del jardín norte. Para el jugador, fundido y
   // teletransporte; para los zombies, un enlace del grid (NAV.link) que cruzan escondidos (ojos rojos al bajar).
   // Cerrada hasta que las 2 estatuas de plantas (al lado de la escotilla) despiertan y comen
-  // F5.16 tanda D: mini estación de policía destrozada en el claro del búnker (R21), con una barricada baja
-  // comprable (D21: se ve por encima). Adentro 3 zombies se comen a un policía muerto (dibujo); al abrir la
-  // barricada se paran y salen como zombies de verdad (extra: la ronda no termina hasta matarlos). Por la pared
-  // este sale un corredor muy oscuro (`dark`) a un búnker chico. [x1, x2, z1, z2]
-  POLICE: { station: [-56, -44, 58, 68], corridor: [-44, -35, 61, 65], mini: [-35, -27, 59, 69],
-            door: { id: 'D21', x1: -51, x2: -49, z: 58, h: 1.2, cost: 1250 },
-            feeders: [[-50.9, 63.3, 0.9], [-48.3, 64.2, -2.2], [-49.3, 61.9, 3.1]], cop: [-49.6, 63.3],
-            bodies: [[-54.2, 60.5, 0.6], [-45.6, 66.2, 2.2], [-54.4, 66.4, -1.2], [-31, 61, 1.4], [-29, 67, 3.5]], darkMul: 0.2 },
+  // F5.17 (Diego): el caparazón de una tortuga gigante reemplaza a la estación de policía (R21), al fondo del claro
+  // del búnker (que creció hasta z 95). Ahuecado: se entra por la boca (D21, barricada baja de la policía: se ve
+  // adentro por encima), se da la vuelta abajo y se sube por una escalera a un entrepiso de andamios a UP.y (el
+  // grid de arriba, como la cima del templo). Adentro: la columna y las costillas pegadas a la cúpula y sangre verde
+  // que brilla. 3 zombies se comen a un policía (dibujo; al abrir D21 se paran y salen de verdad: extra de la ronda)
+  // x, z = centro · a, b = semiejes del borde (x, z) · h = alto · t = grosor del borde
+  // deck: [x1, x2, z1, z2] de afuera y el hueco del medio · ramp: escalera (UP.flights) del hueco al lado este
+  SHELL: { x: -51, z: 81, a: 13, b: 11, h: 12, t: 0.6, rimH: 4.5,
+           door: { id: 'D21', x1: -53, x2: -49, z: 70.4, h: 1.2, cost: 1250 },
+           deck: { outer: [-58, -44, 75, 87], inner: [-55, -47, 78, 84] },
+           ramp: { x1: -54, x2: -47, z1: 78.3, z2: 80.7, dir: 1, steps: 16, bottom: [-55, 79], top: [-47, 79], gap: ['x', -47, 78, 81], open: true },
+           posts: [[-57.8, 75.2], [-44.2, 75.2], [-57.8, 86.8], [-44.2, 86.8], [-55, 77.8], [-47, 77.8], [-55, 84.2], [-47, 84.2],
+                   [-57.8, 81], [-44.2, 81], [-51, 86.8]],
+           feeders: [[-51.9, 73.9, 0.9], [-49.4, 74.7, -2.2], [-50.2, 72.6, 3.1]], cop: [-50.6, 73.8],
+           bodies: [[-58.5, 78, 0.6], [-44.5, 85.6, 2.2], [-60.5, 84, -1.2], [-55.5, 67.2, 1.4], [-46.8, 66.6, 3.5]],
+           jeep: [-63.4, -61.4, 60.5, 65], skylight: 1.42 },
   // F5.16: portal Templo ↔ Calamar, ida y vuelta, gratis. Solo el jugador:
   // F cerca del arco, fundido a negro (el de la escotilla) y aparece en `out` del otro. Los zombies no lo cruzan
   // (el flow field no lo ve: si no llegan, el watchdog los respawnea cerca). Sin collider: no toca el grid
@@ -851,7 +862,7 @@ const CONFIG = {
     spots: {
       muelle:  { room: 'R11', x: 3.45,  z: -47,   rot: -Math.PI / 2 },   // F5.6: lado este (al oeste entra la pasarela)
       caseta:  { room: 'R14', x: -49.5, z: 39.45, rot:  Math.PI },       // F5.16: en el rancho, contra el cerco norte (la clave no cambia: state.generators es nombre fijo)
-      garaje:  { room: 'R21', x: -55.45, z: 66,  rot:  Math.PI / 2 },   // F5.16: en la estación de policía, pared oeste (la clave no cambia)
+      garaje:  { room: 'R21', x: -38.75, z: 81,  rot: -Math.PI / 2 },   // F5.17: adentro del caparazón, contra el borde este (la clave no cambia)
       piscina: { room: 'R8',  x: 25,    z: 4.55,  rot:  0 }              // pared sur, frente a la rampa
     },
     lampOff: 0xff3a2a, lampOn: 0x46ff6e
@@ -878,7 +889,7 @@ const CONFIG = {
     // (en tablón propio y a ~2.3 m de la espesura: los arbustos del borde tapaban la tiza pegada a la pared)
     { weapon:'rifle',   room:'R14', cost:2000, x:-42.7, z:21.6, face:-1, post:true },            // F5.17 (Diego: estaba en medio del camino): esquina SE del rancho
     { weapon:'lmg',     room:'R19', cost:2500, x:-60, z:-6.3, face:-1, axis:'z', post:true },    // F5.16: calamar, norte
-    { weapon:'uzi',     room:'R21', cost:1200, x:-27, z:64, face:-1 },                          // F5.16: búnker chico de la estación
+    { weapon:'uzi',     room:'R21', cost:1200, x:-51, z:86.4, face:-1, axis:'z', level:1, post:true },   // F5.17: en el entrepiso del caparazón
     { weapon:'crossbow',room:'R20', cost:2000, x: 58, z:57.5, face: 1, axis:'z', post:true },    // F5.16: entrada del templo
     // V2 F3b. axis 'z' = pared a lo largo de x (face ±1 = hacia ±z). y = altura de la tiza (cerca de 1.2 m).
     // post = tablón propio (el muelle no tiene paredes). 'machete' no es arma de inventario: ver CONFIG.MACHETE
@@ -1028,7 +1039,7 @@ const CONFIG = {
     // F5.15: las entradas de las áreas (lianas). Desde la playa (H4, H5) 2000: D11 + 2000 = 3250, lo mismo que los
     // jardines; al templo (H6) 2000; las demás 1500
     H2:1500, H6:2000, H8:1500,     // F5.16: sin H3, H4, H5 ni H7
-    D21:1250                       // F5.16 tanda D: barricada de la estación de policía
+    D21:1250                       // F5.17: barricada de la policía en la boca del caparazón (F5.16: de la estación)
   }
 };
 

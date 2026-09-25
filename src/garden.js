@@ -506,19 +506,21 @@ function buildGardenDecor() {
       mb.box(x + Math.cos(a) * 0.55, 2.3, z + Math.sin(a) * 0.55, 1.1, 0.04, 0.5, k % 2 ? 0xf0f0e8 : cloth[i % cloth.length], 0, -a, 0.25);
     }
   });
-  const petals = [0xe83a5a, 0xf0c030, 0xf0f0f0, 0xc85af0, 0xff8a3a];
+  // F5.17: canteros con borde de piedras y flores de hojas con alfa (antes cajitas)
+  const lf = new MeshBuilder(), rk = new MeshBuilder();
   D.flowers.forEach(([x1, x2, z1, z2], i) => {
-    mb.box((x1 + x2) / 2, 0.06, (z1 + z2) / 2, x2 - x1, 0.12, z2 - z1, 0x5a3a22);   // tierra
-    const n = Math.round((x2 - x1) * (z2 - z1) * 6);
+    mb.box((x1 + x2) / 2, 0.05, (z1 + z2) / 2, x2 - x1, 0.1, z2 - z1, 0x4a3020);   // tierra
+    const alongX = x2 - x1 > z2 - z1, L = alongX ? x2 - x1 : z2 - z1, n = Math.max(2, Math.round(L / 0.55));
     for (let k = 0; k < n; k++) {
-      const px = x1 + 0.1 + ((k * 0.618 + i) % 1) * (x2 - x1 - 0.2), pz = z1 + 0.1 + ((k * 0.382 + i * 0.3) % 1) * (z2 - z1 - 0.2);
-      const h = 0.25 + ((k * 0.73) % 1) * 0.3;
-      mb.box(px, 0.12 + h / 2, pz, 0.03, h, 0.03, 0x3f7a2a);
-      mb.box(px, 0.14 + h, pz, 0.12, 0.08, 0.12, petals[(k + i) % petals.length]);
+      const f = (k + 0.5) / n, px = alongX ? x1 + f * (x2 - x1) : (x1 + x2) / 2, pz = alongX ? (z1 + z2) / 2 : z1 + f * (z2 - z1);
+      lf.clump(px, 0.08, pz, 0.62, 0.55 + (k % 3) * 0.08, 'flower', 0xffffff, k * 1.3 + i);
+      for (const sd of [-1, 1]) rk.rock(alongX ? px : x1 + (sd > 0 ? x2 - x1 : 0), 0.02, alongX ? z1 + (sd > 0 ? z2 - z1 : 0) : pz,
+        0.2, 0.14, 0.18, [0x9a968a, 0x8a867a][k % 2], k + i, 0, k, 0);          // borde de piedras
     }
   });
-  const m = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
+  const m = mb.mesh(MAT.grimeV);
   if (m) { m.userData.theme = false; m.updateMatrix(); }
+  for (const [B, mat] of [[lf, FOLI.mat], [rk, MAT.rock]]) { const q = B.mesh(mat); if (q) { q.userData.theme = false; q.updateMatrix(); } }
 }
 
 //--- F5.12: la jungla (solo dibujo; los troncos sólidos están en PROPS, planJungle)
@@ -613,7 +615,15 @@ function buildJungle() {
   for (let x = 57; x <= 100; x += 3) for (let k = 0; k < J.outer; k += 2.5) ring.push([x, 53.5 - k]);
   for (let z = 53; z <= 104; z += 3) for (let k = 0; k < J.outer; k += 2.5) ring.push([96.5 + k, z]);
   for (let x = 53; x <= 100; x += 3) for (let k = 0; k < J.outer; k += 2.5) ring.push([x, 101.5 + k]);
-  for (const [x, z] of ring) tree(x + rnd(-1, 1), z + rnd(-1, 1), rnd(0.3, 1), false);
+  // F5.17: alrededor de la espesura del patio del caparazón (x -75..-20, z 74..98)
+  for (let x = -81; x <= -18; x += 3) for (let k = 0; k < J.outer; k += 2.5) ring.push([x, 99.5 + k]);
+  for (let z = 79; z <= 100; z += 3) for (let k = 0; k < J.outer; k += 2.5) ring.push([-76.5 - k, z]);
+  for (let z = 74; z <= 100; z += 3) for (let k = 0; k < J.outer; k += 2.5) ring.push([-18.5 + k, z]);
+  for (const [x, z] of ring) {
+    const tx = x + rnd(-1, 1), tz = z + rnd(-1, 1), big = rnd(0.3, 1);
+    if (roomAt(tx, tz) || inThicket(tx, tz)) continue;              // F5.17: la fila de afuera nunca adentro del mapa
+    tree(tx, tz, big, false);
+  }
   // helechos, pasto, flores y rocas con musgo: solo en la jungla caminable, sin colisión
   const TCl = CONFIG.TEMPLE.clear;
   const inJungle = (x, z) => { const r = roomAt(x, z); return r && (r.id === 'R15' || r.id === 'R17' || r.id === 'R20') && r.floor === 'jungle' &&
@@ -643,7 +653,8 @@ function buildJungle() {
   for (const m of CL.meshes(FOLI.mat)) m.updateMatrix();
   for (const m of CR.meshes(MAT.rock)) m.updateMatrix();
   // niebla verde baja (planos transparentes)
-  const mist = new THREE.MeshBasicMaterial({ color: 0xcfe8c8, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide });
+  const mist = new THREE.MeshBasicMaterial({ map: radialTex('rgba(215,235,205,1)', 'rgba(215,235,205,.45)'), transparent: true, opacity: 0.16,
+    depthWrite: false, side: THREE.DoubleSide });                   // F5.17: con bordes suaves (antes se veía el cuadrado)
   for (let n = 0, tries = 0; n < 24 && tries < 200; tries++) {
     const x = rnd(-71, 91), z = rnd(0, 96);
     if (!inJungle(x, z)) continue;
@@ -651,6 +662,246 @@ function buildJungle() {
     const p = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), mist);
     p.rotation.x = -Math.PI / 2; p.position.set(x, 0.5 + rnd(0, 0.4), z); scene.add(p);
   }
+}
+
+//--- F5.17 (Diego: "los jardines se ven muy planos", "menos Minecraft"): cercos de hojas, lianas en los cercos que
+// se queman, pasto y helechos en los bordes, caminos de lajas, faroles, bancos, tikis, macetas y hiedra en las
+// paredes de la casa. Todo dibujo (sin collider): no toca el grid. No tapa tizas, máquinas ni cajas
+const LAMPS = { mat: null };
+function buildGardenDress() {
+  const lf = new MeshBuilder(), rk = new MeshBuilder(), wd = new MeshBuilder(), mb = new MeshBuilder(), bl = new MeshBuilder(), hl = new MeshBuilder(), rr = mulberry(88);
+  const leafT = [0xffffff, 0xe0ecd0, 0xc8dab8, 0xf0f8e0, 0xb8cca8], keep = [];
+  for (const w of CONFIG.WALLBUYS) keep.push([w.x, w.z]);
+  for (const k in CONFIG.PERKS.list) keep.push([CONFIG.PERKS.list[k].x, CONFIG.PERKS.list[k].z]);
+  for (const k in CONFIG.GENERATORS.spots) keep.push([CONFIG.GENERATORS.spots[k].x, CONFIG.GENERATORS.spots[k].z]);
+  for (const k in CONFIG.SOULS.spots) keep.push([CONFIG.SOULS.spots[k].x, CONFIG.SOULS.spots[k].z]);
+  for (const k in CONFIG.BOX.spots) keep.push([CONFIG.BOX.spots[k].x, CONFIG.BOX.spots[k].z]);
+  const free = (x, z, r) => !keep.some(([a, b]) => Math.hypot(a - x, b - z) < r);
+  const fern = (x, z, sc) => { for (let k = 0; k < 6; k++) lf.frond(x, 0.04, z, 1.1 * sc, 0.45 * sc, k / 6 * 6.28 + rr() * 0.5, -0.25 - rr() * 0.45, 'fern', leafT[k % 5]); };
+  // 1) cercos de arbustos: hojas pegadas a las dos caras y matas arriba (el bloque verde queda de núcleo)
+  for (const c of WORLD.colliders) {
+    if (c.tag !== 'hedge' || !c.mesh) continue;
+    const alongX = c.maxX - c.minX > c.maxZ - c.minZ, L = alongX ? c.maxX - c.minX : c.maxZ - c.minZ, n = Math.ceil(L / 1.1), H = c.maxY;
+    for (let i = 0; i < n; i++) {
+      const f = (i + 0.5) / n, x = alongX ? c.minX + f * (c.maxX - c.minX) : (c.minX + c.maxX) / 2, z = alongX ? (c.minZ + c.maxZ) / 2 : c.minZ + f * (c.maxZ - c.minZ);
+      for (const sd of [-1, 1]) {
+        const fx = alongX ? x : (sd > 0 ? c.maxX : c.minX), fz = alongX ? (sd > 0 ? c.maxZ : c.minZ) : z;
+        if (!free(fx, fz, 1.3)) continue;
+        for (const off of [0.04, 0.14]) {
+          const px = alongX ? fx + (rr() - 0.5) * 0.3 : fx + sd * off, pz = alongX ? fz + sd * off : fz + (rr() - 0.5) * 0.3;
+          lf.card(px, -0.12, pz, 1.5, H + 0.3, 0, alongX ? 0 : Math.PI / 2, (rr() - 0.5) * 0.2, 'leaf', leafT[(i + (off > 0.1 ? 2 : 0)) % 5]);
+        }
+      }
+      lf.clump(x, H - 0.5, z, 1.25, 0.95, 'leaf', leafT[(i + 1) % 5], rr() * 3, true);
+    }
+  }
+  // 2) los cercos que se queman son lianas: cortina de lianas y hojas, hija del bloque (se hunde y se va con él)
+  for (const H of CONFIG.BURN.hedges) {
+    const d = state.doors[H.id];
+    if (!d) continue;
+    const vb = new MeshBuilder(), alongX = H.z1 === H.z2, L = alongX ? H.x2 - H.x1 : H.z2 - H.z1, n = Math.ceil(L / 0.3);
+    for (let i = 0; i < n; i++) {
+      const f = (i + 0.5) / n, x = alongX ? H.x1 + f * (H.x2 - H.x1) : H.x1, z = alongX ? H.z1 : H.z1 + f * (H.z2 - H.z1), len = 2.1 + rr() * 0.9;
+      for (const sd of [-0.16, 0.16]) vb.card(alongX ? x : x + sd, 2.9 - len, alongX ? z + sd : z, 0.55, len, 0, alongX ? 0 : Math.PI / 2, (rr() - 0.5) * 0.1, i % 3 ? 'vine' : 'moss', 0xffffff);
+      if (i % 3 === 0) vb.clump(x, -0.1, z, 1.3, 1.2 + rr() * 0.6, 'leaf', leafT[i % 5], rr() * 3);
+    }
+    const vm = vb.mesh(FOLI.mat);
+    if (vm) { scene.remove(vm); vm.userData.theme = false; vm.matrixAutoUpdate = true; vm.position.copy(d.mesh.position).negate(); d.mesh.add(vm); }
+  }
+  // 3) pasto y helechos al pie de los bordes de los jardines (sin tapar tizas ni máquinas)
+  for (const r of ROOMS.filter(q => q.id === 'R12' || q.id === 'R13')) {
+    const w = r.x2 - r.x1, h = r.z2 - r.z1, per = 2 * (w + h), n = Math.round(per / 1.1);
+    for (let k = 0; k < n; k++) {
+      let t = rr() * per, x, z;
+      const inset = 0.3 + rr() * 0.55;
+      if (t < w) { x = r.x1 + t; z = r.z1 + inset; } else if ((t -= w) < h) { x = r.x2 - inset; z = r.z1 + t; }
+      else if ((t -= h) < w) { x = r.x2 - t; z = r.z2 - inset; } else { t -= w; x = r.x1 + inset; z = r.z2 - t; }
+      const rm = roomAt(x, z);
+      if (!rm || rm.id !== r.id || !free(x, z, 1.6)) continue;
+      if (k % 4 === 0) fern(x, z, 0.5 + rr() * 0.4);
+      else lf.clump(x, -0.02, z, 0.7 + rr() * 0.5, 0.45 + rr() * 0.4, 'grass', leafT[k % 5], rr() * 3);
+      if (k % 9 === 0) lf.clump(x, 0, z, 0.6, 0.5, 'flower', 0xffffff, rr() * 3);
+    }
+  }
+  // 4) caminos de lajas
+  const path = pts => {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, az] = pts[i], [bx, bz] = pts[i + 1], n = Math.ceil(Math.hypot(bx - ax, bz - az) / 0.95);
+      for (let k = 0; k < n; k++) {
+        const f = (k + rr() * 0.3) / n, x = ax + (bx - ax) * f + (rr() - 0.5) * 0.3, z = az + (bz - az) * f + (rr() - 0.5) * 0.3;
+        rk.rock(x, -0.02, z, 0.42 + rr() * 0.2, 0.07, 0.36 + rr() * 0.16, [0xa8a498, 0x98948a, 0xb4b0a4][k % 3], k, 0, rr() * 3, 0);
+      }
+    }
+  };
+  path([[-12, -3], [-13.5, 4], [-18.5, 10.5], [-20, 18], [-21, 25], [-25.5, 28.5]]);      // jardín oeste: de la reja al lazo
+  path([[2.5, 29], [3, 34], [12, 35], [22, 34.5], [30.5, 33], [33, 26], [33, 21]]);      // trasero: del pasillo a la piscina
+  // 5) faroles de hierro (foco MeshBasic que brilla: sin luces), bancos y tikis
+  for (const [x, z] of [[-9, 5.5], [-23, 15.5], [-17, 37.5], [5.5, 39.3], [18.5, 39.3], [30.5, 31]]) {
+    mb.cyl(x, 0, z, 0.16, 0.25, 0x2a2a2e, 0.8, 8); mb.cyl(x, 0.25, z, 0.055, 2.3, 0x2a2a2e, 0.8, 8);
+    mb.cyl(x, 2.55, z, 0.2, 0.08, 0x2a2a2e, 1, 8); mb.cyl(x, 2.63, z, 0.16, 0.34, 0x3a3a3e, 1, 6);
+    mb.cyl(x, 2.97, z, 0.23, 0.2, 0x2a2a2e, 0, 6);
+    bl.sphere(x, 2.8, z, 0.1, 0.12, 0.1, 0xffe8b0, 6);
+    for (const r of [0, Math.PI / 2]) hl.add(UNIT_PLANE, x, 2.8, z, 1.3, 1.3, 1, 0, r, 0, 0xffffff);
+  }
+  const bench = (x, z, ry) => {
+    mb.setFrame(x, 0, z, ry);
+    for (let q = 0; q < 4; q++) mb.box(0, 0.45, -0.18 + q * 0.12, 1.6, 0.04, 0.1, [0x8a6440, 0x7a5a38][q % 2]);
+    for (let q = 0; q < 3; q++) mb.box(0, 0.62 + q * 0.12, 0.24, 1.6, 0.09, 0.03, 0x8a6440, -0.2, 0, 0);
+    for (const sx of [-0.7, 0.7]) { mb.box(sx, 0.22, 0, 0.06, 0.44, 0.5, 0x2a2a2e); mb.box(sx, 0.6, 0.26, 0.05, 0.4, 0.05, 0x2a2a2e, -0.2, 0, 0); }
+    mb.setFrame(null);
+  };
+  bench(-23.1, 12.5, Math.PI / 2); bench(12, 39.3, Math.PI);
+  const tiki = (x, z, ry, h) => {
+    wd.cyl(x, 0, z, 0.34, h, 0x8a6a48, 0.92, 10);
+    mb.setFrame(x, 0, z, ry);
+    for (let q = 0; q < 2; q++) {                                    // dos caras apiladas
+      const y = h * (0.35 + q * 0.4);
+      mb.box(0, y + 0.18, 0.3, 0.5, 0.08, 0.1, 0x5a3e24);            // ceja
+      for (const sx of [-0.12, 0.12]) { mb.box(sx, y + 0.06, 0.31, 0.12, 0.1, 0.05, 0xf0e8c8); mb.box(sx, y + 0.06, 0.34, 0.05, 0.06, 0.02, 0x1a1208); }
+      mb.box(0, y - 0.05, 0.33, 0.12, 0.2, 0.1, 0x6a4a2e);           // nariz
+      mb.box(0, y - 0.24, 0.31, 0.36, 0.12, 0.06, 0x2a1a0e);         // boca
+      mb.box(0, y - 0.24, 0.32, 0.3, 0.04, 0.06, 0xf0e8c8);          // dientes
+    }
+    mb.setFrame(null);
+    lf.clump(x, h - 0.1, z, 0.7, 0.5, 'palm', 0xe8f0d0, ry);        // penacho de hojas
+  };
+  tiki(-9.3, -3.1, Math.PI, 2.1); tiki(-3.2, 30.8, Math.PI / 2, 1.9);
+  // 6) macetas grandes de barro con plantas de hoja grande, contra las paredes
+  for (const [x, z] of [[-8.9, 16.9], [-15.3, 19.4], [23.2, 30.9], [-3.1, 33.5], [33.9, 30.5]]) {
+    if (!free(x, z, 1.2)) continue;
+    rk.lathe([[0.25, 0], [0.34, 0.1], [0.4, 0.55], [0.46, 0.62], [0.42, 0.66]], x, 0, z, 1, 1, 1, 0xb0643a, 12);
+    for (let q = 0; q < 6; q++) lf.card(x, 0.55, z, 0.7, 1.2 + rr() * 0.4, (rr() - 0.5) * 0.7, q * 1.05, (rr() - 0.5) * 0.7, 'bigleaf', 0xffffff);
+  }
+  // 7) hiedra que trepa por las paredes de la casa que dan a los jardines (planos pegados a la cara)
+  const ivy = (x1, z1, x2, z2, ry, n) => {
+    for (let k = 0; k < n; k++) {
+      const f = rr(), x = x1 + (x2 - x1) * f, z = z1 + (z2 - z1) * f, y = 0.4 + Math.pow(rr(), 1.6) * 2.8, w = 1.0 + rr() * 1.0;
+      if (!free(x, z, 1.5)) continue;
+      lf.add(UNIT_PLANE, x, y, z, w, w, 1, 0, ry, (rr() - 0.5) * 0.6, leafT[k % 5], FOLI.r.ivy);
+    }
+  };
+  ivy(-8.23, 4.5, -8.23, 17.5, -Math.PI / 2, 26);                   // sala, cara oeste (al jardín oeste)
+  ivy(-16.23, 18.5, -16.23, 34.5, -Math.PI / 2, 26);                // garaje y sótano, cara oeste
+  ivy(4.5, 30.23, 23.5, 30.23, 0, 34);                              // dormitorio y caseta, cara norte (al jardín trasero)
+  ivy(-3.77, 30.5, -3.77, 35.5, Math.PI / 2, 10);                   // sótano, cara este
+  const put = (B, mat) => { const m = B.mesh(mat); if (m) { m.userData.theme = false; m.updateMatrix(); } return m; };
+  put(lf, FOLI.mat); put(rk, MAT.rock); put(wd, MAT.bark); put(mb, MAT.grimeV);
+  put(bl, new THREE.MeshBasicMaterial({ vertexColors: true }));
+  LAMPS.mat = new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,236,190,1)', 'rgba(255,200,120,.35)'), transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, vertexColors: true, opacity: 0.55 });
+  put(hl, LAMPS.mat);
+}
+
+//--- F5.17 (Diego: "el templo está muy básico"): raíces gigantes que bajan por la pirámide (como Ta Prohm), hiedra y
+// lianas, bloques caídos, cabezas colosales de piedra a los lados del puente sur, estelas talladas, cabezas de
+// serpiente al pie de las rampas, juncos y nenúfares en el río
+function buildTempleDress() {
+  const T = CONFIG.TEMPLE, P = T.top, Y = UP.y, S = T.sanctum, rr = mulberry(99);
+  const wd = new MeshBuilder(), lf = new MeshBuilder(), st = new MeshBuilder(), rk = new MeshBuilder(), gl = new MeshBuilder();
+  const leafT = [0xffffff, 0xe0ecd0, 0xc8dab8, 0xf0f8e0, 0xb8cca8];
+  const y2 = T.tierH + 2 * (Y - T.tierH) / 3, y1 = T.tierH + (Y - T.tierH) / 3;
+  // perfil de la pirámide hacia afuera desde el borde de la cima: [cuánto afuera, alto]
+  const prof = [[-0.4, Y + 0.2], [0.15, Y + 0.05], [0.9, y2 + 0.06], [1.65, y1 + 0.06], [3.15, T.tierH + 0.06], [3.6, 0.9], [4.4, 0.05], [5.2, -0.1]];
+  const onRamp = (side, a) => (side === 's' && a > 82.3 && a < 87.7) || (side === 'w' && a > 87.3 && a < 92.7);
+  for (let k = 0; k < 16; k++) {
+    const side = ['s', 'n', 'e', 'w'][k % 4], a = side === 's' || side === 'n' ? P.x1 + 1 + rr() * (P.x2 - P.x1 - 2) : P.z1 + 1 + rr() * (P.z2 - P.z1 - 2);
+    if (onRamp(side, a)) continue;
+    if ((side === 'n' || side === 'e') && rr() < 0.4) continue;       // atrás casi no se ve
+    const pt = ([o, y]) => side === 's' ? [a + Math.sin(o * 1.3 + k) * 0.25, y, P.z1 - o] : side === 'n' ? [a, y, P.z2 + o]
+                        : side === 'w' ? [P.x1 - o, y, a + Math.sin(o * 1.3 + k) * 0.25] : [P.x2 + o, y, a];
+    const pts = prof.map(pt), r0 = 0.3 + rr() * 0.12;
+    wd.tube(pts, r0, 0.1, [0x7a6450, 0x6a5440, 0x8a7258][k % 3], 22, 7);
+    if (k % 2 === 0) {                                                // raíz que se abre en dos al pie
+      const e = pts[pts.length - 2], sd = rr() < 0.5 ? -1 : 1;
+      wd.tube([e, [e[0] + (side === 'w' || side === 'e' ? 0.6 : sd * 1.2), 0.1, e[2] + (side === 's' || side === 'n' ? -0.6 : sd * 1.2)]], 0.14, 0.05, 0x6a5440, 5, 6);
+    }
+    for (let q = 1; q < 5; q++) { const p = pts[q]; lf.clump(p[0], p[1] - 0.3, p[2], 0.9, 0.7, q % 2 ? 'ivy' : 'fern', leafT[q % 5], rr() * 3); }
+  }
+  // hiedra en las caras de los escalones y lianas colgando de las cornisas y el santuario
+  for (let k = 0; k < 60; k++) {
+    const side = k % 4, o = [0, 0.75, 1.5, 3][Math.floor(rr() * 4)], yTop = o === 0 ? Y : o === 0.75 ? y2 : o === 1.5 ? y1 : T.tierH;
+    const a = rr(), w = 0.9 + rr() * 1.2, y = yTop - 0.2 - rr() * 1.0;
+    let x, z, ry;
+    if (side === 0) { x = P.x1 - o + a * (P.x2 - P.x1 + 2 * o); z = P.z1 - o - 0.04; ry = Math.PI; if (x > 82.3 && x < 87.7) continue; }
+    else if (side === 1) { x = P.x1 - o - 0.04; z = P.z1 - o + a * (P.z2 - P.z1 + 2 * o); ry = -Math.PI / 2; if (z > 87.3 && z < 92.7) continue; }
+    else if (side === 2) { x = P.x2 + o + 0.04; z = P.z1 - o + a * (P.z2 - P.z1 + 2 * o); ry = Math.PI / 2; }
+    else { x = P.x1 - o + a * (P.x2 - P.x1 + 2 * o); z = P.z2 + o + 0.04; ry = 0; }
+    lf.add(UNIT_PLANE, x, Math.max(w / 2 - 0.1, y), z, w, w, 1, 0, ry, (rr() - 0.5) * 0.5, leafT[k % 5], FOLI.r.ivy);
+    if (k % 3 === 0) { const L = 0.8 + rr() * 1.6; lf.card(x, yTop - L, z, 0.45, L, 0, ry, 0, k % 2 ? 'vine' : 'moss', 0xffffff); }
+  }
+  const top = Y + S.h;
+  for (let k = 0; k < 18; k++) {                                     // del techo del santuario
+    const side = k % 3, f = rr(), L = 1.0 + rr() * 2.4;
+    const x = side === 0 ? S.x1 + f * (S.x2 - S.x1) : S.x1 - 0.35, z = side === 0 ? S.z1 - 0.35 : S.z1 + f * (S.z2 - S.z1);
+    if (side === 0 && x > 85 && x < 88.5) continue;                  // la puerta sur
+    if (side !== 0 && z > 88.5 && z < 92) continue;                  // la puerta oeste
+    lf.card(x, top - L + 0.3, z, 0.5, L, 0, side === 0 ? 0 : Math.PI / 2, 0, k % 2 ? 'vine' : 'moss', 0xffffff);
+  }
+  // bloques caídos al pie, de la misma piedra
+  for (let k = 0; k < 22; k++) {
+    const side = k % 4, a = rr();
+    let x = side === 0 ? 75 + a * 20 : side === 1 ? 74.2 - rr() * 1.5 : side === 2 ? 95.3 : 75 + a * 20;
+    let z = side === 0 ? 79.2 - rr() * 1.8 : side === 1 ? 80 + a * 20 : 80 + a * 20, sc = 0.4 + rr() * 0.5;
+    if (side === 2 || side === 3) continue;                           // atrás no se camina
+    if ((side === 0 && x > 81.8 && x < 88.2) || (side === 1 && z > 86.8 && z < 93.2)) continue;   // frente a las rampas
+    st.box(x, sc * 0.35, z, sc * 1.4, sc * 0.7, sc, [0xffffff, 0xeae6da, 0xd6d2c4][k % 3], rr() * 0.4, rr() * 3, rr() * 0.3);
+  }
+  // cabezas colosales de piedra (PROPS cabezaN): cara ancha, casco, ojos cerrados, labios gruesos
+  for (const [x, z, r] of T.heads) {
+    st.setFrame(x, 0, z, r + Math.PI);                                 // mira al camino (hacia -z... al sur)
+    st.blob(0, 1.15, 0, 1.0, 1.15, 0.95, 0xd6d2c4, 2);
+    st.blob(0, 2.05, -0.05, 1.05, 0.45, 1.0, 0xc8c4b4, 3);             // casco
+    st.box(0, 1.95, 0.82, 1.7, 0.18, 0.2, 0xb8b4a4);                   // borde del casco
+    for (const sx of [-0.36, 0.36]) { st.blob(sx, 1.45, 0.82, 0.22, 0.09, 0.08, 0x9a968a, 1); st.box(sx, 1.36, 0.88, 0.3, 0.04, 0.04, 0x5a564c); }   // párpados
+    st.blob(0, 1.1, 0.95, 0.2, 0.32, 0.2, 0xc8c4b4, 4);                // nariz
+    st.blob(0, 0.72, 0.86, 0.42, 0.14, 0.16, 0xb8b4a4, 5);             // labios
+    st.box(0, 0.72, 0.99, 0.5, 0.03, 0.02, 0x4a463c);
+    for (const sx of [-1.02, 1.02]) st.blob(sx, 1.25, 0.1, 0.16, 0.4, 0.3, 0xc8c4b4, 6);   // orejas
+    st.setFrame(null);
+    for (let q = 0; q < 4; q++) lf.clump(x + (rr() - 0.5) * 2, 1.8 + rr() * 0.5, z + (rr() - 0.5) * 1.2, 0.8, 0.5, 'ivy', leafT[q], rr() * 3);
+    lf.clump(x, -0.05, z + 1.1, 1.4, 0.7, 'fern', 0xffffff, rr() * 3);
+  }
+  // estelas talladas (PROPS estelaN) con glifos pintados
+  for (const [x, z, r] of T.stelae) {
+    st.setFrame(x, 0, z, r);
+    st.box(0, 1.3, 0, 0.9, 2.6, 0.4, 0xeae6da);
+    st.box(0, 2.66, 0, 1.0, 0.14, 0.48, 0xc8c4b4);
+    st.box(0, 0.08, 0, 1.2, 0.16, 0.7, 0xb8b4a4);
+    for (let q = 0; q < 4; q++) for (const sd of [-1, 1]) st.box(sd * 0.2, 0.6 + q * 0.5, 0.21 * (sd > 0 ? 1 : 1), 0.3, 0.32, 0.02, [0x9a2a1e, 0x2a6a5a, 0xd8a838, 0x6a5a48][(q + (sd > 0 ? 1 : 0)) % 4]);
+    st.setFrame(null);
+    lf.clump(x, -0.05, z, 1.0, 0.6, 'grass', 0xffffff, r);
+  }
+  // cabezas de serpiente emplumada al pie de las alfardas de las rampas
+  for (const R of T.ramps) {
+    const zAx = R.axis === 'z';
+    for (const sd of [-1, 1]) {
+      const x = zAx ? (sd < 0 ? R.x1 - 0.2 : R.x2 + 0.2) : R.x1 - 0.1, z = zAx ? R.z1 - 0.1 : (sd < 0 ? R.z1 - 0.2 : R.z2 + 0.2);
+      st.setFrame(x, 0, z, zAx ? Math.PI : -Math.PI / 2);
+      st.blob(0, 0.45, 0.2, 0.34, 0.36, 0.55, 0xd6d2c4, 1);
+      st.box(0, 0.22, 0.5, 0.5, 0.12, 0.5, 0xb8b4a4);                  // mandíbula
+      for (let q = 0; q < 4; q++) st.cyl(-0.18 + q * 0.12, 0.28, 0.72, 0.03, 0.14, 0xf0ece0, 0, 5);   // colmillos
+      for (const ex of [-0.2, 0.2]) st.blob(ex, 0.62, 0.45, 0.07, 0.06, 0.05, 0x3a2a1a, 2);
+      for (let q = 0; q < 5; q++) st.box((q - 2) * 0.13, 0.9, -0.05, 0.1, 0.35, 0.05, [0x2a6a5a, 0x9a2a1e][q % 2], 0.3, 0, (q - 2) * 0.2);   // plumas
+      st.setFrame(null);
+    }
+  }
+  // juncos en las orillas del río y nenúfares con flor
+  const Rv = T.river, [wx1, wx2, wz1, wz2] = Rv.w, [sx1, sx2, sz1, sz2] = Rv.s;
+  for (let k = 0; k < 40; k++) {
+    const west = k % 2 === 0, bridgeFree = (a, arm) => !Rv.bridges.some(g => g[0] === arm && a > g[1] - 0.8 && a < g[2] + 0.8);
+    if (west) { const z = sz2 + rr() * (wz2 - sz2), x = rr() < 0.5 ? wx1 - 0.35 : wx2 + 0.35; if (!bridgeFree(z, 'w')) continue; lf.clump(x, 0, z, 0.8, 1.1 + rr() * 0.5, 'grass', 0xd8e4b0, rr() * 3); }
+    else { const x = sx1 + rr() * (sx2 - sx1), z = rr() < 0.5 ? sz1 - 0.35 : sz2 + 0.35; if (!bridgeFree(x, 's')) continue; lf.clump(x, 0, z, 0.8, 1.1 + rr() * 0.5, 'grass', 0xd8e4b0, rr() * 3); }
+  }
+  for (let k = 0; k < 26; k++) {
+    const west = k % 2 === 0;
+    const x = west ? wx1 + 0.6 + rr() * (wx2 - wx1 - 1.2) : sx1 + 1 + rr() * (sx2 - sx1 - 2), z = west ? sz2 + 1 + rr() * (wz2 - sz2 - 2) : sz1 + 0.6 + rr() * (sz2 - sz1 - 1.2);
+    if (Rv.bridges.some(g => (g[0] === 'w' && west && z > g[1] - 0.5 && z < g[2] + 0.5) || (g[0] === 's' && !west && x > g[1] - 0.5 && x < g[2] + 0.5))) continue;
+    gl.cyl(x, 0.085, z, 0.28 + rr() * 0.15, 0.01, [0x3a7a3a, 0x4a8a44][k % 2], 1, 10);
+    if (k % 4 === 0) gl.sphere(x + 0.05, 0.12, z, 0.07, 0.05, 0.07, [0xf0a0c0, 0xf8f0f0][k % 2], 6);
+  }
+  const put = (B, mat) => { const m = B.mesh(mat); if (m) { m.userData.theme = false; m.updateMatrix(); } return m; };
+  put(wd, MAT.bark); put(lf, FOLI.mat); put(rk, MAT.rock); put(gl, MAT.grimeV);
+  put(st, new THREE.MeshLambertMaterial({ map: TEX.stone, vertexColors: true }));
 }
 
 //--- F5.12: cercos que se queman (puertas con burn). Llamas creadas una vez por cerco, ocultas
@@ -713,9 +964,9 @@ function resetBurns() {
 const TEMPLEFX = { flames: [] };
 function buildTemple() {
   const T = CONFIG.TEMPLE, Y = UP.y, st = new MeshBuilder(), dt = new MeshBuilder();
-  const tones = [0xffffff, 0xeae6da, 0xd6d2c4, 0xc8c4b4];
+  const tones = [0xffffff, 0xeae6da, 0xd6d2c4, 0xc8c4b4], moss = [0xb8c8a0, 0xa8bc90, 0xc0c8a8], tr = mulberry(61);
   let n = 0;
-  const tone = () => tones[(n++ * 7) % 4];
+  const tone = () => tr() < 0.16 ? moss[(n++) % 3] : tones[(n++ * 7) % 4];   // F5.17: con manchas de musgo
   // caja de piedra: bloques de hasta `b` m en las 4 caras y arriba (inset 0 = pegada a lo sólido)
   const block = (x1, x2, y1, y2, z1, z2, b) => {
     b = b || 1.5;
@@ -839,11 +1090,12 @@ function buildTemple() {
   const fmat = new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,230,140,1)', 'rgba(255,100,10,0.5)'), transparent: true,
     blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   const fgeo = new THREE.PlaneGeometry(0.5, 0.8);
-  for (const [x, z, y] of torches) {
-    dt.box(x, y + 0.6, z, 0.12, 1.2, 0.12, 0x4a3420);
-    dt.box(x, y + 1.25, z, 0.3, 0.14, 0.3, 0x3a3a38);
+  for (const [x, z, y] of torches) {                                   // F5.17: braseros de piedra (antes un palo)
+    st.cyl(x, y, z, 0.26, 0.9, tone(), 0.75, 8);
+    st.lathe([[0.12, 0], [0.34, 0.08], [0.46, 0.3], [0.48, 0.36], [0.4, 0.34]], x, y + 0.9, z, 1, 1, 1, tone(), 10);
+    dt.cyl(x, y + 1.18, z, 0.36, 0.05, 0x2a1a10, 1, 10);              // brasas
     for (const r of [0, Math.PI / 2]) {
-      const f = new THREE.Mesh(fgeo, fmat); f.position.set(x, y + 1.62, z); f.rotation.y = r;
+      const f = new THREE.Mesh(fgeo, fmat); f.position.set(x, y + 1.58, z); f.rotation.y = r;
       f.userData.theme = false; scene.add(f); TEMPLEFX.flames.push(f);
     }
   }
@@ -1035,6 +1287,8 @@ function buildGarden() {
   buildBurns();                                                    // F5.12
   buildRancho();                                                   // F5.10
   buildGardenDecor();                                              // F5.11
+  buildGardenDress();                                              // F5.17: cercos de hojas, lajas, faroles, hiedra
+  buildTempleDress();                                              // F5.17: raíces, cabezas colosales, estelas
   buildPiranhas();
   buildWetSand();                                                  // F5.8
   buildAcid();
@@ -1052,27 +1306,40 @@ function buildGarden() {
 // tallo y hojas (F5.7: más alto y grueso para la cabeza ×headScale). F5.11: stone = de piedra (estatuas)
 function plantStem(mb, x, y, z, S, stone) {
   const stemH = 0.7 * S;
-  mb.box(x, y + stemH / 2, z, 0.1 * S, stemH, 0.1 * S, stone ? 0x8a8a84 : 0x3f6a2a, 0.08, 0, 0);
-  for (let k = 0; k < 4; k++) mb.box(x + Math.cos(k * 1.6) * 0.22 * S, y + 0.12, z + Math.sin(k * 1.6) * 0.22 * S,
-    0.38 * S, 0.04, 0.16 * S, stone ? 0x9a9a92 : 0x4e7a32, 0, -k * 1.6, 0.3);
+  // F5.17: tallo curvo (tubo) y hojas carnosas (gotas aplastadas) en vez de cajas
+  mb.tube([[x, y, z], [x + 0.06 * S, y + stemH * 0.5, z - 0.04 * S], [x, y + stemH, z]], 0.07 * S, 0.05 * S, stone ? 0x8a8a84 : 0x3f6a2a, 6, 6);
+  for (let k = 0; k < 5; k++) {
+    const a = k * 1.26, r = 0.24 * S;
+    mb.blob(x + Math.cos(a) * r, y + 0.1, z + Math.sin(a) * r, 0.24 * S, 0.035, 0.1 * S, stone ? 0x9a9a92 : [0x4e7a32, 0x5a8a3a][k % 2], k, 0, -a, 0.3);
+  }
 }
 // cabeza: dos mandíbulas que se abren (pivote atrás), cada una un mesh fusionado.
 // F5.9: cada mandíbula tiene la versión normal (n) y la alienígena (a: morada, dientes verdes, ojos en antenas).
 // F5.11: withStone = además la de piedra (s), que arranca visible (estatuas de la escotilla)
+// F5.17: mandíbulas de media esfera con dientes cónicos todo alrededor y manchas (antes cajas)
 let PLANT_JAW_MAT = null;
+const PLANT_HEMI = new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2);
 function plantJawMesh(up, look) {
   const b = new MeshBuilder(), s = up ? 1 : -1, alien = look === 'alien', stone = look === 'stone';
-  b.box(0, s * 0.07, 0.22, 0.46, 0.14, 0.44, stone ? (up ? 0x9a9a92 : 0x8a8a84) : alien ? (up ? 0x7a2ab0 : 0x5a1a8a) : (up ? 0xb0283a : 0x9a2030));
-  b.box(0, s * 0.005, 0.22, 0.4, 0.01, 0.38, stone ? 0x6a6a64 : alien ? 0x9aff6a : 0xe89aa8);      // adentro
-  const tooth = stone ? 0xb8b8b0 : alien ? 0xc8ff4a : 0xf0ead8, th = alien ? 0.12 : 0.08;
-  for (let i = 0; i < 6; i++) b.box(-0.2 + i * 0.08, -s * 0.03, 0.43, 0.03, th, 0.03, tooth);   // dientes
-  for (let i = 0; i < 3; i++) b.box(0.23, -s * 0.03, 0.1 + i * 0.12, 0.03, th, 0.03, tooth);
+  const shell = stone ? (up ? 0x9a9a92 : 0x8a8a84) : alien ? (up ? 0x7a2ab0 : 0x5a1a8a) : (up ? 0xb0283a : 0x9a2030);
+  b.add(PLANT_HEMI, 0, 0, 0.22, 0.25, 0.15, 0.24, up ? 0 : Math.PI, 0, 0, shell);
+  b.cyl(0, -s * 0.004, 0.22, 0.235, 0.012, stone ? 0x6a6a64 : alien ? 0x9aff6a : 0xe89aa8, 1, 14);      // adentro
+  const tooth = stone ? 0xb8b8b0 : alien ? 0xc8ff4a : 0xf0ead8, th = alien ? 0.12 : 0.09;
+  for (let i = 0; i < 13; i++) {                                               // dientes alrededor del borde
+    const a = -2.3 + i / 12 * 4.6, x = 0.24 * Math.sin(a), z = 0.22 + 0.23 * Math.cos(a);
+    b.cyl(x, 0, z, 0.018, th, tooth, 0, 5, up ? Math.PI : 0, 0, 0);
+  }
+  if (!stone) for (let i = 0; i < 5; i++) {                                    // manchas
+    const a = i * 1.3, r = 0.12 + (i % 2) * 0.05;
+    b.blob(Math.sin(a) * r, s * (0.1 - r * 0.3), 0.22 + Math.cos(a) * r, 0.035, 0.012, 0.035, alien ? 0xd060ff : 0xe86070, i);
+  }
   if (alien && up) {                                                            // antenas con ojos y púas
     [-0.14, 0, 0.14].forEach((ax, k) => {
-      b.box(ax, 0.24 + (k === 1 ? 0.05 : 0), 0.12, 0.03, 0.28 + (k === 1 ? 0.1 : 0), 0.03, 0x4a1a6a, 0, 0, ax * 1.5);
-      b.box(ax * 1.3, 0.4 + (k === 1 ? 0.1 : 0), 0.12, 0.08, 0.08, 0.08, 0x7aff3a);
+      const h = 0.3 + (k === 1 ? 0.1 : 0);
+      b.tube([[ax, 0.1, 0.12], [ax * 1.2, 0.1 + h * 0.6, 0.1], [ax * 1.3, 0.1 + h, 0.12]], 0.018, 0.012, 0x4a1a6a, 5, 5);
+      b.sphere(ax * 1.3, 0.14 + h, 0.12, 0.05, 0.05, 0.05, 0x7aff3a, 6);
     });
-    for (let i = 0; i < 4; i++) b.box(-0.18 + i * 0.12, 0.16, 0.3, 0.04, 0.1, 0.04, 0xd060ff, 0.4, 0, 0);
+    for (let i = 0; i < 4; i++) b.cyl(-0.18 + i * 0.12, 0.12, 0.3, 0.02, 0.1, 0xd060ff, 0, 5, 0.4, 0, 0);
   }
   if (!PLANT_JAW_MAT) PLANT_JAW_MAT = new THREE.MeshLambertMaterial({ vertexColors: true });
   const m = b.mesh(PLANT_JAW_MAT);

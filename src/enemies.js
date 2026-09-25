@@ -652,6 +652,9 @@ function rainDrop(i, top) {
 function rainRoof(x, z) {
   const S = CONFIG.TEMPLE.sanctum;
   if (x > S.x1 && x < S.x2 && z > S.z1 && z < S.z2) return UP.y + S.h;
+  // F5.17: la cúpula del caparazón frena la lluvia, salvo el tragaluz de arriba (por ahí entra hasta el piso)
+  const k = shellK(x, z), c = Math.cos(CONFIG.SHELL.skylight);
+  if (k < 1 && k > c * c) return CONFIG.SHELL.h * Math.sqrt(1 - k);
   return roofAt(x, z) ? UP.y : groundY(x, z);
 }
 // F5.16: áreas donde llueve siempre, sea la ronda que sea (CONFIG.WEATHER.rainRooms)

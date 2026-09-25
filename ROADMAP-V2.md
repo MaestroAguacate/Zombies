@@ -695,13 +695,23 @@ garaje).
 - Huesos de zombies y de tortugas por el piso.
 - Speed Cola, generador, doble cañón y rifle.
 
-### Tanda D — Búnker y estación de policía — HECHO (falta playtest)
+### Tanda D — Búnker y estación de policía — HECHO (F5.17: la estación pasó a ser el caparazón de tortuga gigante)
 - Mini estación de policía destrozada en el Claro del Búnker, con cadáveres de policías.
 - Puerta comprable. Al asomarte, 3 zombies comiéndose a un policía muerto. Al comprar la puerta se dan cuenta y
   van por vos.
 - Adentro, un corredor muy oscuro que baja a un búnker nuevo y chico. El búnker actual (escotilla, estatuas,
   caballito de mar) no cambia y queda algo alejado de la estación.
 - Generador en la estación, Stamin-Up y Uzi. Lluvia siempre.
+
+### F5.17 — Estilo BO2 y rediseños (pedido de Diego, 2026-09-25) — HECHO (falta playtest)
+Pedido: "que no sea tanto Minecraft, más BO2 zombies". Rediseñar la estación (se ve mal), la cueva de la tortuga, el
+templo (básico), el rancho y los jardines (planos). La barra contra el cerco sur (tapaba a la tortuga), el rifle
+fuera del camino, sacar lo verde junto al perk de la piscina. **La estación se cambia por un caparazón de tortuga
+gigante** que se recorre adentro, con gradas, sangre verde viscosa que brilla, casi hasta z 90, más atrás en el
+claro (que crece).
+- Herramientas: formas curvas y hojas con alfa en el `MeshBuilder`, filtrado lineal, jungla por celdas (FPS).
+- Hecho en las áreas nombradas. **Queda para después (lo más Minecraft que sigue):** la casa (paredes y muebles de
+  cajas), los zombies y perros de cajas, el muelle y la playa. Propuesta: una pasada por área, como esta.
 
 ### Tanda E — Calamar y embarcadero
 - Embarcadero amplio y oscuro, sobre la arena al costado de la cabeza del calamar.

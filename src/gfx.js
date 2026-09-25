@@ -47,6 +47,7 @@ function gfxMarkShadows() {
     const lit = !m.isMeshBasicMaterial && !m.transparent;
     o.receiveShadow = lit;
     o.castShadow = lit && o.visible;
+    if (m === FOLI.mat) o.customDepthMaterial = FOLI.depth;          // F5.17: la sombra de las hojas respeta el alfa (si no, cuadrados)
   });
 }
 // F5.16: distancia de la niebla elegida en Ajustes (dura la sesión). camera.far la sigue (lo de más allá no se

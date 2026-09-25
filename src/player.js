@@ -231,7 +231,7 @@ function resetFeel() {
 function standable(c) {
   const t = c.tag;
   return !!c.mesh && t !== 'wall' && t !== 'rail' && t !== 'poolRim' && !t.startsWith('door:') && !t.startsWith('bound:') &&
-         t !== 'roofrail' && t !== 'hedge' && t !== 'plant' && t !== 'pwall';   // F5.6: barandas del techo, cerco, macetas · F5.16
+         t !== 'roofrail' && t !== 'hedge' && t !== 'plant' && t !== 'pwall' && t !== 'shell';   // F5.6: barandas del techo, cerco, macetas · F5.16 · F5.17: borde del caparazón
 }
 // hay lugar para el cuerpo parado arriba de c en (x, z)
 function headroom(c, x, z) {

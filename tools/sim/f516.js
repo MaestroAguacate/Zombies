@@ -49,7 +49,7 @@ G.refundBox();
 check(state.points === 950, 'no devuelve dos veces');
 
 // 4) mapa de la tanda A
-check(!UP.flights.some(S => !S.stone) && !G.walkAt(0, 11) && !G.walkAt(20, 25), 'techo de la casa: sin escaleras ni pasarela');
+check(!UP.flights.some(S => !S.stone && S !== CONFIG.SHELL.ramp) && !G.walkAt(0, 11) && !G.walkAt(20, 25), 'techo de la casa: sin escaleras ni pasarela (F5.17: la escalera del caparazón no cuenta)');
 check(!state.doors.D18 && !G.roomAt(-17, -35), 'muelle de un solo acceso (sin D18 ni segundo tronco)');
 const J = CONFIG.PERKS.list.jugg;
 check(G.roomAt(J.x, J.z).id === 'R11' && J.z < -49, 'Juggernog al final del muelle');
@@ -131,24 +131,44 @@ check(CONFIG.TEMPLE.ramps.every(R => G.flowAt(R.bottom[0], R.bottom[1]) >= 0), '
   check(TC.count === 1 && Math.abs(TC.exit.x - CV.mouth.x) < 0.01 && Math.abs(TC.exit.z - CV.mouth.z) < 0.01 && G.roomAt(TC.lever.x, TC.lever.z).id === 'R14', 'una sola tortuga, sale de la boca de la cueva; la palanca al lado');
   check(G.SPAWN_POINTS.filter(s => s.room === 'R14' && s.x < PN.x2).every(s => s.valid && G.flowAt(s.cx, s.cz) >= 0), 'spawns del tortugario válidos'); }
 
-// 9) tanda D: estación de policía, 3 zombies comiendo, corredor oscuro y búnker chico
-{ const PC = CONFIG.POLICE, D = state.doors[PC.door.id];
+// 9) F5.17: el caparazón de la tortuga gigante (reemplaza a la estación de policía de la tanda D)
+{ const S = CONFIG.SHELL, D = state.doors[S.door.id], NAVI = G.navIdx;
   fresh(); G.debugOpenAllDoors();
-  check(D && D.cost === PC.door.cost && G.DOOR_LINKS[PC.door.id].join() === 'R17,R21', 'barricada D21 (' + PC.door.cost + ') entre el claro y la estación');
-  const [sx1, sx2, sz1, sz2] = PC.station, [mx1, mx2, mz1, mz2] = PC.mini;
-  check(G.roomAt((sx1 + sx2) / 2, (sz1 + sz2) / 2).id === 'R21' && G.roomAt(-39.5, 63).name === 'DARK CORRIDOR' && G.roomAt((mx1 + mx2) / 2, (mz1 + mz2) / 2).name === 'MINI BUNKER', 'estación, corredor oscuro y búnker chico (R21)');
-  const E = CONFIG.BUNKER.entrance;
-  check(Math.hypot((E.x1 + E.x2) / 2 - sx1, (E.z1 + E.z2) / 2 - sz2) > 10, 'el búnker de la escotilla queda alejado de la estación');
-  player.pos.set(-49.5, 1.7, 62); G.updateFlowField(true);
-  check(G.flowAt(-40, 63) >= 0 && G.flowAt((mx1 + mx2) / 2, (mz1 + mz2) / 2) >= 0 && G.flowAt(-60, 60) >= 0, 'con la barricada abierta: estación → corredor → búnker chico, y el claro');
+  check(D && D.cost === S.door.cost && G.DOOR_LINKS[S.door.id].join() === 'R17,R21', 'barricada D21 (' + S.door.cost + ') en la boca del caparazón');
+  check(!G.ROOMS.some(r => /POLICE|CORRIDOR|MINI BUNKER/.test(r.name)), 'sin la estación de policía, el corredor ni el búnker chico');
+  check(G.roomAt(S.x, S.z).id === 'R21' && G.roomAt(S.x, S.z + S.b - 2).id === 'R21' && G.roomAt(S.x, S.z + S.b + 2).id === 'R17', 'adentro es R21; atrás, el patio del claro');
+  check(S.z + S.b >= 90 && G.roomAt(-51, 94).id === 'R17' && G.roomAt(-65.5, 81).id === 'R17' && G.roomAt(-36.5, 81).id === 'R17', 'llega a z 92 y el claro lo rodea (se le da la vuelta)');
+  check(G.WORLD.colliders.filter(c => c.tag === 'shell').length > 40 && G.WORLD.colliders.filter(c => c.tag === 'shell').every(c => !G.standable(c)), 'borde sólido de cajas (no se pisa)');
+  // entrada: solo por la boca
+  player.pos.set(-60, 1.7, 60); G.closeDoor(S.door.id); G.buildNavGrid(); G.updateFlowField(true);
+  check(G.flowAt(-60, 60) >= 0 && G.flowAt(-65, 90) >= 0 && G.flowAt(-51, 88) < 0 && G.flowAt(-60, 81) < 0, 'con la barricada cerrada no se entra (el borde no tiene huecos) y el patio de atrás se recorre');
+  G.openDoor(S.door.id); G.updateFlowField(true);
+  check(G.flowAt(-51, 88) >= 0 && G.flowAt(-60, 81) >= 0 && G.flowAt(-42, 81) >= 0, 'abierta: se da la vuelta adentro');
+  // entrepiso a UP.y con la escalera
+  const [ox1, ox2, oz1, oz2] = S.deck.outer, [ix1, ix2, iz1, iz2] = S.deck.inner;
+  let up = 0, bad = 0;
+  for (let x = ox1; x < ox2; x++) for (let z = oz1; z < oz2; z++) {
+    const inner = x >= ix1 && x < ix2 && z >= iz1 && z < iz2;
+    if (G.isUp(x, z)) up++; if (inner === G.isUp(x, z)) bad++;
+  }
+  check(up === (ox2 - ox1) * (oz2 - oz1) - (ix2 - ix1) * (iz2 - iz1) && bad === 0, 'entrepiso: un anillo de 3 m a ' + G.UP.y + ' m alrededor del hueco', `(${up} celdas)`);
+  const R = S.ramp, a = NAVI(R.bottom[0], R.bottom[1]), b = G.upIdx(R.top[0], R.top[1]);
+  check(G.UP.flights.includes(R) && G.NAV.link[a] === b && G.NAV.link[b] === a, 'la escalera enlaza el piso con el entrepiso');
+  player.pos.set(-51.5, G.UP.y + 1.7, 85.5); G.updateFlowField(true);
+  check(G.flowAt(-60, 81) >= 0 && G.flowAt(-51, 72) >= 0, 'con el jugador arriba, los de abajo llegan (por la escalera)');
+  check(G.floorAt(-51.5, 85.5, G.UP.y + 0.01) === G.UP.y && G.levelAt(-51.5, 85.5, G.UP.y) === 1 && G.levelAt(-51.5, 85.5, 0) === 0, 'arriba se pisa y es el nivel 1; abajo del entrepiso, el piso');
+  check(G.WORLD.colliders.some(c => c.tag === 'roofrail' && c.minX > ox1 - 0.2 && c.maxX < ox2 + 0.2 && c.minZ > oz1 - 0.2 && c.maxZ < oz2 + 0.2), 'barandas en el entrepiso');
   const K = CONFIG.PERKS.list.stamin, GN = CONFIG.GENERATORS.spots.garaje, U = CONFIG.WALLBUYS.find(w => w.weapon === 'uzi');
-  check(G.roomAt(K.x, K.z).id === 'R21' && G.roomAt(GN.x, GN.z).id === 'R21' && G.roomAt(U.x - 0.5, U.z).id === 'R21', 'Stamin-Up, un generador y la Uzi en la estación');
+  check(G.roomAt(K.x, K.z).id === 'R21' && G.roomAt(GN.x, GN.z).id === 'R21' && G.roomAt(U.x, U.z - 0.5).id === 'R21' && U.level === 1, 'Stamin-Up y un generador adentro, la Uzi en el entrepiso');
+  check(G.PROPS.filter(p => p.id.startsWith('shellPost')).every(p => p.collider && G.roomAt((p.box[0] + p.box[1]) / 2, (p.box[2] + p.box[3]) / 2).id === 'R21'), 'postes del entrepiso sólidos');
+  // lluvia: la cúpula la frena, salvo el tragaluz
+  check(Math.abs(G.rainRoof(S.x + 7, S.z) - S.h * Math.sqrt(1 - (7 / S.a) ** 2)) < 1e-6 && G.rainRoof(S.x, S.z) <= 0.01 && G.rainRoof(S.x, S.z + S.b + 2) <= 0.01, 'la cúpula frena la lluvia; por el tragaluz entra');
   // los 3 que comen: figuras al principio, zombies de verdad al abrir
   G.resetGame(); state.running = true; clearAll();
-  check(G.POLICE.feeders.length === 3 && G.POLICE.feeders.every(f => f.g.visible) && !G.POLICE.woke && state.zombies.length === 0, '3 zombies comiéndose a un policía (dibujo, no cuentan)');
+  check(G.POLICE.feeders.length === 3 && G.POLICE.feeders.every(f => f.g.visible) && !G.POLICE.woke && state.zombies.length === 0, '3 zombies comiéndose a un policía adentro (dibujo, no cuentan)');
   G.updatePolice(dt, 1);
   check(!G.POLICE.woke, 'con la barricada cerrada siguen comiendo');
-  G.openDoor(PC.door.id); G.updatePolice(dt, 1.1);
+  G.openDoor(S.door.id); G.updatePolice(dt, 1.1);
   const woke = state.zombies.filter(q => q.alive && G.roomAt(q.px, q.pz) && G.roomAt(q.px, q.pz).id === 'R21');
   check(G.POLICE.woke && G.POLICE.feeders.every(f => !f.g.visible) && woke.length === 3 && woke.every(q => q.state === 'walk' && q.fromClam), 'al comprar la barricada se paran: 3 zombies de verdad (extra)', `(${woke.length})`);
   G.resetGame();

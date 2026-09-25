@@ -21,7 +21,8 @@ NAV.cells = new Uint8Array(NAV.w * NAV.h);
 // invisible (buildRoofEdges)
 // F5.13: el grid de arriba llega hasta la esquina NE (x 55, z 74): la cima del templo está a la misma altura
 // F5.15: el templo se mudó al anexo NE: el grid de arriba llega hasta x 92, z 98
-const UP = { y: 4.3, x1: -16, z1: 4, w: 108, h: 94,
+// F5.17: el entrepiso del caparazón (x -58..-44): el grid de arriba arranca en x -62
+const UP = { y: 4.3, x1: -62, z1: 4, w: 154, h: 94,
   fillers: [[8, 9, 14, 18], [13, 18, 14, 18], [16, 18, 18, 20], [-4, 4, 28, 30]],   // huecos entre cuartos
   landing: null,                          // F5.8: sin descanso (la escalera de la piscina se mudó al jardín trasero)
   // dir -1: sube hacia -x (de x2 a x1) · +1: sube hacia +x (de x1 a x2)
@@ -45,6 +46,17 @@ UP.flights = [];
   UP.walk.push([T.top.x1, T.top.x2, T.top.z1, T.top.z2]);
   for (const R of T.ramps) { UP.flights.push(R); UP.gaps.push(R.gap); }
 })(CONFIG.TEMPLE);
+// F5.17: el entrepiso del caparazón (4 tiras alrededor del hueco del medio) y su escalera
+(S => {
+  const [ox1, ox2, oz1, oz2] = S.deck.outer, [ix1, ix2, iz1, iz2] = S.deck.inner;
+  UP.walk.push([ox1, ox2, oz1, iz1], [ox1, ox2, iz2, oz2], [ox1, ix1, iz1, iz2], [ix2, ox2, iz1, iz2]);
+  UP.flights.push(S.ramp); UP.gaps.push(S.ramp.gap);
+})(CONFIG.SHELL);
+// ¿(x, z) adentro de la elipse del caparazón, agrandada m metros? (0 = el borde de afuera)
+function shellK(x, z, m) {
+  const S = CONFIG.SHELL, a = S.a + (m || 0), b = S.b + (m || 0);
+  return ((x - S.x) / a) ** 2 + ((z - S.z) / b) ** 2;
+}
 UP.cells = new Uint8Array(UP.w * UP.h);
 UP.mask = new Uint8Array(UP.w * UP.h);     // hay techo (sólido)
 UP.walkMask = new Uint8Array(UP.w * UP.h); // F5.6: se camina (pasarela + descanso)
@@ -140,13 +152,19 @@ const ROOMS = [
   { id:'R15', name:'JARDINES NORTE',x1:-27, x2: 35, z1: 40, z2: 58, floor:'jungle', outdoor:true },
   // F5.16: 5 ÁREAS. Casa (playa, casa, jardines, muelle) ↔ Rancho (D20) y ↔ Templo (H6); Rancho ↔ Búnker (H2) y
   // ↔ Calamar (H8); Templo ↔ Calamar por el portal. Sin Campamento (R18), ni H3, H4, H5, H7
-  // F5.16 tanda D: estación de policía (R21) en el claro, con su corredor oscuro y el búnker chico (misma área). Va antes que R17: roomAt devuelve la primera caja
-  { id:'R21', name:'POLICE STATION', x1:-56, x2:-44, z1: 58, z2: 68, floor:'conc' },
-  { id:'R21', name:'DARK CORRIDOR',  x1:-44, x2:-35, z1: 61, z2: 65, floor:'conc', part:true, dark:true },
-  { id:'R21', name:'MINI BUNKER',    x1:-35, x2:-27, z1: 59, z2: 69, floor:'conc', part:true },
-  // R17: el claro del búnker (esquina NO), con un solo sendero: desde el rancho (H2)
+  // F5.17: el caparazón de la tortuga gigante (R21), ahuecado. Va antes que R17: roomAt devuelve la primera caja.
+  // Es una elipse: 5 rectángulos adentro de ella la cubren casi toda. noFloor: su piso lo dibuja bunker.js
+  { id:'R21', name:'GIANT SHELL', x1:-60,  x2:-42,  z1: 74,   z2: 88,   floor:'jungle', outdoor:true, noFloor:true },
+  { id:'R21', name:'GIANT SHELL', x1:-63.5,x2:-38.5,z1: 78,   z2: 84,   floor:'jungle', outdoor:true, noFloor:true, part:true },
+  { id:'R21', name:'GIANT SHELL', x1:-55,  x2:-47,  z1: 71,   z2: 91,   floor:'jungle', outdoor:true, noFloor:true, part:true },
+  { id:'R21', name:'GIANT SHELL', x1:-59,  x2:-43,  z1: 73,   z2: 89,   floor:'jungle', outdoor:true, noFloor:true, part:true },
+  { id:'R21', name:'GIANT SHELL', x1:-61,  x2:-40,  z1: 76,   z2: 86,   floor:'jungle', outdoor:true, noFloor:true, part:true },
+  // R17: el claro del búnker (esquina NO), con un solo sendero: desde el rancho (H2). F5.17: crece al norte hasta z 95
+  // (el patio del caparazón, con lugar para darle la vuelta)
   { id:'R17', name:'CLARO DEL BUNKER', x1:-75, x2:-42, z1: 53, z2: 74, floor:'jungle', outdoor:true },
   { id:'R17', name:'CLARO DEL BUNKER', x1:-46, x2:-42, z1: 40, z2: 53, floor:'jungle', outdoor:true, part:true, corridor:true },
+  { id:'R17', name:'CLARO DEL BUNKER', x1:-67, x2:-35, z1: 74, z2: 95, floor:'jungle', outdoor:true, part:true },
+  { id:'R17', name:'CLARO DEL BUNKER', x1:-42, x2:-35, z1: 72, z2: 74, floor:'jungle', outdoor:true, part:true },
   // R19: la playa del calamar y la costa oeste, con una sola entrada a pie: desde el rancho (H8)
   { id:'R19', name:'PLAYA DEL CALAMAR', x1:-75, x2:-41, z1:-60, z2: -4, floor:'sand', outdoor:true },
   { id:'R19', name:'PLAYA DEL CALAMAR', x1:-47, x2:-42, z1: -4, z2: 18, floor:'jungle', outdoor:true, part:true, corridor:true },
@@ -176,7 +194,7 @@ const DOOR_LINKS = {
   D20:['R12','R14'],                           // F5.10: lazo del jardín oeste (F5.15: sendero al rancho)
   // F5.15: las entradas de las áreas (lianas que se queman)
   H2:['R14','R17'], H6:['R15','R20'], H8:['R14','R19'],     // F5.16: sin H3, H4, H5 ni H7
-  D21:['R17','R21']                                          // F5.16 tanda D: estación de policía
+  D21:['R17','R21']                                          // F5.17: la boca del caparazón (F5.16: estación de policía)
 };
 
 // piscina de R8: el ÚNICO lugar donde el piso no está en y=0. Rampa en el lado sur (z1 -> rampEnd),
@@ -271,6 +289,15 @@ const PROPS = [
     box: ax === 'z' ? [x - 0.35, x + 0.35, z - 0.95, z + 0.95, 0.45] : [x - 0.95, x + 0.95, z - 0.35, z + 0.35, 0.45] })),
   // F5.11: macetas de las estatuas de plantas, a los lados de la entrada del búnker (el dibujo, en bunker.js)
   ...CONFIG.BUNKER.statues.map((s, i) => ({ id: 'estatua' + i, room: 'R17', box: [s.x - 0.4, s.x + 0.4, s.z - 0.4, s.z + 0.4, 0.9] })),
+  // F5.17: cabezas colosales y estelas del templo (el dibujo, en garden.js buildTempleDress)
+  ...CONFIG.TEMPLE.heads.map(([x, z], i) => ({ id: 'cabeza' + i, room: 'R20', box: [x - 1.0, x + 1.0, z - 0.95, z + 0.95, 2.3] })),
+  ...CONFIG.TEMPLE.stelae.map(([x, z, r], i) => {
+    const w = Math.abs(Math.sin(r)) > 0.5 ? [0.25, 0.5] : [0.5, 0.25];
+    return { id: 'estela' + i, room: 'R20', box: [x - w[0], x + w[0], z - w[1], z + w[1], 2.6] };
+  }),
+  // F5.17: postes del entrepiso del caparazón y el jeep de la policía volcado en el claro (el dibujo, en bunker.js)
+  ...CONFIG.SHELL.posts.map(([x, z], i) => ({ id: 'shellPost' + i, room: 'R21', box: [x - 0.16, x + 0.16, z - 0.16, z + 0.16, UP.y - 0.3] })),
+  (J => ({ id: 'jeep', room: 'R17', box: [J[0], J[1], J[2], J[3], 1.7] }))(CONFIG.SHELL.jeep),
   // decorativos: chicos, planos, colgados o fuera del mapa jugable
   ...['hamaca', 'letrero34B', 'placaMarena', 'arena', 'seVende'].map(id => ({ id, room: 'R1', decor: true })),
   ...['alfombra', 'cojin', 'tablas', 'botellas'].map(id => ({ id, room: 'R2', decor: true })),
@@ -320,6 +347,9 @@ function planJungle() {
   lifeguardLegs().forEach(p => avoid.push(p));                        // F5.15: la torre de salvavidas
   avoid.push([CONFIG.LIFEGUARD.x, CONFIG.LIFEGUARD.z + CONFIG.LIFEGUARD.d / 2 + 2]);   // y su tablón
   for (const B of CONFIG.BURN.hedges) for (let k = 0; k <= 8; k++) avoid.push([B.x1 + (B.x2 - B.x1) * k / 8, B.z1 + (B.z2 - B.z1) * k / 8]);
+  const SJ = CONFIG.SHELL.jeep;                                        // F5.17: el jeep volcado y los policías muertos
+  avoid.push([(SJ[0] + SJ[1]) / 2, (SJ[2] + SJ[3]) / 2]);
+  CONFIG.SHELL.bodies.forEach(p => avoid.push([p[0], p[1]]));
   const TC = CONFIG.TEMPLE.clear;                                     // F5.13: el templo y su río, sin árboles
   const otherRoom = (x, z, m) => ROOMS.some(r => !jung.has(r.id) && x > r.x1 - m && x < r.x2 + m && z > r.z1 - m && z < r.z2 + m);
   for (let x = -75 + J.spacing / 2; x < 55; x += J.spacing) for (let z = -24 + J.spacing / 2; z < 74; z += J.spacing) {
@@ -327,7 +357,7 @@ function planJungle() {
     const r = roomAt(tx, tz);
     if (!r || !jung.has(r.id) || r.corridor || tx < -73.5 || tx > 53.5 || tz > 72.5 || tz < -20) continue;   // F5.15: no en los senderos
     if (tx > TC[0] && tx < TC[1] && tz > TC[2] && tz < TC[3]) continue;
-    if (otherRoom(tx, tz, 2.5)) continue;
+    if (otherRoom(tx, tz, 2.5) || shellK(tx, tz, 3) < 1) continue;    // F5.17: ni pegado al caparazón
     if (avoid.some(([ax, az]) => Math.hypot(ax - tx, az - tz) < J.keepClear)) continue;
     JUNGLE.trees.push({ x: tx, z: tz, big, id: 'arbol' + JUNGLE.trees.length, room: r.id });
   }
@@ -371,7 +401,8 @@ const SPAWN_POINTS = [
   // F5.10: rancho (solo con el lazo D20 abierto: detrás de una puerta cerrada flowAt = -1)
   { room:'R14', x:-44.5, z:36.5 }, { room:'R14', x:-43.5, z:27.5 }, { room:'R14', x:-46.5, z:21.5 },   // F5.13: corrido
   { room:'R14', x:-60.5, z:21.5 }, { room:'R14', x:-61.5, z:37.5 },    // F5.16: tortugario
-  { room:'R21', x:-39.5, z:63.5 }, { room:'R21', x:-31.5, z:67.5 },    // F5.16: corredor oscuro y búnker chico
+  { room:'R21', x:-55.5, z:88.5 }, { room:'R21', x:-46.5, z:88.5 }, { room:'R21', x:-41.5, z:76.5 },   // F5.17: adentro del caparazón
+  { room:'R17', x:-64.5, z:92.5 }, { room:'R17', x:-37.5, z:92.5 }, { room:'R17', x:-36.5, z:75.5 },   // F5.17: el patio de atrás
   { room:'R10', x:-30.5, z:-14.5 },                                     // F5.15: la playa oeste
   { room:'R19', x:-48.5, z:-30.5 }, { room:'R19', x:-70.5, z:-30.5 },  // F5.13: playa del calamar
   { room:'R15', x:-22.5, z:52.5 }, { room:'R15', x: 2.5, z:53.5 }, { room:'R15', x: 30.5, z:52.5 },   // F5.11: jardín norte
@@ -966,13 +997,11 @@ function buildMap() {
       mat.map.needsUpdate = true;
       mat.map.repeat.set((x2 - x1) / 2, (z2 - z1) / 2);
       if (!r.outdoor) mat.color.setHex(CONFIG.THEME.interiorTint);   // interiores más oscuros (no hay sombras)
-      if (r.dark) mat.color.multiplyScalar(CONFIG.POLICE.darkMul);   // F5.16: el corredor de la estación
       addBox(x1, x2, -0.3, 0, z1, z2, mat, 'floor:' + r.id, { noCollide: true });
     }
     if (!r.outdoor) {
       const cm = MAT.ceil.clone();
       cm.color.setHex(CONFIG.THEME.ceilTint);
-      if (r.dark) cm.color.multiplyScalar(CONFIG.POLICE.darkMul);
       cm.map = cm.map.clone(); cm.map.needsUpdate = true;
       cm.map.repeat.set((r.x2 - r.x1) / 2, (r.z2 - r.z1) / 2);
       // F2.8: el techo es sólido y caminable (nivel de arriba). overhead: el piso no lo ve; roofSurface: arriba es piso
@@ -1061,9 +1090,12 @@ function buildMap() {
   addBoundary( 20.2,  55.2, -24.2, -23.8, 'bound:mar');   // F5.12: la orilla de la jungla este
   // F5.12: borde de afuera del mapa (la jungla tupida lo tapa) y la laguna del puente, que no se pisa
   // F5.13: el oeste pasa a x -75 (y baja hasta z -60 por la lengua de arena)
-  addBoundary(-75.2, -74.8, -60, 74.2, 'bound:jungla');
+  addBoundary(-75.2, -74.8, -60, 98.2, 'bound:jungla');           // F5.17: hasta z 98 (el patio del caparazón)
   addBoundary( 54.8,  55.2, -24, 55.2, 'bound:jungla');           // F5.15: de z 55 a 74 se pasa al anexo del templo
-  addBoundary(-75.2,  55.2, 73.8, 74.2, 'bound:jungla');
+  addBoundary(-75.2, -67.2, 73.8, 74.2, 'bound:jungla');           // F5.17: con el hueco del patio (x -67..-35)
+  addBoundary(-34.8,  55.2, 73.8, 74.2, 'bound:jungla');
+  addBoundary(-75.2, -19.8, 97.8, 98.2, 'bound:jungla');           // F5.17: la espesura alrededor del patio
+  addBoundary(-20.2, -19.8, 74, 98, 'bound:jungla');
   // F5.15: el anexo NE del templo (R20, x 55..95, z 55..100)
   addBoundary( 54.8,  55.2, 73.8, 100.2, 'bound:jungla');
   addBoundary( 55,    95.2, 54.8, 55.2, 'bound:jungla');
@@ -1132,7 +1164,7 @@ function buildMap() {
   // F5.15: el lazo es la boca del sendero al rancho (z 26..31); el resto del borde lo cierra la espesura
   makeDoor('D20', -27, -27, 26, 31, CONFIG.RANCHO.ropeH, new THREE.MeshBasicMaterial({ visible: false }));
   buildRope(state.doors.D20);
-  buildPoliceWalls();                  // F5.16 tanda D
+  buildShellWalls();                   // F5.17: el caparazón (F5.16: la estación de policía)
   // F5.12: cercos que se compran y se queman (burn: buyDoor -> startBurn, arden y se abren)
   for (const B of CONFIG.BURN.hedges) {
     makeDoor(B.id, B.x1, B.x2, B.z1, B.z2, HG, MAT.hedge.clone());   // material propio: se pone negro al arder
@@ -1203,6 +1235,7 @@ function buildRoof() {
   for (const r of ROOMS) if (!r.outdoor) mark(U.mask, r.x1, r.x2, r.z1, r.z2);
   for (const f of U.fillers) mark(U.mask, f[0], f[1], f[2], f[3]);
   const TT = CONFIG.TEMPLE.top; mark(U.mask, TT.x1, TT.x2, TT.z1, TT.z2);   // F5.13: la cima del templo
+  for (const w of U.walk) mark(U.mask, w[0], w[1], w[2], w[3]);      // F5.17: y el entrepiso del caparazón
   if (L) mark(U.mask, L[0], L[1], L[2], L[3]);
   for (const w of U.walk) mark(U.walkMask, w[0], w[1], w[2], w[3]);
   if (L) mark(U.walkMask, L[0], L[1], L[2], L[3]);
@@ -1226,6 +1259,7 @@ function buildRoof() {
   if (deck) { deck.userData.theme = false; deck.updateMatrix(); }   // es mapa, no tema
   // escalones (solo visual: para el jugador la escalera es una rampa, ver floorAt/moveAxis)
   for (const S of U.flights) {
+    if (S.open) continue;                                             // F5.17: escalera abierta (la dibuja quien la usa)
     const V = flightV(S), run = (V.x2 - V.x1) / S.steps, rise = y / S.steps, zAx = S.axis === 'z';
     for (let i = 0; i < S.steps; i++) {
       const a1 = V.dir < 0 ? V.x2 - (i + 1) * run : V.x1 + i * run, a2 = a1 + run, h = (i + 1) * rise;
@@ -1310,10 +1344,9 @@ function buildPlantPots(mb) {
     const r = G.potR, c = { minX: x - r, maxX: x + r, minY: y, maxY: y + G.potH, minZ: z - r, maxZ: z + r,
                             tag: 'plant', mesh: null, solid: true };
     WORLD.colliders.push(c);
-    if (mb) {
-      mb.box(x, y + G.potH * 0.45, z, r * 2, G.potH * 0.9, r * 2, 0xa0522d);                  // maceta de barro
-      mb.box(x, y + G.potH * 0.92, z, r * 2 + 0.08, 0.08, r * 2 + 0.08, 0x8a4424);             // borde
-      mb.box(x, y + G.potH * 0.9, z, r * 1.8, 0.04, r * 1.8, 0x3a2a1a);                        // tierra
+    if (mb) {                                                           // F5.17: maceta de barro torneada (antes una caja)
+      mb.lathe([[0.72, 0], [0.8, 0.08], [0.95, 0.82], [1.1, 0.88], [1.1, 0.98], [0.94, 1.0]], x, y, z, r, G.potH, r, 0xa0522d, 14);
+      mb.cyl(x, y + G.potH * 0.9, z, r * 0.92, 0.02, 0x3a2a1a, 1, 14);                        // tierra
     }
   }
 }
@@ -1394,22 +1427,36 @@ function buildThicketWalls() {
   }
 }
 // F5.15: las 4 paredes del santuario [x1, x2, z1, z2], cortadas por sus puertas (las usa el dibujo también)
-// F5.16 tanda D: paredes de la estación, el corredor y el búnker chico (tag 'pwall': sin piel del tema, no se
-// pisan) y la barricada D21 (1.2 m: se ve adentro por encima)
-function buildPoliceWalls() {
-  const P = CONFIG.POLICE, [sx1, sx2, sz1, sz2] = P.station, [cx1, cx2, cz1, cz2] = P.corridor, [mx1, mx2, mz1, mz2] = P.mini;
-  const H = CONFIG.WALL_H, D = P.door;
-  const st = MAT.conc.clone(); st.color.setHex(0x8a8e94);
-  const dk = MAT.conc.clone(); dk.color.setHex(0x8a8e94).multiplyScalar(P.darkMul);
-  const bk = MAT.conc.clone(); bk.color.setHex(0x6a6e66);
-  const w = (x1, z1, x2, z2, m) => addWall(x1, z1, x2, z2, H, m, 'pwall');
-  w(sx1, sz1, D.x1, sz1, st); w(D.x2, sz1, sx2, sz1, st);          // sur, con la barricada
-  w(sx1, sz2, sx2, sz2, st); w(sx1, sz1, sx1, sz2, st);            // norte y oeste
-  w(sx2, sz1, sx2, cz1, st); w(sx2, cz2, sx2, sz2, st);            // este, con la boca del corredor
-  w(cx1, cz1, cx2, cz1, dk); w(cx1, cz2, cx2, cz2, dk);            // corredor
-  w(mx1, mz1, mx1, cz1, bk); w(mx1, cz2, mx1, mz2, bk);            // búnker chico: oeste con la boca
-  w(mx1, mz1, mx2, mz1, bk); w(mx1, mz2, mx2, mz2, bk); w(mx2, mz1, mx2, mz2, bk);
-  makeDoor(D.id, D.x1, D.x2, D.z, D.z, D.h, MAT.gate);
+// F5.17: el caparazón (CONFIG.SHELL). Borde de cajas invisibles por la elipse (tag 'shell': frena todo, no se pisa,
+// sin piel del tema) salvo la boca, donde va la barricada D21 (bloque invisible; su dibujo va de hijo en bunker.js:
+// al abrirse se va todo). El entrepiso: 4 losas de arriba (overhead + roofSurface: el grid de abajo no las ve) y la
+// huella de la escalera, que frena solo a los zombies del piso (los que suben van por el enlace, sin colisión)
+function shellRim() {
+  const S = CONFIG.SHELL, D = S.door, out = [], n = 64, ra = S.a - S.t / 2, rb = S.b - S.t / 2, ht = S.t / 2;
+  const hw = (D.x2 - D.x1) / 2 + 1.2;                                 // la boca y sus jambas van aparte
+  for (let i = 0; i < n; i++) {
+    const a0 = i / n * Math.PI * 2, a1 = (i + 1) / n * Math.PI * 2;
+    const x0 = S.x + Math.cos(a0) * ra, z0 = S.z + Math.sin(a0) * rb, x1 = S.x + Math.cos(a1) * ra, z1 = S.z + Math.sin(a1) * rb;
+    if ((z0 + z1) / 2 < S.z && Math.abs((x0 + x1) / 2 - S.x) < hw) continue;
+    out.push([Math.min(x0, x1) - ht, Math.max(x0, x1) + ht, Math.min(z0, z1) - ht, Math.max(z0, z1) + ht]);
+  }
+  const zAt = dx => S.z - rb * Math.sqrt(1 - (dx / ra) ** 2);
+  for (const sd of [-1, 1]) {                                         // jambas: de la barricada a donde sigue el borde
+    const xa = S.x + sd * (D.x2 - D.x1) / 2, xb = S.x + sd * (hw + 0.3);
+    out.push([Math.min(xa, xb), Math.max(xa, xb), Math.min(zAt(hw + 0.3), D.z) - ht, Math.max(zAt(hw + 0.3), D.z) + ht]);
+  }
+  return out;
+}
+function buildShellWalls() {
+  const S = CONFIG.SHELL, D = S.door, R = S.ramp, inv = new THREE.MeshBasicMaterial();
+  for (const b of shellRim()) { const r = addBox(b[0], b[1], 0, S.rimH, b[2], b[3], inv, 'shell'); r.mesh.visible = false; }
+  const [ox1, ox2, oz1, oz2] = S.deck.outer, [ix1, ix2, iz1, iz2] = S.deck.inner;
+  for (const [x1, x2, z1, z2] of [[ox1, ox2, oz1, iz1], [ox1, ox2, iz2, oz2], [ox1, ix1, iz1, iz2], [ix2, ox2, iz1, iz2]]) {
+    const r = addBox(x1, x2, UP.y - 0.3, UP.y, z1, z2, inv, 'shell:deck'); r.mesh.visible = false;
+    r.col.overhead = true; r.col.roofSurface = true;
+  }
+  addBoundary(R.x1, R.x2, R.z1, R.z2, 'bound:rampa', 0, UP.y).zombieOnly = true;
+  makeDoor(D.id, D.x1, D.x2, D.z, D.z, D.h, new THREE.MeshBasicMaterial({ visible: false }));
 }
 function sanctumWalls() {
   const S = CONFIG.TEMPLE.sanctum, t = S.t, out = [];

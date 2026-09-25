@@ -36,6 +36,9 @@ sol y luna, desmembramiento, animaciones y poses de muerte, agua animada, playa 
 viejos (`v1-final`…`v2-f5.5` solo existen en la copia local de Diego). F5.6–F7 + F5.15 están en `main`, con los
 43 tests en verde (7 tests desactualizados por F5.15 se arreglaron: f510, f511, f512, f513, quest, roof, audio2).
 Falta el playtest de Diego (sobre todo FPS con sombras). **F5.16 (5 áreas, ver ROADMAP-V2): tandas A, B, C y D hechas**, sigue E (calamar y embarcadero) y después F8. **Todo el juego está en inglés** (textos visibles); el código y los comentarios siguen en español.
+**F5.17 (estilo BO2, "menos Minecraft"):** formas curvas y hojas con alfa en el `MeshBuilder`, jungla nueva por celdas,
+rancho, cueva, templo y jardines rediseñados, y el **caparazón de tortuga gigante** en lugar de la estación de policía
+(ver la sección F5.17). Para mirar el juego sin navegador: `node tools/shots.js vistas.json [carpeta]` (capturas headless).
 
 ## Reglas no negociables
 - **Se edita `src/`, nunca `index.html`.** `node build.js` concatena `src/*.js` (en `build.js` ORDER) dentro
@@ -185,6 +188,10 @@ Nombres agregados en V2 (tampoco se renombran):
 · `H2..H8` · `lifeguardLegs()` · `CONFIG.TEMPLE.sanctum` · `sanctumWalls()` · `CONFIG.BUNKER.entrance.face` · `wakeKills/wakeRadius`
 · `CONFIG.SQUIDHEAD.tunnelH/chamberH` · `CONFIG.GARDEN.piranhas.near` · `zn.near` · `directClear(z, P, L, lure)` · `CONFIG.ZOMBIE.losCache`
 · `nearCached(o, ...)` · `COLHASH.gen` · `o.colCache` · `PLV` · `plvFresh()`
+· F5.17: `MeshBuilder.addM/cyl/seg/sphere/rock/blob/tube/lathe/card/frond/clump/quadN/upNormals` · `mbGeo` · `ChunkMB` · `FOLI`
+· `buildFoliage()` · `texAniso()` · `TEX.bark/rock/thatch` · `MAT.bark/rock/grimeV/thatch/thatchIn` · `CONFIG.SHELL` · `shellK(x, z, m)`
+· `shellRim()` · `buildShellWalls()` · `buildShell()` · `SHELLFX` · `updateShellFX` · `UP.flights[].open` · tag `shell` / `shell:deck`
+· `RANCHO.eyes` · `updateRanchoEyes` · `buildGardenDress()` · `buildTempleDress()` · `LAMPS` · `CONFIG.TEMPLE.heads/stelae`
 
 ## Mapa canónico (1 u = 1 m, grid 1x1, pared alto 4)
 | | Cuarto | [xMin,xMax,zMin,zMax] |
@@ -1169,23 +1176,89 @@ Si agregás estado o funciones que un test necesita, exponelas en la línea `glo
     del rancho tapaba la salida.
 - Test: `f516.js` (tanda C). Se adaptaron los tests a los textos en inglés, `f510.js` (tortuga) y `f515.js`.
 
-## Tanda D: estación de policía (V2 F5.16d) — `CONFIG.POLICE`, `bunker.js` (`POLICE`, `buildPolice`, `updatePolice`, `policeWake`)
-- **R21** en el claro del búnker (va **antes que R17** en `ROOMS`: `roomAt` devuelve la primera caja):
-  - estación x −56..−44, z 58..68 (cerrada, con techo);
-  - corredor oscuro x −44..−35, z 61..65 (`dark:true`: piso y techo × `darkMul` 0.2, paredes oscuras);
-  - búnker chico x −35..−27, z 59..69 (cajas de munición, catre, mapa).
-- Paredes con tag **`pwall`** (`buildPoliceWalls`): sin piel del tema y no se pisan (`standable`). **D21**: barricada
-  de 1.2 m (1250) entre el claro y la estación, con cinta y cartel POLICE: se ve adentro por encima.
-- Adentro: escritorios volcados, lockers, papeles, 5 policías muertos con sangre, placa y gorra, y **3 zombies
-  arrodillados comiéndose a uno** (figuras de dibujo, brazos a la boca: no cuentan para la ronda). Al abrirse D21
-  (`updatePolice` lo mira cada frame, también con `debugOpenAllDoors`), `policeWake` las esconde y saca 3 zombies de
-  verdad del pool en su lugar, caminando (`fromClam = true`: la ronda espera a que mueran). `resetPolice` las vuelve.
-- En la estación: **Stamin-Up** (−46, 67.55), el **generador `garaje`** (−55.45, 66; la clave no cambia) y la **Uzi**
-  en el búnker chico (pared este, x −27). 2 spawns (corredor y búnker chico).
-- El búnker de la escotilla (esquina NO) queda como estaba, a ~15 m.
-- Precio desde el porche: claro 6250 + D21 = 7500.
-- Test: `f516.js` (tanda D). Se adaptaron `garden.js`, `f511.js` y `roof.js` (R21 queda fuera del grid de arriba:
-  su techo es solo collider, así que `roofAt` da falso adentro).
+## Tanda D: estación de policía (V2 F5.16d) — reemplazada por el caparazón (F5.17)
+- Quedan de la tanda D: la barricada **D21** (1250), los **3 zombies arrodillados comiéndose a un policía** (`POLICE`,
+  `updatePolice`, `policeWake`, `resetPolice`: al abrirse D21 se paran y salen 3 zombies de verdad, `fromClam`) y los
+  policías muertos. La estación, el corredor oscuro, el búnker chico, `pwall`, `dark` y `CONFIG.POLICE` ya no están.
+
+## Estilo BO2 y rediseños (V2 F5.17) — manda sobre lo de arriba donde se contradice
+Pedido de Diego: "que no sea tanto Minecraft, más como BO2 zombies". Se atacó por las herramientas y por las áreas que
+nombró (rancho, cueva, templo, jardines, estación → caparazón). La casa y los zombies siguen con cajas: es lo próximo.
+- **Texturas:** filtrado lineal y anisotrópico (`texAniso`, hasta 4). Antes `NearestFilter` (píxeles cuadrados de cerca).
+  La cara de los zombies sigue en Nearest a propósito. `makeTexWH(..., true)` pide Nearest.
+- **`MeshBuilder` con formas curvas** (todo se fusiona igual: un draw call por builder):
+  - `cyl(x, y, z, r, h, color, top, seg, rx, ry, rz)` parado en la base (gira sobre ella) · `seg(a, b, r0, r1, color)`
+    entre dos puntos · `sphere` · `rock` (icosaedro deformado, caras planas, 8 variantes) · `blob` (esfera ondulada
+    suave, 6) · `tube(pts, r0, r1, color, seg, radial)` (curva con radio que se afina) · `lathe(perfil)` · `quadN`
+    (normales por vértice) · `addM(geo, matriz)` (acepta geometrías sin índice).
+  - **Hojas con alfa:** atlas `FOLI` (canvas 512: `leaf`, `palm`, `fern`, `grass`, `vine`, `thatch`, `ivy`, `flower`,
+    `dead`, `bigleaf`, `web`, `moss`) y `FOLI.mat` (alphaTest, DoubleSide, el shader usa la luz de adelante en las dos
+    caras). `card` (parada, base abajo), `frond` (acostada, cae `droop`), `clump` (3 cruzadas + una arriba).
+    `upNormals` tira las normales para arriba: el follaje se ilumina parejo.
+  - `ChunkMB(size)`: un MeshBuilder por celda de `size` m. **Todo lo que cubre mucho mapa va por celdas** (la jungla):
+    con la niebla, `camera.far` y el frustum descartan las celdas lejanas. Antes la jungla era un mesh que se dibujaba
+    entero siempre. La escena subió de ~448k a ~576k vértices, pero en cada vista se dibuja mucho menos.
+  - Materiales: `MAT.bark` (corteza), `MAT.rock`, `MAT.grimeV` (grano + color por vértice), `MAT.thatch`/`thatchIn`
+    (paja; la de abajo con emisivo: si no, negro).
+- **Jungla** (`buildJungle`): troncos curvos con raíces tablares y ramas, copas y arbustos de hojas, palmeras arqueadas,
+  helechos, pasto, flores, rocas con musgo, niebla con bordes suaves. **Los arbustos de las paredes de espesura van
+  detrás de su cara caminable**: antes se metían ~1 m en los senderos y asomaban adentro de la piscina junto a Double
+  Tap (las "cosas verdes"). Los helechos del lado del sendero solo en pisos de jungla, pasto o arena.
+- **Palmeras** (`palm`, tema): tronco de cilindros con anillos y frondas arqueadas en dos tramos (`fb`, FOLI). La cuenta
+  del tronco no cambió (`palmTop`).
+- **Rancho** (`buildRancho`): palapa de troncos con techo de paja a 4 aguas (5 capas, flecos solo en la de afuera: los
+  de arriba asomaban por debajo), **tiki bar contra el cerco sur** (`RANCHO.props` barra `[-54.4, -49.6, 18.3, 19.1]`,
+  frente de bambú, estantes con botellas, alero en voladizo, máscaras, banquetas; antes tapaba la salida de la
+  tortuga), billar con lámpara, hamaca curva, 6 antorchas tiki (llamas en `TEMPLEFX.flames`), arco de entrada con
+  cartel en la boca del sendero del lazo, tablas de surf contra la espesura este, red con boyas en la esquina SO.
+  **Rifle** a la esquina SE, en tablón propio (−42.7, 21.6), fuera del camino.
+- **Cueva de la tortuga:** rocas facetadas apiladas sobre la caja sólida, boca en arco negra, estalactitas, lianas,
+  huesos y arañazos. **Ojos amarillos** en la oscuridad (`RANCHO.eyes`) que parpadean y se apagan mientras la tortuga
+  de la trampa está afuera (`updateRanchoEyes`). El tortugario: huesos de verdad (cráneos, costillares, fémures),
+  caparazones (algunos dados vuelta), nidos torneados con huevos y hojas secas.
+- **Templo** (`buildTempleDress` + `buildTemple`): raíces gigantes que bajan por la pirámide (no pasan por las rampas),
+  hiedra y lianas, piedra con manchas de musgo, bloques caídos, **2 cabezas colosales** a los lados del camino del
+  puente sur y **4 estelas** (`CONFIG.TEMPLE.heads/stelae`, sólidas en `PROPS`: `cabezaN`, `estelaN`), cabezas de
+  serpiente emplumada al pie de las alfardas, braseros de piedra (antes un palo), juncos y nenúfares en el río.
+- **Jardines** (`buildGardenDress`, `buildGardenDecor`): hojas pegadas a los cercos `hedge` y matas arriba (no tapan
+  tizas, máquinas ni cajas: `keep`), cortinas de lianas en H2/H6/H8 (hijas del bloque: se hunden al quemarse),
+  pasto y helechos en los bordes de R12 y R13, caminos de lajas, 6 faroles de hierro con foco (MeshBasic + halo
+  aditivo `LAMPS.mat`: ninguna luz), 2 bancos, 2 tikis, macetas de barro con hojas grandes, hiedra en las paredes de la
+  casa que dan a los jardines, canteros con borde de piedras y flores de hojas. Plantas carnívoras orgánicas: tallo
+  curvo, hojas carnosas, mandíbulas de media esfera con dientes cónicos y manchas (`PLANT_HEMI`), maceta torneada.
+- **El caparazón de la tortuga gigante (R21)** — `CONFIG.SHELL`, `world.js` (`shellRim`, `buildShellWalls`), `bunker.js`
+  (`buildShell`, `SHELLFX`):
+  - Elipse de centro (−51, 81), semiejes 13 × 11, 12 m de alto: llega a z 92. **El claro (R17) creció**: un patio
+    x −67..−35, z 74..95 (y x −42..−35, z 72..74) que lo rodea (se le da la vuelta por afuera). THICKET suma
+    `[-75, -20, 74, 98]` (paredes de espesura alrededor del patio) y `bound:jungla` se corrió.
+  - **R21 son 5 rectángulos adentro de la elipse** (van antes que R17): la cubren casi toda. `noFloor` (el piso lo
+    dibuja `buildShell`), `outdoor` (sin techo ni tinte del tema). Lo que queda afuera de los rectángulos (bordes en
+    diagonal) da R17.
+  - **Borde:** 64 cajas invisibles por la elipse (tag `shell`, 4.5 m, no se pisa: `standable`) con la boca al sur y
+    jambas que la cierran contra la barricada **D21** (bloque invisible de 1.2 m; el dibujo de tablones, bolsas de
+    arena y cinta va de hijo: al abrirse se va). Con D21 cerrada no se entra (`f516.js` lo verifica).
+  - **Entrepiso** a `UP.y` (el grid de arriba, como la cima del templo): anillo de 3 m alrededor de un hueco
+    (`deck.outer` `[-58, -44, 75, 87]`, `deck.inner` `[-55, -47, 78, 84]`). Losas invisibles overhead + roofSurface, 11
+    postes sólidos (`PROPS` `shellPostN`), barandas automáticas (`buildRoofEdges`) y **escalera abierta** en el hueco
+    (`UP.flights` con `open: true`: el techo no la dibuja maciza; la dibuja `buildShell`), con su huella solo para
+    zombies (`bound:rampa`). `UP` arranca en x −62 (154 × 94). `buildRoof` marca la máscara con todo `UP.walk`.
+  - **Dibujo:** cúpula de placas afuera (textura de escudos con anillos de crecimiento, musgo, hiedra, percebes,
+    lianas, placas marginales festoneadas) y de carne adentro, armadas a mano (anillos × gajos, `quadN`) para dejar
+    huecos: la boca (con labio liso), 4 patas y la cola **tapadas con escombros** (se ve que no se pasa), el tragaluz y
+    2 placas rotas arriba. Adentro: **la columna y las costillas pegadas a la cúpula** (como una tortuga de verdad),
+    **sangre verde que brilla** (MeshBasic que late, charcos con halo aditivo, chorros por las paredes, venas, gotas
+    que cuelgan de las costillas y **gotas que caen** en loop: `SHELLFX.drops`, un InstancedMesh), haces de luz del
+    tragaluz, faroles de obra (MeshBasic), huesos, papeles y policías muertos. **Ninguna luz nueva.**
+  - Afuera: jeep de la policía volcado (sólido, `PROPS` `jeep`), caballetes con cinta, carteles QUARANTINE y
+    BIOHAZARD, 2 policías muertos.
+  - **Stamin-Up** (−63.25, 81) y el **generador `garaje`** (−38.75, 81) contra el borde (así no cambian el grid); la
+    **Uzi** en el entrepiso (`level: 1`, tablón propio). Spawns: 3 adentro y 3 en el patio de atrás.
+  - Lluvia: `rainRoof` frena en la cúpula salvo el tragaluz (por ahí entra hasta el piso).
+- **Capturas:** `tools/shots.js` (Playwright global + Chromium de `/opt/pw-browsers`, three.js local, WebGL por
+  SwiftShader). Esconde menú, HUD y el arma; `look: [x, y, z]` apunta la cámara; `round` cambia el cielo; `open` abre
+  todo. Salida en `shots/` (ignorada por git).
+- Tests: `f516.js` (sección 9: el caparazón). Se adaptaron `roof.js` (la escalera del caparazón y sus barandas),
+  `props.js` (cuartos con bordes no enteros).
 
 ## Audio (V2 F6) — `src/audio.js`, `CONFIG.AUDIO`
 - **Buses:** `sfx → compresor → master`, `amb → master`, `music → master` (F6), más 2 loops nuevos

@@ -189,6 +189,22 @@ MeshBuilder.prototype.frond = function (x, y, z, len, wid, yaw, droop, reg, colo
   this.add(UNIT_FROND, x, y, z, len, 1, wid, 0, yaw, -droop, color, uvRect || FOLI.r[reg]);
   return this.upNormals(n0);
 };
+// quad con normales por vértice (superficies curvas armadas a mano, como la cúpula del caparazón). pts/nrm/uvs de 4.
+// Si el orden deja la cara al revés de las normales, lo da vuelta
+MeshBuilder.prototype.quadN = function (pts, nrm, uvs, color) {
+  const a = pts[0], b = pts[1], d = pts[3], base = this.p.length / 3;
+  const gx = (b[1] - a[1]) * (d[2] - a[2]) - (b[2] - a[2]) * (d[1] - a[1]), gy = (b[2] - a[2]) * (d[0] - a[0]) - (b[0] - a[0]) * (d[2] - a[2]),
+        gz = (b[0] - a[0]) * (d[1] - a[1]) - (b[1] - a[1]) * (d[0] - a[0]);
+  const n0 = nrm[0], flip = gx * n0[0] + gy * n0[1] + gz * n0[2] < 0, ord = flip ? [0, 3, 2, 1] : [0, 1, 2, 3];
+  _mbC.setHex(color === undefined ? 0xffffff : color);
+  if (this.tint) _mbC.multiply(this.tint);
+  for (const k of ord) {
+    this.p.push(pts[k][0], pts[k][1], pts[k][2]); this.n.push(nrm[k][0], nrm[k][1], nrm[k][2]);
+    this.uv.push(uvs[k][0], uvs[k][1]); this.c.push(_mbC.r, _mbC.g, _mbC.b);
+  }
+  this.i.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  return this;
+};
 MeshBuilder.prototype.upNormals = function (n0) {
   for (let k = n0; k < this.n.length; k += 3) {
     const x = this.n[k] * 0.3, y = this.n[k + 1] * 0.3 + 1, z = this.n[k + 2] * 0.3, l = Math.hypot(x, y, z);
@@ -222,7 +238,7 @@ ChunkMB.prototype.meshes = function (mat) {
 };
 
 //--- F5.17: atlas de follaje (hojas con alfa, dibujadas por canvas). FOLI.r[reg] = [u0, v0, u1, v1] ---
-const FOLI = { tex: null, mat: null, r: {} };
+const FOLI = { tex: null, mat: null, depth: null, r: {} };
 function buildFoliage() {
   const S = 512, cv = document.createElement('canvas');
   cv.width = cv.height = S;
@@ -340,6 +356,7 @@ function buildFoliage() {
   t.anisotropy = texAniso();
   FOLI.tex = t;
   FOLI.mat = new THREE.MeshLambertMaterial({ map: t, vertexColors: true, alphaTest: 0.42, side: THREE.DoubleSide });
+  FOLI.depth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: t, alphaTest: 0.42 });   // sombras (Alto)
   // atrás se ilumina igual que adelante (si no, con DoubleSide la cara de atrás queda negra)
   FOLI.mat.onBeforeCompile = sh => {
     sh.fragmentShader = sh.fragmentShader.replace('( gl_FrontFacing ) ? vIndirectFront : vIndirectBack', 'vIndirectFront')
