@@ -35,7 +35,7 @@ sol y luna, desmembramiento, animaciones y poses de muerte, agua animada, playa 
 **Repo (2026-09-25):** GitHub `MaestroAguacate/Zombies` arrancó de cero con subidas web: sin historial ni tags
 viejos (`v1-final`…`v2-f5.5` solo existen en la copia local de Diego). F5.6–F7 + F5.15 están en `main`, con los
 43 tests en verde (7 tests desactualizados por F5.15 se arreglaron: f510, f511, f512, f513, quest, roof, audio2).
-Falta el playtest de Diego (sobre todo FPS con sombras). **F5.16 (5 áreas, ver ROADMAP-V2): tanda A hecha**, siguen B–E y después F8.
+Falta el playtest de Diego (sobre todo FPS con sombras). **F5.16 (5 áreas, ver ROADMAP-V2): tandas A y B hechas**, siguen C–E y después F8.
 
 ## Reglas no negociables
 - **Se edita `src/`, nunca `index.html`.** `node build.js` concatena `src/*.js` (en `build.js` ORDER) dentro
@@ -1082,10 +1082,10 @@ Si agregás estado o funciones que un test necesita, exponelas en la línea `glo
   `quest.js`, `pap.js` y `generators.js`.
 
 ## 5 áreas, tanda A (V2 F5.16) — manda sobre todo lo de arriba donde se contradice
-- **Niebla permanente** (`CONFIG.FOG` near 5 · far 30 · clip 34): `camera.far` = `clip`, así el frustum descarta lo
+- **Niebla permanente** (`CONFIG.FOG` near 6 · far 40 · clip 44; tanda B: 30 → 40, pedido de Diego): `camera.far` = `clip`, así el frustum descarta lo
   lejano. El domo del cielo queda oculto y `scene.background` **es el mismo objeto** que `scene.fog.color` (la noche
   y el ciclo de luz lo cambian en el lugar: nunca reemplazar `fog.color` por otro Color). Boss 18 m, neblina morada
-  22 m. `GFX.shadowBox` 40. El sol, la luna y las estrellas quedan más allá de `camera.far`: no se ven.
+  22 m. `GFX.shadowBox` 50. El sol, la luna y las estrellas quedan más allá de `camera.far`: no se ven.
 - **Lluvia por zona** (`CONFIG.WEATHER.rainRooms` = R20 templo, R17 claro del búnker; `rainZone()`): llueve siempre
   ahí, sea la ronda que sea. Adentro del búnker no. El resto sigue con la lluvia por ronda.
 - **Oso de la caja:** devuelve lo pagado al aparecer (`refundBox`, `BOX.paid`). No pasa por `addPoints`: sin doble
@@ -1104,6 +1104,26 @@ Si agregás estado o funciones que un test necesita, exponelas en la línea `glo
 - **Generador `caseta` en el rancho** (-49.5, 39.45), contra el cerco norte. La clave no cambia (nombre fijo).
 - Test: `f516.js`. Se adaptaron `roof.js` (reescrito), `garden.js`, `quest.js`, `f510.js`, `f511.js`, `f513.js`,
   `shield.js`, `weapons2.js`, `map.js`, `mysterybox.js` y `gfx.js`.
+
+## 5 áreas, tanda B (V2 F5.16) — topología
+- **Áreas y conexiones:** Casa (playa, casa, jardines, jardines norte, muelle) ↔ Rancho por el lazo D20 · Casa ↔
+  Templo por H6 · Rancho ↔ Búnker (claro, R17) por H2 · Rancho ↔ Calamar (R19) por H8 · Templo ↔ Calamar por el
+  portal. **Sin Campamento (R18)** (su zona es espesura) **ni H3, H4, H5, H7.** Quedan 3 lianas: H2 1500, H6 2000,
+  H8 1500. Precios desde el porche (Dijkstra): rancho 4750, templo 5250, búnker y calamar 6250.
+  - El borde playa oeste / calamar (x −41) es un cerco fijo entero.
+  - El sendero del claro desde los jardines norte (x −42..−27, z 53..58) se borró: espesura.
+  - La almeja del campamento pasó al sendero del templo (45, 64.5).
+- **Portal** (`CONFIG.PORTAL`, `bunker.js`: `PORTAL`, `buildPortals`, `portalOn`, `portalNear/portalPrompt/usePortal`,
+  `updatePortals`): dos arcos de piedra con anillo aditivo, en el templo (65, 59.2) y en el calamar (−45, −25). Se
+  prende con H6 abierta. F a menos de `use` 2.3 m → fundido de la escotilla (`BUNK.fadeT`) y aparece en `out` del
+  otro. **Solo el jugador:** el flow field no lo cruza (los zombies que no llegan los respawnea el watchdog).
+  `openRooms()` suma R20–R19 con el portal prendido (la caja puede mudarse). Sin collider.
+- **Armas de pared** (casa 3 + machete): escopeta R2, subfusil R3, revólver en la torre (R10), machete R3 · rancho:
+  doble cañón (cerco norte) y rifle (espesura oeste, −56, 34) · calamar: LMG (espesura norte, −60, −4) · búnker: Uzi
+  (espesura sur del claro, −60, 53) y la bazooka abajo · templo: ballesta (tablón en 58, 56).
+- **Arreglos:** hamaca del rancho al borde norte de la palapa (tapaba H2); el techo del santuario frena la lluvia
+  (`rainRoof`).
+- Test: `f516.js` (topología y portal). Se adaptaron `map.js`, `f512.js`, `f515.js` y `wallbuys.js`.
 
 ## Audio (V2 F6) — `src/audio.js`, `CONFIG.AUDIO`
 - **Buses:** `sfx → compresor → master`, `amb → master`, `music → master` (F6), más 2 loops nuevos

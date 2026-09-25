@@ -644,9 +644,15 @@ function rainDrop(i, top) {
   const R = CONFIG.WEATHER.rain, P = player.pos, a = RAIN.pos, o = i * 6;
   const x = P.x + (Math.random() - 0.5) * R.area, z = P.z + (Math.random() - 0.5) * R.area;
   const y = top ? P.y + R.top * (0.6 + 0.4 * Math.random()) : P.y - 2 + Math.random() * (R.top + 2);
-  RAIN.floor[i] = roofAt(x, z) ? UP.y : groundY(x, z);
+  RAIN.floor[i] = rainRoof(x, z);
   a[o] = x; a[o + 1] = y; a[o + 2] = z;
   a[o + 3] = x - R.wind * R.len / R.speed; a[o + 4] = y + R.len; a[o + 5] = z;
+}
+// altura donde frena una gota: techo de la casa, techo del santuario del templo (F5.16) o el piso
+function rainRoof(x, z) {
+  const S = CONFIG.TEMPLE.sanctum;
+  if (x > S.x1 && x < S.x2 && z > S.z1 && z < S.z2) return UP.y + S.h;
+  return roofAt(x, z) ? UP.y : groundY(x, z);
 }
 // F5.16: áreas donde llueve siempre, sea la ronda que sea (CONFIG.WEATHER.rainRooms)
 function rainZone() {
@@ -664,7 +670,7 @@ function updateRain(dt) {
     const o = i * 6;
     a[o + 1] -= dy; a[o + 4] -= dy; a[o] += dx; a[o + 3] += dx;
     // el viento puede meterla bajo un techo: se mira el techo donde está ahora
-    if (a[o + 1] < RAIN.floor[i] || (a[o + 1] < UP.y && roofAt(a[o], a[o + 2])) ||
+    if (a[o + 1] < RAIN.floor[i] || a[o + 1] < rainRoof(a[o], a[o + 2]) ||
         Math.abs(a[o] - P.x) > h || Math.abs(a[o + 2] - P.z) > h) rainDrop(i, true);
   }
   RAIN.lines.geometry.attributes.position.needsUpdate = true;

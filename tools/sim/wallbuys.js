@@ -76,7 +76,7 @@ G.interact(); settle();
 check(state.weapons.map(w => w.id).join() === 'm1911,smg', 'SMG reemplaza escopeta equipada', `(${state.weapons.map(w => w.id)})`);
 state.currentWeapon = 0;
 const rf = wb('rifle');
-at(rf.mx - 1.2, rf.mz); state.points = 2000;
+at(rf.mx + (rf.axis === 'z' ? 0 : rf.face * 1.2), rf.mz + (rf.axis === 'z' ? rf.face * 1.2 : 0)); state.points = 2000;   // F5.16: el rifle está en el rancho
 G.interact(); settle();
 check(state.weapons.map(w => w.id).join() === 'rifle,smg' && state.currentWeapon === 0, 'rifle reemplaza M1911 equipada');
 

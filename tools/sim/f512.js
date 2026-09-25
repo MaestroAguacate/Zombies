@@ -13,11 +13,11 @@ function setPlayer(x, z) { player.pos.set(x, G.groundY(x, z) + P.height, z); G.u
 const nearNav = (x, z) => { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (G.flowAt(Math.floor(x) + dx, Math.floor(z) + dz) >= 0) return true; return false; };
 
 // 1) cercos que se queman
-fresh(); ['D11'].forEach(G.openDoor); setPlayer(10, -12);
-const H4 = state.doors.H4;
-check(CONFIG.BURN.hedges.every(h => state.doors[h.id] && state.doors[h.id].burn), '5 cercos que se queman', CONFIG.BURN.hedges.map(h => h.id).join(' '));
-check(!nearNav(40, -12), 'con H4 cerrado, desde la playa no se llega a la jungla este');
-player.pos.set(18.8, P.height, -12); G.updateInteract();
+fresh(); ['D11', 'D14'].forEach(G.openDoor); setPlayer(0, 50);            // F5.16: se prueba con H6 (jardines norte -> templo)
+const H4 = state.doors.H6;
+check(CONFIG.BURN.hedges.every(h => state.doors[h.id] && state.doors[h.id].burn), 'F5.16: 3 lianas que se queman (H2, H6, H8)', CONFIG.BURN.hedges.map(h => h.id).join(' '));
+check(CONFIG.BURN.hedges.length === 3 && !nearNav(70, 60), 'con H6 cerrado no se llega al templo');
+player.pos.set(30.5, P.height, 56.8); G.updateInteract();
 check(G.interactState.kind === 'door' && G.interactState.target === H4 && G.promptFor(G.interactState).text === '[F] Quemar el cerco - 2000', 'cartel: "Quemar el cerco - 2000"');
 const pts = state.points;
 check(G.interact() && H4.burning && !H4.open && state.points === pts - 2000, 'cobra y empieza a arder (todavía cerrado)');
@@ -27,20 +27,20 @@ const c = H4.mesh.material.color;
 check(H4.flames.every(f => f.visible) && c.r < 0.8 && H4.collider.solid, 'arde: llamas, se pone negro y sigue frenando');
 for (let i = 0; i < 60 * CONFIG.BURN.time; i++) { G.tick(dt); G.updateGarden(dt); }
 check(H4.open && !H4.burning && !H4.collider.solid && !H4.mesh.parent && H4.flames.every(f => !f.visible), 'al terminar de quemarse se abre y desaparece');
-setPlayer(10, -12);
-check(nearNav(40, -12) && nearNav(45, 25), 'ahora se pasa de la playa a la jungla este (sin la laguna)');
+setPlayer(0, 50);
+check(nearNav(70, 60), 'ahora se pasa de los jardines al templo');
 G.resetGame();
 check(!H4.open && H4.collider.solid && H4.mesh.parent && H4.mesh.material.color.getHex() === 0xffffff, 'resetGame: el cerco vuelve, verde');
 
 // 2) la jungla
 fresh(); G.debugOpenAllDoors(); setPlayer(0, 50);
 // F5.15: la jungla vieja es espesura; quedan áreas (R15/R17/R18/R19/R20) unidas por senderos
-check(G.roomAt(0, 50).id === 'R15' && G.roomAt(-60, 60).id === 'R17' && G.roomAt(45, 10).id === 'R18' && G.roomAt(28, -12).id === 'R18' && !G.roomAt(-50, 10), 'F5.15: áreas de la jungla (norte, claro, campamento) y espesura entre medio');
-check(nearNav(-70, 70) && nearNav(90, 95) && nearNav(-70, -55) && nearNav(50, 30), 'se llega a las 4 puntas (claro, templo, calamar, campamento)');
+check(G.roomAt(0, 50).id === 'R15' && G.roomAt(-60, 60).id === 'R17' && !G.roomAt(45, 10) && G.inThicket(45, 10) && !G.roomAt(-50, 10), 'áreas de la jungla (norte, claro) y espesura entre medio (F5.16: el campamento es espesura)');
+check(nearNav(-70, 70) && nearNav(90, 95) && nearNav(-70, -55) && !nearNav(50, 30), 'se llega a las 3 puntas (claro, templo, calamar); al campamento no');
 const trees = G.JUNGLE.trees;
-check(trees.length > 30 && trees.every(t => G.PROPS.some(p => p.id === t.id && p.collider)), 'árboles con tronco sólido', `(${trees.length})`);
-check(trees.every(t => G.roomAt(t.x, t.z) && ['R15', 'R17', 'R18', 'R20'].includes(G.roomAt(t.x, t.z).id)), 'todos adentro de un área de jungla (F5.15: y el templo)');
-check(G.SPAWN_POINTS.filter(s => ['R15', 'R17', 'R18'].includes(s.room)).every(s => s.valid && G.flowAt(s.cx, s.cz) >= 0), 'spawns de la jungla válidos y alcanzables');
+check(trees.length > 20 && trees.every(t => G.PROPS.some(p => p.id === t.id && p.collider)), 'árboles con tronco sólido', `(${trees.length})`);
+check(trees.every(t => G.roomAt(t.x, t.z) && ['R15', 'R17', 'R20'].includes(G.roomAt(t.x, t.z).id)), 'todos adentro de un área de jungla (F5.15: y el templo)');
+check(G.SPAWN_POINTS.filter(s => ['R15', 'R17'].includes(s.room)).every(s => s.valid && G.flowAt(s.cx, s.cz) >= 0), 'spawns de la jungla válidos y alcanzables');
 // el borde de afuera frena
 player.pos.set(-73, P.height, 30); player.vel.set(0, 0, 0); player.yaw = Math.PI / 2; G.keys.KeyW = true;
 for (let i = 0; i < 90; i++) { G.tick(dt); G.updatePlayer(dt); }

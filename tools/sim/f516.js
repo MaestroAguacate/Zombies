@@ -48,4 +48,40 @@ check(CONFIG.GENERATORS.spots.caseta.room === 'R14' && G.roomAt(CONFIG.GENERATOR
 check(CONFIG.GARDEN.plants.every(([x, z]) => ['R12', 'R13'].includes(G.roomAt(x, z).id)), 'plantas en los jardines de la casa');
 check(CONFIG.SHIELD.bench.room === 'R6' && !CONFIG.SHIELD.bench.level, 'banco del escudo en el garaje');
 
+// F5.16b: el techo del santuario frena la lluvia
+{ const S = CONFIG.TEMPLE.sanctum, cx = (S.x1 + S.x2) / 2, cz = (S.z1 + S.z2) / 2;
+  check(G.rainRoof(cx, cz) > UP.y + 4 && G.rainRoof(cx, S.z1 - 3) === UP.y && G.rainRoof(60, 60) < 1, 'la lluvia frena en el techo del santuario (en la cima, en la piedra; abajo, en el piso)'); }
+
+// 5) tanda B: 5 áreas. Casa ↔ Rancho (D20), Casa ↔ Templo (H6), Rancho ↔ Búnker (H2), Rancho ↔ Calamar (H8)
+const nav = (x, z) => { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (G.flowAt(Math.floor(x) + dx, Math.floor(z) + dz) >= 0) return true; return false; };
+function reachWith(open) { G.resetGame(); state.running = true; open.forEach(G.openDoor); player.pos.set(0, 1.7, 0); G.updateFlowField(true); }
+const casa = Object.keys(state.doors).filter(id => /^D/.test(id) && id !== 'D20');
+check(!state.doors.H3 && !state.doors.H4 && !state.doors.H5 && !state.doors.H7 && !G.ROOMS.some(r => r.id === 'R18'), 'sin Campamento (R18) ni H3, H4, H5, H7');
+reachWith(casa.concat(['H2', 'H8']));
+check(!nav(-50, 30) && !nav(-60, 64) && !nav(-60, -10), 'sin el lazo, desde la casa no se llega a pie al rancho, al búnker ni al calamar');
+reachWith(casa.concat(['D20']));
+check(nav(-50, 30) && !nav(-60, 64) && !nav(-60, -10) && !nav(70, 60), 'con el lazo: el rancho sí; búnker, calamar y templo no');
+reachWith(casa.concat(['D20', 'H2', 'H8']));
+check(nav(-60, 64) && nav(-60, -10), 'desde el rancho: búnker (H2) y calamar (H8)');
+reachWith(casa.concat(['H6']));
+check(nav(70, 60) && !nav(-60, -10), 'desde la casa: templo (H6); el calamar a pie no');
+check(!nav(-30, -15) || G.WORLD.colliders.some(c => c.tag === 'hedge' && c.minX < -40.5 && c.maxX > -41.5 && c.minZ <= -14 && c.maxZ >= -9), 'la playa oeste y el calamar: cerco fijo entero en x -41');
+
+// 6) portal Templo ↔ Calamar
+const PT = CONFIG.PORTAL;
+fresh(); G.debugOpenAllDoors(); state.doors.H6.open = false;
+player.pos.set(PT.temple.x, 1.7, PT.temple.z + 1.2); G.updateInteract();
+check(G.interactState.kind === 'portal' && !G.portalOn() && /apagado/.test(G.promptFor(G.interactState).text) && !G.interact(), 'con el templo cerrado el portal está apagado');
+G.openDoor('H6'); G.updateInteract();
+check(G.portalOn() && /Calamar/.test(G.promptFor(G.interactState).text), 'al abrir el templo se prende', `("${G.promptFor(G.interactState).text}")`);
+check(G.interact(), 'F lo usa');
+for (let i = 0; i < 90; i++) { G.tick(dt); G.updateBunker(dt); }
+check(Math.hypot(player.pos.x - PT.squid.out[0], player.pos.z - PT.squid.out[1]) < 0.01 && G.roomAt(player.pos.x, player.pos.z).id === 'R19', 'aparece en la playa del calamar');
+G.updateInteract();
+check(G.interactState.kind === 'portal' && /Templo/.test(G.promptFor(G.interactState).text) && G.interact(), 'y de vuelta');
+for (let i = 0; i < 90; i++) { G.tick(dt); G.updateBunker(dt); }
+check(Math.hypot(player.pos.x - PT.temple.out[0], player.pos.z - PT.temple.out[1]) < 0.01, 'vuelve al templo');
+check(G.openRooms().includes('R19') && G.openRooms().includes('R20'), 'la caja puede mudarse por el portal (openRooms)');
+check(nav(PT.temple.out[0], PT.temple.out[1]) && nav(PT.squid.out[0], PT.squid.out[1]), 'las salidas del portal son caminables');
+
 console.log(fail ? `FALLA (${fail})` : 'PASA'); process.exit(fail ? 1 : 0);

@@ -456,7 +456,7 @@ const CONFIG = {
     attacks: [['swipe', 0.5], ['lunge', 0.3], ['bite', 0.2]]
   },
   // F7a: calidad (Ajustes: Bajo / Medio / Alto; dura la sesión). Sombras solo en Alto: el sol proyecta con un
-  // mapa de `shadowMap` px que sigue al jugador (`shadowBox` m de lado a lado; F5.16: 40, la niebla tapa a 30); las luces de adentro, sin sombra.
+  // mapa de `shadowMap` px que sigue al jugador (`shadowBox` m de lado a lado; F5.16: 50, la niebla tapa a 40); las luces de adentro, sin sombra.
   // particles: fracción de la lluvia; dust/shafts: polvo y haces de luz del tema; pixelRatio: tope.
   // post (CSS sobre el canvas, sin shaders): viñeta, color según la hora (cálido de día, frío de noche) y grano
   GFX: {
@@ -466,7 +466,7 @@ const CONFIG = {
       medio: { shadows: false, post: true,  particles: 1,   dust: true,  shafts: true,  pixelRatio: 1.5 },
       alto:  { shadows: true,  post: true,  particles: 1,   dust: true,  shafts: true,  pixelRatio: 2, shadowMap: 1024 }
     },
-    shadowBox: 40, shadowFar: 140,
+    shadowBox: 50, shadowFar: 140,
     post: { vignette: 0.55, grain: 0.06, warm: 0.14, cold: 14, contrast: 1.06 },
     // el disco del sol (atardecer, bajo al oeste) y la luna (se ve de noche, sobre el mar)
     sunDisk: { dir: [-0.85, 0.1, -0.52], size: 34, color: 0xff9a4a },
@@ -474,7 +474,7 @@ const CONFIG = {
   },
   // F5.16: niebla permanente (Diego): no se ve de un área a la otra. `clip` = camera.far: lo que queda más lejos
   // ni se dibuja (el frustum lo descarta). El cielo no se ve: el fondo es el color de la niebla
-  FOG: { near: 5, far: 30, clip: 34 },
+  FOG: { near: 6, far: 40, clip: 44 },          // F5.16: 30 -> 40 (pedido de Diego)
   WEATHER: {
     darkBy: n => Math.max(0, Math.min(1, (n - 1) / 14)),
     // F7a: ciclo de luz por ronda. La oscuridad k (darkBy) recorre 4 paradas de color: atardecer dorado (R1, el
@@ -891,7 +891,7 @@ const CONFIG = {
                 { room: 'R10', x: -12, z: -11 }, { room: 'R10', x: 1, z: -19 }],
     spots: [
       { room: 'R10', x: -3, z: -13 }, { room: 'R13', x: 16, z: 35 },  { room: 'R12', x: -21, z: 30 },
-      { room: 'R17', x: -58, z: 64 }, { room: 'R15', x: 15, z: 50 },  { room: 'R18', x: 42, z: 20 },   // F5.15: áreas
+      { room: 'R17', x: -58, z: 64 }, { room: 'R15', x: 15, z: 50 },  { room: 'R20', x: 45, z: 64.5 },   // F5.15: áreas (F5.16: la del campamento, al sendero del templo)
       { room: 'R20', x: 66, z: 60 },  { room: 'R19', x: -48, z: -40 }, { room: 'R14', x: -45, z: 31 }
     ],
     every: [3, 4], openTime: 1.5, range: 1.8,
@@ -938,11 +938,7 @@ const CONFIG = {
     // F5.15: las entradas de las áreas (estilo BO3): lianas que se queman en la boca de cada sendero
     hedges: [
       { id: 'H2', x1: -46, x2: -42, z1: 40,  z2: 40 },   // rancho -> claro del búnker (sendero norte del rancho)
-      { id: 'H3', x1: -27, x2: -27, z1: 53,  z2: 58 },   // jardines norte -> claro del búnker
-      { id: 'H4', x1: 20,  x2: 20,  z1: -14, z2: -9 },   // playa -> campamento (sendero de arena)
-      { id: 'H5', x1: -41, x2: -41, z1: -14, z2: -9 },   // playa oeste -> costa del calamar
       { id: 'H6', x1: 28,  x2: 33,  z1: 58,  z2: 58 },   // jardines norte -> templo
-      { id: 'H7', x1: 35,  x2: 35,  z1: 29,  z2: 34 },   // jardín trasero -> campamento
       { id: 'H8', x1: -47, x2: -42, z1: 18,  z2: 18 }    // rancho -> costa del calamar (sendero sur del rancho)
     ]
   },
@@ -976,6 +972,12 @@ const CONFIG = {
   // piso en y = `y`) a la que se baja por la escotilla del jardín norte. Para el jugador, fundido y
   // teletransporte; para los zombies, un enlace del grid (NAV.link) que cruzan escondidos (ojos rojos al bajar).
   // Cerrada hasta que las 2 estatuas de plantas (al lado de la escotilla) despiertan y comen
+  // F5.16: portal Templo ↔ Calamar, ida y vuelta, gratis. Se prende al abrir el templo (door H6). Solo el jugador:
+  // F cerca del arco, fundido a negro (el de la escotilla) y aparece en `out` del otro. Los zombies no lo cruzan
+  // (el flow field no lo ve: si no llegan, el watchdog los respawnea cerca). Sin collider: no toca el grid
+  PORTAL: { door: 'H6', use: 2.3,
+    temple: { room: 'R20', x: 65, z: 59.2, rot: 0,       out: [65, 61.2] },
+    squid:  { room: 'R19', x: -45, z: -25, rot: Math.PI, out: [-45, -27] } },
   BUNKER: {
     // F5.12: se mudó bajo el mar, al sur del muelle (la jungla norte ocupaba sus x,z de antes)
     x1: -38, x2: -10, z1: -90, z2: -66, y: -8, h: 4,
@@ -1150,8 +1152,12 @@ const CONFIG = {
   WALLBUYS: [
     { weapon:'shotgun', room:'R2', cost:1200, x: -8, z:11, face: 1 },
     { weapon:'smg',     room:'R3', cost:1500, x: 18, z: 9, face:-1 },
-    { weapon:'rifle',   room:'R13', cost:2000, x: 12, z:30, face: 1, axis:'z' },   // F5.6: afuera de la pared norte del dormitorio
-    { weapon:'lmg',     room:'R6', cost:2500, x:-16, z:24, face: 1 },
+    // F5.16 (Diego): la casa queda con 3 (escopeta, subfusil, revólver; el machete es cuerpo a cuerpo) y cada área
+    // con 1-2: rancho doble cañón + rifle · calamar LMG · búnker bazooka + Uzi · templo ballesta
+    { weapon:'rifle',   room:'R14', cost:2000, x:-56, z:34, face: 1 },                // F5.16: espesura oeste del rancho
+    { weapon:'lmg',     room:'R19', cost:2500, x:-60, z:-4, face:-1, axis:'z' },      // F5.16: espesura norte del calamar
+    { weapon:'uzi',     room:'R17', cost:1200, x:-60, z:53, face: 1, axis:'z' },      // F5.16: espesura sur del claro del búnker
+    { weapon:'crossbow',room:'R20', cost:2000, x: 58, z:56, face: 1, axis:'z', post:true },   // F5.16: tablón en la entrada del templo
     // V2 F3b. axis 'z' = pared a lo largo de x (face ±1 = hacia ±z). y = altura de la tiza (cerca de 1.2 m).
     // post = tablón propio (el muelle no tiene paredes). 'machete' no es arma de inventario: ver CONFIG.MACHETE
     // F5.13: en el tablón de la torre de salvavidas (CONFIG.LIFEGUARD), mirando a la casa
@@ -1299,7 +1305,7 @@ const CONFIG = {
     // F5.13: H5 también 2000 (ahora da a la jungla, que lleva a los jardines); sin H2/H3
     // F5.15: las entradas de las áreas (lianas). Desde la playa (H4, H5) 2000: D11 + 2000 = 3250, lo mismo que los
     // jardines; al templo (H6) 2000; las demás 1500
-    H2:1500, H3:1500, H4:2000, H5:2000, H6:2000, H7:1500, H8:1500
+    H2:1500, H6:2000, H8:1500      // F5.16: sin H3, H4, H5 ni H7
   }
 };
 
@@ -1473,18 +1479,14 @@ const ROOMS = [
   { id:'R14', name:'RANCHO',        x1:-42, x2:-27, z1: 26, z2: 31, floor:'jungle', outdoor:true, part:true, corridor:true },   // lazo D20
   // R15: los jardines del norte (detrás del sótano), abiertos a los dos jardines
   { id:'R15', name:'JARDINES NORTE',x1:-27, x2: 35, z1: 40, z2: 58, floor:'jungle', outdoor:true },
-  // R17: el claro del búnker (esquina NO), con dos senderos: desde el rancho (H2) y desde los jardines (H3)
+  // F5.16: 5 ÁREAS. Casa (playa, casa, jardines, muelle) ↔ Rancho (D20) y ↔ Templo (H6); Rancho ↔ Búnker (H2) y
+  // ↔ Calamar (H8); Templo ↔ Calamar por el portal. Sin Campamento (R18), ni H3, H4, H5, H7
+  // R17: el claro del búnker (esquina NO), con un solo sendero: desde el rancho (H2)
   { id:'R17', name:'CLARO DEL BUNKER', x1:-75, x2:-42, z1: 53, z2: 74, floor:'jungle', outdoor:true },
   { id:'R17', name:'CLARO DEL BUNKER', x1:-46, x2:-42, z1: 40, z2: 53, floor:'jungle', outdoor:true, part:true, corridor:true },
-  { id:'R17', name:'CLARO DEL BUNKER', x1:-42, x2:-27, z1: 53, z2: 58, floor:'jungle', outdoor:true, part:true, corridor:true },
-  // R19: la playa del calamar y la costa oeste, con dos entradas: desde la playa oeste (H5) y desde el rancho (H8)
+  // R19: la playa del calamar y la costa oeste, con una sola entrada a pie: desde el rancho (H8)
   { id:'R19', name:'PLAYA DEL CALAMAR', x1:-75, x2:-41, z1:-60, z2: -4, floor:'sand', outdoor:true },
   { id:'R19', name:'PLAYA DEL CALAMAR', x1:-47, x2:-42, z1: -4, z2: 18, floor:'jungle', outdoor:true, part:true, corridor:true },
-  // R18: el campamento (jungla este), con dos entradas: desde la playa por la arena (H4) y desde el jardín trasero (H7)
-  { id:'R18', name:'CAMPAMENTO',    x1: 38, x2: 55, z1:  4, z2: 34, floor:'jungle', outdoor:true },
-  { id:'R18', name:'CAMPAMENTO',    x1: 35, x2: 38, z1: 29, z2: 34, floor:'jungle', outdoor:true, part:true, corridor:true },
-  { id:'R18', name:'CAMPAMENTO',    x1: 20, x2: 44, z1:-14, z2: -9, floor:'sand', outdoor:true, part:true, corridor:true },
-  { id:'R18', name:'CAMPAMENTO',    x1: 39, x2: 44, z1: -9, z2:  4, floor:'jungle', outdoor:true, part:true, corridor:true },
   // R20: el anexo NE con el templo, por un sendero desde los jardines norte (H6)
   { id:'R20', name:'TEMPLO',        x1: 55, x2: 95, z1: 55, z2: 100, floor:'jungle', outdoor:true },
   { id:'R20', name:'TEMPLO',        x1: 28, x2: 33, z1: 58, z2: 67, floor:'jungle', outdoor:true, part:true, corridor:true },
@@ -1510,7 +1512,7 @@ const DOOR_LINKS = {
   D19:['R7','R12'],                            // F5.7: portón sótano -> jardín oeste (se abre solo con la energía)
   D20:['R12','R14'],                           // F5.10: lazo del jardín oeste (F5.15: sendero al rancho)
   // F5.15: las entradas de las áreas (lianas que se queman)
-  H2:['R14','R17'], H3:['R15','R17'], H4:['R10','R18'], H5:['R10','R19'], H6:['R15','R20'], H7:['R13','R18'], H8:['R14','R19']
+  H2:['R14','R17'], H6:['R15','R20'], H8:['R14','R19']      // F5.16: sin H3, H4, H5 ni H7
 };
 
 // piscina de R8: el ÚNICO lugar donde el piso no está en y=0. Rampa en el lado sur (z1 -> rampEnd),
@@ -1550,6 +1552,7 @@ function openRooms() {
     const r = q.shift();
     const links = [];
     for (const id in DOOR_LINKS) { const d = state.doors[id]; if (d && d.open) links.push(DOOR_LINKS[id]); }
+    if (typeof portalOn === 'function' && portalOn()) links.push(['R20', 'R19']);   // F5.16: portal del templo
     for (const L of links.concat(OPEN_LINKS)) {
       const o = L[0] === r ? L[1] : L[1] === r ? L[0] : null;
       if (o && !seen.has(o)) { seen.add(o); q.push(o); }
@@ -1637,7 +1640,7 @@ let PROP_HIT_MAT = null;
 const JUNGLE = { trees: [] };
 function planJungle() {
   if (JUNGLE.trees.length) return;
-  const J = CONFIG.JUNGLE, jung = new Set(['R15', 'R17', 'R18', 'R20']);   // F5.15: + el anexo del templo
+  const J = CONFIG.JUNGLE, jung = new Set(['R15', 'R17', 'R20']);   // F5.16: sin campamento   // F5.15: + el anexo del templo
   let s = J.seed;
   const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
   const avoid = [];
@@ -1711,7 +1714,6 @@ const SPAWN_POINTS = [
   // F5.15: por áreas (claro del búnker, jardines norte, costa del calamar, campamento y su sendero de arena)
   { room:'R17', x:-50.5, z:60.5 }, { room:'R17', x:-65.5, z:62.5 }, { room:'R15', x:-12.5, z:55.5 },
   { room:'R19', x:-50.5, z:-12.5 }, { room:'R19', x:-66.5, z:-14.5 },
-  { room:'R18', x: 45.5, z:25.5 }, { room:'R18', x: 48.5, z:10.5 }, { room:'R18', x: 30.5, z:-11.5 },
   // F5.15: anexo del templo (afuera del río y en la franja oeste)
   { room:'R20', x: 57.5, z:60.5 }, { room:'R20', x: 72.5, z:58.5 }, { room:'R20', x: 90.5, z:60.5 }, { room:'R20', x: 57.5, z:90.5 },
   // F4: orilla del mar, solo para ahogados (pickSpawnPoint los separa por `sea`)
@@ -2398,8 +2400,9 @@ function buildMap() {
   addWall(TG.x1, TG.z1, TG.x1, TG.z2, TG.h, MAT.wood, 'corral');
   hedge(-24, -4, -20, -4);                     //      sur, fuera de la playa
   hedge( -8, -4,  -8,  4);                     //      este, entre la cerca y la sala
-  // F5.15: la playa oeste y la costa del calamar comparten el borde x -41: cerco fijo con la entrada H5 al medio
-  hedge(-41, -24, -41, -14); hedge(-41, -9, -41, -4);
+  // F5.15: la playa oeste y la costa del calamar comparten el borde x -41. F5.16: cerco fijo entero (sin H5): al
+  // calamar se llega por el rancho (H8) o por el portal del templo
+  hedge(-41, -24, -41, -4);
   // (F5.12: sin cerco este del jardín trasero: sigue la jungla este)
   // (F5.7: el hueco entre la caseta y el pasillo exterior ya no está cercado: es parte del jardín)
 
@@ -7027,9 +7030,15 @@ function rainDrop(i, top) {
   const R = CONFIG.WEATHER.rain, P = player.pos, a = RAIN.pos, o = i * 6;
   const x = P.x + (Math.random() - 0.5) * R.area, z = P.z + (Math.random() - 0.5) * R.area;
   const y = top ? P.y + R.top * (0.6 + 0.4 * Math.random()) : P.y - 2 + Math.random() * (R.top + 2);
-  RAIN.floor[i] = roofAt(x, z) ? UP.y : groundY(x, z);
+  RAIN.floor[i] = rainRoof(x, z);
   a[o] = x; a[o + 1] = y; a[o + 2] = z;
   a[o + 3] = x - R.wind * R.len / R.speed; a[o + 4] = y + R.len; a[o + 5] = z;
+}
+// altura donde frena una gota: techo de la casa, techo del santuario del templo (F5.16) o el piso
+function rainRoof(x, z) {
+  const S = CONFIG.TEMPLE.sanctum;
+  if (x > S.x1 && x < S.x2 && z > S.z1 && z < S.z2) return UP.y + S.h;
+  return roofAt(x, z) ? UP.y : groundY(x, z);
 }
 // F5.16: áreas donde llueve siempre, sea la ronda que sea (CONFIG.WEATHER.rainRooms)
 function rainZone() {
@@ -7047,7 +7056,7 @@ function updateRain(dt) {
     const o = i * 6;
     a[o + 1] -= dy; a[o + 4] -= dy; a[o] += dx; a[o + 3] += dx;
     // el viento puede meterla bajo un techo: se mira el techo donde está ahora
-    if (a[o + 1] < RAIN.floor[i] || (a[o + 1] < UP.y && roofAt(a[o], a[o + 2])) ||
+    if (a[o + 1] < RAIN.floor[i] || a[o + 1] < rainRoof(a[o], a[o + 2]) ||
         Math.abs(a[o] - P.x) > h || Math.abs(a[o + 2] - P.z) > h) rainDrop(i, true);
   }
   RAIN.lines.geometry.attributes.position.needsUpdate = true;
@@ -8558,6 +8567,8 @@ function updateInteract() {
   if (tr) { bd = tr.dist; kind = 'trap'; target = tr.target; }
   const ht = hatchNear(room, px, pz, bd);                         // F5.11: escotilla (arriba) o su escalera (abajo)
   if (ht) { bd = ht.dist; kind = 'hatch'; target = ht.target; }
+  const pt = portalNear(room, px, pz, bd);                        // F5.16: portal Templo ↔ Calamar
+  if (pt) { bd = pt.dist; kind = 'portal'; target = pt.target; }
   const cl = clamNear(room, px, pz, bd);                          // F5.14: fumigador y almejas
   if (cl) { bd = cl.dist; kind = cl.kind; target = cl.target; }
   interactState.kind = kind; interactState.target = target;
@@ -8575,6 +8586,7 @@ function interact() {
     const ok = clamPress(it); if (!ok) { sfxDeny(); denyPrompt(); } return ok;
   }
   if (it.kind === 'hatch') { const ok = useHatch(it.target); if (!ok) { sfxDeny(); denyPrompt(); } return ok; }   // F5.11
+  if (it.kind === 'portal') { const ok = usePortal(it.target); if (!ok) { sfxDeny(); denyPrompt(); } return ok; }  // F5.16
   const ok = it.kind === 'door' ? buyDoor(it.target.id)
            : it.kind === 'pap'  ? usePap()
            : it.kind === 'box'  ? useBox()
@@ -10238,10 +10250,11 @@ function buildRancho() {
     mb.box(rx2 + 0.6, 0.35, sz, 0.08, 0.7, 0.08, dark);
     mb.box(rx2 + 0.6, 0.72, sz, 0.36, 0.06, 0.36, 0xc83a2a);
   }
-  // hamaca entre dos postes, contra el cerco norte (F5.13: al este de la caja)
-  mb.box(-45.6, 0.9, 38.8, 0.12, 1.8, 0.12, wood); mb.box(-42.4, 0.9, 38.8, 0.12, 1.8, 0.12, wood);
-  mb.box(-44, 0.7, 38.8, 2.9, 0.05, 0.9, 0xe0503a);
-  for (let i = 0; i < 4; i++) mb.box(-45.2 + i * 0.8, 0.72, 38.8, 0.4, 0.06, 0.92, i % 2 ? 0xf0c040 : 0x3a8ac8);
+  // hamaca entre dos postes. F5.16 (Diego): tapaba la entrada del sendero del búnker (H2); va al borde norte de la palapa
+  const hx = -51, hz = 34.8;
+  mb.box(hx - 1.6, 0.9, hz, 0.12, 1.8, 0.12, wood); mb.box(hx + 1.6, 0.9, hz, 0.12, 1.8, 0.12, wood);
+  mb.box(hx, 0.7, hz, 2.9, 0.05, 0.9, 0xe0503a);
+  for (let i = 0; i < 4; i++) mb.box(hx - 1.2 + i * 0.8, 0.72, hz, 0.4, 0.06, 0.92, i % 2 ? 0xf0c040 : 0x3a8ac8);
   // tablas de surf en un soporte y una red con boyas en un bastidor (F5.13: el rancho ya no tiene cercos)
   mb.box(-46, 0.5, 19.4, 3, 0.08, 0.3, dark); mb.box(-46, 1.6, 19.4, 3, 0.08, 0.3, dark);
   [[-47.2, 0xe86a3a], [-46.4, 0x3aa0d8], [-45.6, 0xf0e0a0], [-44.8, 0x5ab86a]].forEach(([x, c]) => {
@@ -10379,7 +10392,7 @@ function buildJungle() {
   for (const [x, z] of ring) tree(x + rnd(-1, 1), z + rnd(-1, 1), rnd(0.25, 1), false);
   // helechos, rocas y flores: solo en la jungla, sin colisión
   const TCl = CONFIG.TEMPLE.clear;
-  const inJungle = (x, z) => { const r = roomAt(x, z); return r && (r.id === 'R15' || r.id === 'R17' || r.id === 'R18' || r.id === 'R20') && r.floor === 'jungle' &&
+  const inJungle = (x, z) => { const r = roomAt(x, z); return r && (r.id === 'R15' || r.id === 'R17' || r.id === 'R20') && r.floor === 'jungle' &&
     !(x > TCl[0] && x < TCl[1] && z > TCl[2] && z < TCl[3]); };   // F5.15: + el anexo (sin tapar el templo)
   for (let n = 0, tries = 0; n < J.ferns && tries < J.ferns * 6; tries++) {
     const x = rnd(-74.5, 94.5), z = rnd(-4, 99.5);
@@ -11301,6 +11314,7 @@ function bunkerLight(x, z) {
 function shade(hex, k) { const c = new THREE.Color(hex); return c.multiplyScalar(k).getHex(); }
 
 function buildBunker() {
+  buildPortals();                                                                      // F5.16
   const B = CONFIG.BUNKER, y0 = B.y, y1 = B.y + B.h, mb = new MeshBuilder(), lit = (x, z) => 0.16 + 0.7 * bunkerLight(x, z);
   // piso y techo por baldosa de 1 m (la luz pintada), paredes por metro
   for (let x = B.x1; x < B.x2; x++) for (let z = B.z1; z < B.z2; z++) {
@@ -11622,6 +11636,7 @@ function hatchTeleport(p) {
 }
 function updateBunker(dt) {
   updateStatues(dt);
+  updatePortals(clock.elapsedTime);                                                    // F5.16
   if (BUNK.open && BUNK.halves[0].position.x > -2.3) {                               // F5.13: las puertas se corren
     const x = Math.max(-2.3, BUNK.halves[0].position.x - dt * 1.2);
     BUNK.halves[0].position.x = x; BUNK.halves[1].position.x = -x;
@@ -11632,6 +11647,60 @@ function updateBunker(dt) {
     if (!BUNK.fadeDone && BUNK.fadeT <= F) { BUNK.fadeDone = true; hatchTeleport(BUNK.fadeTo); }
     const o = BUNK.fadeT > F ? 1 - (BUNK.fadeT - F) / F : BUNK.fadeT / F;
     if (UI.fade) UI.fade.style.opacity = Math.max(0, Math.min(1, o)).toFixed(3);
+  }
+}
+// F5.16: portal Templo ↔ Calamar (CONFIG.PORTAL). Dos arcos de piedra con un anillo que brilla (MeshBasic aditivo,
+// creado una vez). Usa el fundido de la escotilla (BUNK.fadeT)
+const PORTAL = { arcs: [] };
+function portalOn() { const d = state.doors[CONFIG.PORTAL.door]; return !!(d && d.open); }
+function buildPortals() {
+  const P = CONFIG.PORTAL, mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+  for (const key of ['temple', 'squid']) {
+    const S = P[key], mb = new MeshBuilder();
+    mb.setFrame(S.x, 0, S.z, S.rot);
+    for (const s of [-1, 1]) {                                        // columnas talladas
+      mb.box(s * 1.35, 1.4, 0, 0.5, 2.8, 0.6, 0x5a5a52);
+      mb.box(s * 1.35, 0.1, 0, 0.8, 0.2, 0.9, 0x4a4a44);
+      for (let k = 0; k < 4; k++) mb.box(s * 1.35, 0.5 + k * 0.6, 0.31, 0.3, 0.12, 0.02, 0x2a6a4a);   // glifos
+    }
+    mb.box(0, 2.95, 0, 3.3, 0.4, 0.7, 0x5a5a52); mb.box(0, 3.25, 0, 1, 0.3, 0.5, 0x3a8a6a);   // dintel
+    mb.setFrame(null);
+    const m = mb.mesh(mat); if (m) { m.userData.theme = false; m.updateMatrix(); }
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.12, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0x3aff9a, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false }));
+    const core = new THREE.Mesh(new THREE.CircleGeometry(0.95, 20),
+      new THREE.MeshBasicMaterial({ color: 0x1a8a6a, transparent: true, opacity: 0.1, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+    for (const o of [ring, core]) { o.position.set(S.x, 1.45, S.z); o.rotation.y = S.rot; scene.add(o); }
+    PORTAL.arcs.push({ key, S, ring, core });
+  }
+}
+function portalNear(room, px, pz, bd) {
+  const P = CONFIG.PORTAL;
+  for (const A of PORTAL.arcs) {
+    if (!room || room.id !== A.S.room) continue;
+    const d = Math.hypot(px - A.S.x, pz - A.S.z);
+    if (d < Math.min(bd, P.use)) return { target: { portal: A.key }, dist: d };
+  }
+  return null;
+}
+function portalPrompt(t) {
+  if (!portalOn()) return { text: 'Portal apagado - abrí el templo', cost: 0 };
+  return { text: t.portal === 'temple' ? '[F] Viajar a la Playa del Calamar' : '[F] Viajar al Templo', cost: 0 };
+}
+function usePortal(t) {
+  if (!portalOn() || BUNK.fadeT > 0) return false;
+  const P = CONFIG.PORTAL;
+  BUNK.fadeTo = t.portal === 'temple' ? P.squid.out : P.temple.out;
+  BUNK.fadeT = CONFIG.BUNKER.fade * 2; BUNK.fadeDone = false;
+  sfxShieldTake();
+  return true;
+}
+function updatePortals(t) {
+  const on = portalOn();
+  for (const A of PORTAL.arcs) {
+    A.ring.rotation.z = t * (on ? 1.6 : 0.2);
+    A.ring.material.opacity = on ? 0.75 + 0.2 * Math.sin(t * 4) : 0.2;
+    A.core.material.opacity = on ? 0.35 + 0.15 * Math.sin(t * 3) : 0.06;
   }
 }
 function inBunker() { return groundY(player.pos.x, player.pos.z) < -1; }
@@ -11952,6 +12021,7 @@ function promptFor(it) {
   if (it.kind === 'workshop') return workshopPrompt();
   if (it.kind === 'trap') return trapPrompt(it.target);   // F5.9
   if (it.kind === 'hatch') return hatchPrompt(it.target); // F5.11
+  if (it.kind === 'portal') return portalPrompt(it.target); // F5.16
   if (it.kind === 'fumigator' || it.kind === 'clam') return clamPrompt(it);   // F5.14
   if (it.kind === 'pap') return papPrompt();
   if (it.kind === 'box') {
@@ -12796,7 +12866,7 @@ function ambienceZone() {
   const up = playerLevel() === 1;
   const outdoor = !deep && (up || (r ? !!r.outdoor : true));
   const sea = Math.max(0, Math.min(1, 1 - (P.z - SEA.z0 - 14) / CONFIG.AUDIO.seaFar));   // 1 cerca de la orilla
-  const jungle = !!r && (r.floor === 'jungle' || id === 'R15' || id === 'R17' || id === 'R18') && !up;
+  const jungle = !!r && (r.floor === 'jungle' || id === 'R15' || id === 'R17') && !up;
   return { id, deep, up, outdoor, sea, jungle, pier: id === 'R11' || id === 'C13' };
 }
 function updateAmbience() {

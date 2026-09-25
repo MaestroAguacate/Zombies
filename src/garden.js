@@ -259,10 +259,11 @@ function buildRancho() {
     mb.box(rx2 + 0.6, 0.35, sz, 0.08, 0.7, 0.08, dark);
     mb.box(rx2 + 0.6, 0.72, sz, 0.36, 0.06, 0.36, 0xc83a2a);
   }
-  // hamaca entre dos postes, contra el cerco norte (F5.13: al este de la caja)
-  mb.box(-45.6, 0.9, 38.8, 0.12, 1.8, 0.12, wood); mb.box(-42.4, 0.9, 38.8, 0.12, 1.8, 0.12, wood);
-  mb.box(-44, 0.7, 38.8, 2.9, 0.05, 0.9, 0xe0503a);
-  for (let i = 0; i < 4; i++) mb.box(-45.2 + i * 0.8, 0.72, 38.8, 0.4, 0.06, 0.92, i % 2 ? 0xf0c040 : 0x3a8ac8);
+  // hamaca entre dos postes. F5.16 (Diego): tapaba la entrada del sendero del búnker (H2); va al borde norte de la palapa
+  const hx = -51, hz = 34.8;
+  mb.box(hx - 1.6, 0.9, hz, 0.12, 1.8, 0.12, wood); mb.box(hx + 1.6, 0.9, hz, 0.12, 1.8, 0.12, wood);
+  mb.box(hx, 0.7, hz, 2.9, 0.05, 0.9, 0xe0503a);
+  for (let i = 0; i < 4; i++) mb.box(hx - 1.2 + i * 0.8, 0.72, hz, 0.4, 0.06, 0.92, i % 2 ? 0xf0c040 : 0x3a8ac8);
   // tablas de surf en un soporte y una red con boyas en un bastidor (F5.13: el rancho ya no tiene cercos)
   mb.box(-46, 0.5, 19.4, 3, 0.08, 0.3, dark); mb.box(-46, 1.6, 19.4, 3, 0.08, 0.3, dark);
   [[-47.2, 0xe86a3a], [-46.4, 0x3aa0d8], [-45.6, 0xf0e0a0], [-44.8, 0x5ab86a]].forEach(([x, c]) => {
@@ -400,7 +401,7 @@ function buildJungle() {
   for (const [x, z] of ring) tree(x + rnd(-1, 1), z + rnd(-1, 1), rnd(0.25, 1), false);
   // helechos, rocas y flores: solo en la jungla, sin colisión
   const TCl = CONFIG.TEMPLE.clear;
-  const inJungle = (x, z) => { const r = roomAt(x, z); return r && (r.id === 'R15' || r.id === 'R17' || r.id === 'R18' || r.id === 'R20') && r.floor === 'jungle' &&
+  const inJungle = (x, z) => { const r = roomAt(x, z); return r && (r.id === 'R15' || r.id === 'R17' || r.id === 'R20') && r.floor === 'jungle' &&
     !(x > TCl[0] && x < TCl[1] && z > TCl[2] && z < TCl[3]); };   // F5.15: + el anexo (sin tapar el templo)
   for (let n = 0, tries = 0; n < J.ferns && tries < J.ferns * 6; tries++) {
     const x = rnd(-74.5, 94.5), z = rnd(-4, 99.5);

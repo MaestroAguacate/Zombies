@@ -136,18 +136,14 @@ const ROOMS = [
   { id:'R14', name:'RANCHO',        x1:-42, x2:-27, z1: 26, z2: 31, floor:'jungle', outdoor:true, part:true, corridor:true },   // lazo D20
   // R15: los jardines del norte (detrás del sótano), abiertos a los dos jardines
   { id:'R15', name:'JARDINES NORTE',x1:-27, x2: 35, z1: 40, z2: 58, floor:'jungle', outdoor:true },
-  // R17: el claro del búnker (esquina NO), con dos senderos: desde el rancho (H2) y desde los jardines (H3)
+  // F5.16: 5 ÁREAS. Casa (playa, casa, jardines, muelle) ↔ Rancho (D20) y ↔ Templo (H6); Rancho ↔ Búnker (H2) y
+  // ↔ Calamar (H8); Templo ↔ Calamar por el portal. Sin Campamento (R18), ni H3, H4, H5, H7
+  // R17: el claro del búnker (esquina NO), con un solo sendero: desde el rancho (H2)
   { id:'R17', name:'CLARO DEL BUNKER', x1:-75, x2:-42, z1: 53, z2: 74, floor:'jungle', outdoor:true },
   { id:'R17', name:'CLARO DEL BUNKER', x1:-46, x2:-42, z1: 40, z2: 53, floor:'jungle', outdoor:true, part:true, corridor:true },
-  { id:'R17', name:'CLARO DEL BUNKER', x1:-42, x2:-27, z1: 53, z2: 58, floor:'jungle', outdoor:true, part:true, corridor:true },
-  // R19: la playa del calamar y la costa oeste, con dos entradas: desde la playa oeste (H5) y desde el rancho (H8)
+  // R19: la playa del calamar y la costa oeste, con una sola entrada a pie: desde el rancho (H8)
   { id:'R19', name:'PLAYA DEL CALAMAR', x1:-75, x2:-41, z1:-60, z2: -4, floor:'sand', outdoor:true },
   { id:'R19', name:'PLAYA DEL CALAMAR', x1:-47, x2:-42, z1: -4, z2: 18, floor:'jungle', outdoor:true, part:true, corridor:true },
-  // R18: el campamento (jungla este), con dos entradas: desde la playa por la arena (H4) y desde el jardín trasero (H7)
-  { id:'R18', name:'CAMPAMENTO',    x1: 38, x2: 55, z1:  4, z2: 34, floor:'jungle', outdoor:true },
-  { id:'R18', name:'CAMPAMENTO',    x1: 35, x2: 38, z1: 29, z2: 34, floor:'jungle', outdoor:true, part:true, corridor:true },
-  { id:'R18', name:'CAMPAMENTO',    x1: 20, x2: 44, z1:-14, z2: -9, floor:'sand', outdoor:true, part:true, corridor:true },
-  { id:'R18', name:'CAMPAMENTO',    x1: 39, x2: 44, z1: -9, z2:  4, floor:'jungle', outdoor:true, part:true, corridor:true },
   // R20: el anexo NE con el templo, por un sendero desde los jardines norte (H6)
   { id:'R20', name:'TEMPLO',        x1: 55, x2: 95, z1: 55, z2: 100, floor:'jungle', outdoor:true },
   { id:'R20', name:'TEMPLO',        x1: 28, x2: 33, z1: 58, z2: 67, floor:'jungle', outdoor:true, part:true, corridor:true },
@@ -173,7 +169,7 @@ const DOOR_LINKS = {
   D19:['R7','R12'],                            // F5.7: portón sótano -> jardín oeste (se abre solo con la energía)
   D20:['R12','R14'],                           // F5.10: lazo del jardín oeste (F5.15: sendero al rancho)
   // F5.15: las entradas de las áreas (lianas que se queman)
-  H2:['R14','R17'], H3:['R15','R17'], H4:['R10','R18'], H5:['R10','R19'], H6:['R15','R20'], H7:['R13','R18'], H8:['R14','R19']
+  H2:['R14','R17'], H6:['R15','R20'], H8:['R14','R19']      // F5.16: sin H3, H4, H5 ni H7
 };
 
 // piscina de R8: el ÚNICO lugar donde el piso no está en y=0. Rampa en el lado sur (z1 -> rampEnd),
@@ -213,6 +209,7 @@ function openRooms() {
     const r = q.shift();
     const links = [];
     for (const id in DOOR_LINKS) { const d = state.doors[id]; if (d && d.open) links.push(DOOR_LINKS[id]); }
+    if (typeof portalOn === 'function' && portalOn()) links.push(['R20', 'R19']);   // F5.16: portal del templo
     for (const L of links.concat(OPEN_LINKS)) {
       const o = L[0] === r ? L[1] : L[1] === r ? L[0] : null;
       if (o && !seen.has(o)) { seen.add(o); q.push(o); }
@@ -300,7 +297,7 @@ let PROP_HIT_MAT = null;
 const JUNGLE = { trees: [] };
 function planJungle() {
   if (JUNGLE.trees.length) return;
-  const J = CONFIG.JUNGLE, jung = new Set(['R15', 'R17', 'R18', 'R20']);   // F5.15: + el anexo del templo
+  const J = CONFIG.JUNGLE, jung = new Set(['R15', 'R17', 'R20']);   // F5.16: sin campamento   // F5.15: + el anexo del templo
   let s = J.seed;
   const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
   const avoid = [];
@@ -374,7 +371,6 @@ const SPAWN_POINTS = [
   // F5.15: por áreas (claro del búnker, jardines norte, costa del calamar, campamento y su sendero de arena)
   { room:'R17', x:-50.5, z:60.5 }, { room:'R17', x:-65.5, z:62.5 }, { room:'R15', x:-12.5, z:55.5 },
   { room:'R19', x:-50.5, z:-12.5 }, { room:'R19', x:-66.5, z:-14.5 },
-  { room:'R18', x: 45.5, z:25.5 }, { room:'R18', x: 48.5, z:10.5 }, { room:'R18', x: 30.5, z:-11.5 },
   // F5.15: anexo del templo (afuera del río y en la franja oeste)
   { room:'R20', x: 57.5, z:60.5 }, { room:'R20', x: 72.5, z:58.5 }, { room:'R20', x: 90.5, z:60.5 }, { room:'R20', x: 57.5, z:90.5 },
   // F4: orilla del mar, solo para ahogados (pickSpawnPoint los separa por `sea`)
@@ -1061,8 +1057,9 @@ function buildMap() {
   addWall(TG.x1, TG.z1, TG.x1, TG.z2, TG.h, MAT.wood, 'corral');
   hedge(-24, -4, -20, -4);                     //      sur, fuera de la playa
   hedge( -8, -4,  -8,  4);                     //      este, entre la cerca y la sala
-  // F5.15: la playa oeste y la costa del calamar comparten el borde x -41: cerco fijo con la entrada H5 al medio
-  hedge(-41, -24, -41, -14); hedge(-41, -9, -41, -4);
+  // F5.15: la playa oeste y la costa del calamar comparten el borde x -41. F5.16: cerco fijo entero (sin H5): al
+  // calamar se llega por el rancho (H8) o por el portal del templo
+  hedge(-41, -24, -41, -4);
   // (F5.12: sin cerco este del jardín trasero: sigue la jungla este)
   // (F5.7: el hueco entre la caseta y el pasillo exterior ya no está cercado: es parte del jardín)
 

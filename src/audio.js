@@ -579,7 +579,7 @@ function ambienceZone() {
   const up = playerLevel() === 1;
   const outdoor = !deep && (up || (r ? !!r.outdoor : true));
   const sea = Math.max(0, Math.min(1, 1 - (P.z - SEA.z0 - 14) / CONFIG.AUDIO.seaFar));   // 1 cerca de la orilla
-  const jungle = !!r && (r.floor === 'jungle' || id === 'R15' || id === 'R17' || id === 'R18') && !up;
+  const jungle = !!r && (r.floor === 'jungle' || id === 'R15' || id === 'R17') && !up;
   return { id, deep, up, outdoor, sea, jungle, pier: id === 'R11' || id === 'C13' };
 }
 function updateAmbience() {

@@ -107,10 +107,10 @@ const house = ['D1', 'D2', 'D3', 'D4', 'D6', 'D7', 'D8'].reduce((s, id) => s + C
 check(house === 8250 && C.D1 + C.D2 + C.D8 === 3250, 'toda la casa: 8.250 (D1 + D2 + D8 = 3250)', `(${house})`);
 // áreas: todas abiertas se llega a cada una
 fresh(); setPlayer(0, 0);
-const areas = { 'claro del búnker': [-60, 64], campamento: [46, 20], 'costa del calamar': [-60, -10], templo: [70, 60],
+const areas = { 'claro del búnker': [-60, 64], 'costa del calamar': [-60, -10], templo: [70, 60],   // F5.16: sin campamento
   rancho: [-50, 30], 'jardines norte': [0, 50], 'playa oeste': [-30, -15] };
 const miss = Object.entries(areas).filter(([, [x, z]]) => !nearNav(x, z)).map(([k]) => k);
-check(!miss.length, 'con todo abierto se llega a las 7 áreas de afuera', miss.join(', '));
+check(!miss.length, 'con todo abierto se llega a las 6 áreas de afuera', miss.join(', '));
 // la espesura no se camina ni se ve a través
 check([[-60, 30], [45, 50], [0, 66], [-35, 5], [45, -18], [60, 80]].every(([x, z]) => G.inThicket(x, z) && G.flowAt(x, z) < 0) ||
   [[-60, 30], [45, 50], [0, 66], [-35, 5], [45, -18]].every(([x, z]) => G.inThicket(x, z) && G.flowAt(x, z) < 0), 'la espesura no se camina');
@@ -127,21 +127,21 @@ const hit = rc.intersectObjects(G.WORLD.hitMeshes, false)[0];
 check(hit && hit.object.userData.tag === 'thicket', 'y frena las balas', `(${hit && hit.object.userData.tag})`);
 // senderos de 4 m o más (3 celdas navegables de ancho como mínimo)
 const corridors = G.ROOMS.filter(r => r.corridor);
-check(corridors.length >= 9 && corridors.every(r => Math.min(r.x2 - r.x1, r.z2 - r.z1) >= 3 && (Math.min(r.x2 - r.x1, r.z2 - r.z1) >= 4 || r.x2 - r.x1 === 3)),
-  'senderos de 4-5 m (y el corto del campamento)', `(${corridors.length})`);
+check(corridors.length === 5 && corridors.every(r => Math.min(r.x2 - r.x1, r.z2 - r.z1) >= 4),
+  'F5.16: 5 senderos de 4-5 m (lazo, claro, calamar y los 2 del templo)', `(${corridors.length})`);
 // cada área se abre solo por sus entradas
 function reach(open) {
   G.resetGame(); state.running = true; open.forEach(G.openDoor);
   player.pos.set(0, P.height, 0); G.updateFlowField(true);
   return ([x, z]) => nearNav(x, z);
 }
-const base = ['D1', 'D2', 'D3', 'D4', 'D6', 'D7', 'D8', 'D11', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17', 'D18', 'D20'];
+const base = ['D1', 'D2', 'D3', 'D4', 'D6', 'D7', 'D8', 'D11', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17', 'D20'];
 let r = reach(base);
-check(!r(areas['claro del búnker']) && !r(areas.campamento) && !r(areas['costa del calamar']) && !r(areas.templo), 'sin lianas: ni claro, ni campamento, ni costa, ni templo');
+check(!r(areas['claro del búnker']) && !r(areas['costa del calamar']) && !r(areas.templo), 'sin lianas: ni claro, ni costa, ni templo');
 check(r(areas.rancho) && r(areas['jardines norte']) && r(areas['playa oeste']), 'el rancho (lazo), los jardines y la playa oeste sí');
-const via = { H2: 'claro del búnker', H3: 'claro del búnker', H4: 'campamento', H7: 'campamento', H5: 'costa del calamar', H8: 'costa del calamar', H6: 'templo' };
+const via = { H2: 'claro del búnker', H8: 'costa del calamar', H6: 'templo' };   // F5.16
 const bad = Object.entries(via).filter(([h, a]) => !reach(base.concat([h]))(areas[a])).map(([h]) => h);
-check(!bad.length, 'cada liana abre su área (H2/H3 claro, H4/H7 campamento, H5/H8 costa, H6 templo)', bad.join(' '));
+check(!bad.length, 'cada liana abre su área (H2 claro, H8 costa, H6 templo)', bad.join(' '));
 check(!reach(base.filter(d => d !== 'D20'))(areas.rancho), 'sin el lazo D20 no se llega al rancho');
 
 console.log(fail ? `FALLA (${fail})` : 'PASA'); process.exit(fail ? 1 : 0);

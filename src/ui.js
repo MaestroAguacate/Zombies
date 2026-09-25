@@ -68,6 +68,7 @@ function promptFor(it) {
   if (it.kind === 'workshop') return workshopPrompt();
   if (it.kind === 'trap') return trapPrompt(it.target);   // F5.9
   if (it.kind === 'hatch') return hatchPrompt(it.target); // F5.11
+  if (it.kind === 'portal') return portalPrompt(it.target); // F5.16
   if (it.kind === 'fumigator' || it.kind === 'clam') return clamPrompt(it);   // F5.14
   if (it.kind === 'pap') return papPrompt();
   if (it.kind === 'box') {

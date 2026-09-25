@@ -660,7 +660,7 @@ Decisiones de Diego (2026-09-25):
 - ~~El corredor de la estación lleva al búnker actual~~ **Cambio de Diego (2026-09-25): el búnker actual se queda
   como está** (escotilla, estatuas, Mule Kick, bazooka), un poco alejado de la estación. El corredor oscuro de la
   estación lleva a un búnker nuevo, más chico.
-- Niebla permanente de ~30 m. Con eso se recorta el dibujo lejano (camera.far / ocultar lo que está lejos) para
+- Niebla permanente de ~30 m (Diego la subió a 40 m tras probar). Con eso se recorta el dibujo lejano (camera.far / ocultar lo que está lejos) para
   ganar FPS.
 
 **Perks:** QR en el porche (ya está) · Jugg al final del muelle · Speed Cola en el rancho (ya está) · Double Tap
@@ -683,7 +683,7 @@ garaje).
 - Generador de la caseta al rancho.
 - Ojo: la quest de la caracola pide plantas que comen arrastrados en el techo. Pasa a ser en el piso del jardín.
 
-### Tanda B — topología
+### Tanda B — topología — HECHO (falta playtest)
 - Borrar el Campamento (R18, H4, H7) y los accesos que sobran: H3 (casa → búnker) y H5 (playa oeste → calamar).
 - Quedan: Casa ↔ Rancho (lazo D20), Rancho ↔ Búnker (H2), Rancho ↔ Calamar (H8), Casa ↔ Templo (H6).
 - Portal Templo ↔ Calamar (fundido a negro, como la escotilla).

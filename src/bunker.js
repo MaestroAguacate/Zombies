@@ -35,6 +35,7 @@ function bunkerLight(x, z) {
 function shade(hex, k) { const c = new THREE.Color(hex); return c.multiplyScalar(k).getHex(); }
 
 function buildBunker() {
+  buildPortals();                                                                      // F5.16
   const B = CONFIG.BUNKER, y0 = B.y, y1 = B.y + B.h, mb = new MeshBuilder(), lit = (x, z) => 0.16 + 0.7 * bunkerLight(x, z);
   // piso y techo por baldosa de 1 m (la luz pintada), paredes por metro
   for (let x = B.x1; x < B.x2; x++) for (let z = B.z1; z < B.z2; z++) {
@@ -356,6 +357,7 @@ function hatchTeleport(p) {
 }
 function updateBunker(dt) {
   updateStatues(dt);
+  updatePortals(clock.elapsedTime);                                                    // F5.16
   if (BUNK.open && BUNK.halves[0].position.x > -2.3) {                               // F5.13: las puertas se corren
     const x = Math.max(-2.3, BUNK.halves[0].position.x - dt * 1.2);
     BUNK.halves[0].position.x = x; BUNK.halves[1].position.x = -x;
@@ -366,6 +368,60 @@ function updateBunker(dt) {
     if (!BUNK.fadeDone && BUNK.fadeT <= F) { BUNK.fadeDone = true; hatchTeleport(BUNK.fadeTo); }
     const o = BUNK.fadeT > F ? 1 - (BUNK.fadeT - F) / F : BUNK.fadeT / F;
     if (UI.fade) UI.fade.style.opacity = Math.max(0, Math.min(1, o)).toFixed(3);
+  }
+}
+// F5.16: portal Templo ↔ Calamar (CONFIG.PORTAL). Dos arcos de piedra con un anillo que brilla (MeshBasic aditivo,
+// creado una vez). Usa el fundido de la escotilla (BUNK.fadeT)
+const PORTAL = { arcs: [] };
+function portalOn() { const d = state.doors[CONFIG.PORTAL.door]; return !!(d && d.open); }
+function buildPortals() {
+  const P = CONFIG.PORTAL, mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+  for (const key of ['temple', 'squid']) {
+    const S = P[key], mb = new MeshBuilder();
+    mb.setFrame(S.x, 0, S.z, S.rot);
+    for (const s of [-1, 1]) {                                        // columnas talladas
+      mb.box(s * 1.35, 1.4, 0, 0.5, 2.8, 0.6, 0x5a5a52);
+      mb.box(s * 1.35, 0.1, 0, 0.8, 0.2, 0.9, 0x4a4a44);
+      for (let k = 0; k < 4; k++) mb.box(s * 1.35, 0.5 + k * 0.6, 0.31, 0.3, 0.12, 0.02, 0x2a6a4a);   // glifos
+    }
+    mb.box(0, 2.95, 0, 3.3, 0.4, 0.7, 0x5a5a52); mb.box(0, 3.25, 0, 1, 0.3, 0.5, 0x3a8a6a);   // dintel
+    mb.setFrame(null);
+    const m = mb.mesh(mat); if (m) { m.userData.theme = false; m.updateMatrix(); }
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.12, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0x3aff9a, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false }));
+    const core = new THREE.Mesh(new THREE.CircleGeometry(0.95, 20),
+      new THREE.MeshBasicMaterial({ color: 0x1a8a6a, transparent: true, opacity: 0.1, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+    for (const o of [ring, core]) { o.position.set(S.x, 1.45, S.z); o.rotation.y = S.rot; scene.add(o); }
+    PORTAL.arcs.push({ key, S, ring, core });
+  }
+}
+function portalNear(room, px, pz, bd) {
+  const P = CONFIG.PORTAL;
+  for (const A of PORTAL.arcs) {
+    if (!room || room.id !== A.S.room) continue;
+    const d = Math.hypot(px - A.S.x, pz - A.S.z);
+    if (d < Math.min(bd, P.use)) return { target: { portal: A.key }, dist: d };
+  }
+  return null;
+}
+function portalPrompt(t) {
+  if (!portalOn()) return { text: 'Portal apagado - abrí el templo', cost: 0 };
+  return { text: t.portal === 'temple' ? '[F] Viajar a la Playa del Calamar' : '[F] Viajar al Templo', cost: 0 };
+}
+function usePortal(t) {
+  if (!portalOn() || BUNK.fadeT > 0) return false;
+  const P = CONFIG.PORTAL;
+  BUNK.fadeTo = t.portal === 'temple' ? P.squid.out : P.temple.out;
+  BUNK.fadeT = CONFIG.BUNKER.fade * 2; BUNK.fadeDone = false;
+  sfxShieldTake();
+  return true;
+}
+function updatePortals(t) {
+  const on = portalOn();
+  for (const A of PORTAL.arcs) {
+    A.ring.rotation.z = t * (on ? 1.6 : 0.2);
+    A.ring.material.opacity = on ? 0.75 + 0.2 * Math.sin(t * 4) : 0.2;
+    A.core.material.opacity = on ? 0.35 + 0.15 * Math.sin(t * 3) : 0.06;
   }
 }
 function inBunker() { return groundY(player.pos.x, player.pos.z) < -1; }

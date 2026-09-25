@@ -549,6 +549,8 @@ function updateInteract() {
   if (tr) { bd = tr.dist; kind = 'trap'; target = tr.target; }
   const ht = hatchNear(room, px, pz, bd);                         // F5.11: escotilla (arriba) o su escalera (abajo)
   if (ht) { bd = ht.dist; kind = 'hatch'; target = ht.target; }
+  const pt = portalNear(room, px, pz, bd);                        // F5.16: portal Templo ↔ Calamar
+  if (pt) { bd = pt.dist; kind = 'portal'; target = pt.target; }
   const cl = clamNear(room, px, pz, bd);                          // F5.14: fumigador y almejas
   if (cl) { bd = cl.dist; kind = cl.kind; target = cl.target; }
   interactState.kind = kind; interactState.target = target;
@@ -566,6 +568,7 @@ function interact() {
     const ok = clamPress(it); if (!ok) { sfxDeny(); denyPrompt(); } return ok;
   }
   if (it.kind === 'hatch') { const ok = useHatch(it.target); if (!ok) { sfxDeny(); denyPrompt(); } return ok; }   // F5.11
+  if (it.kind === 'portal') { const ok = usePortal(it.target); if (!ok) { sfxDeny(); denyPrompt(); } return ok; }  // F5.16
   const ok = it.kind === 'door' ? buyDoor(it.target.id)
            : it.kind === 'pap'  ? usePap()
            : it.kind === 'box'  ? useBox()

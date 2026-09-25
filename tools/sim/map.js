@@ -104,8 +104,8 @@ const H = all.filter(d => /^H\d$/.test(d)), casa = viejos.concat(['R12', 'R13', 
 const sinH = cheapest(all.filter(d => !H.includes(d))), conH = cheapest(all);
 const cheaperH = casa.filter(r => conH[r] < sinH[r]);
 check(cheaperH.length === 0, 'F5.15: las lianas no abaratan la ruta a ningún cuarto de antes', cheaperH.length ? JSON.stringify(cheaperH.map(r => r + ' ' + sinH[r] + '->' + conH[r])) : '');
-check(['R14', 'R17', 'R18', 'R19', 'R20'].every(r => conH[r] >= 3250), 'F5.15: cada área de la jungla cuesta 3250 o más desde el porche',
-  ['R14', 'R17', 'R18', 'R19', 'R20'].map(r => r + ' ' + conH[r]).join(' '));
+check(['R14', 'R17', 'R19', 'R20'].every(r => conH[r] >= 3250), 'F5.15: cada área de la jungla cuesta 3250 o más desde el porche',
+  ['R14', 'R17', 'R19', 'R20'].map(r => r + ' ' + conH[r]).join(' '));
 const casaTodo = ['D1', 'D2', 'D3', 'D4', 'D6', 'D7', 'D8'].reduce((s, d) => s + CONFIG.DOORS[d], 0);
 check(casaTodo === 8250, 'F5.15: abrir toda la casa cuesta 8.250', `(${casaTodo})`);
 
@@ -132,7 +132,7 @@ check(walk(10, -10, 0, 4).z >= -23.8 + r - E, 'playa: no se entra al mar');
 check(walk(-35, -10, Math.PI / 2, 3).x >= -40.8 + r - E, 'playa: límite oeste (F5.15: la costa, con H5 cerrada)');
 check(walk(-30, -10, Math.PI, 3).z <= -4 - r + E, 'playa oeste: la espesura frena hacia el norte');
 check(walk(15, -20, -Math.PI / 2, 3).x <= 20 - r + E, 'playa: la espesura frena hacia el este (fuera de H4)');
-check(walk(15, -10, -Math.PI / 2, 3).x <= 19.8 - r + E, 'playa: límite este');
+check(walk(15, -10, -Math.PI / 2, 3).x <= 20 - r + E, 'playa: límite este (F5.16: espesura, sin H4)');
 check(walk(-17, -8, Math.PI, 3).z <= -4.2 - r + E, 'playa: la cerca frena hacia el patio');
 check(walk(0, -30, Math.PI / 2, 2).x >= -1.8 + r - E && walk(0, -30, -Math.PI / 2, 2).x <= 1.8 - r + E, 'muelle: no se cae por los costados');
 check(walk(0, -26, 0, 8).z >= -49.8 + r - E, 'muelle: tope al final (F5.6: z -50)');

@@ -159,7 +159,7 @@ const CONFIG = {
     attacks: [['swipe', 0.5], ['lunge', 0.3], ['bite', 0.2]]
   },
   // F7a: calidad (Ajustes: Bajo / Medio / Alto; dura la sesión). Sombras solo en Alto: el sol proyecta con un
-  // mapa de `shadowMap` px que sigue al jugador (`shadowBox` m de lado a lado; F5.16: 40, la niebla tapa a 30); las luces de adentro, sin sombra.
+  // mapa de `shadowMap` px que sigue al jugador (`shadowBox` m de lado a lado; F5.16: 50, la niebla tapa a 40); las luces de adentro, sin sombra.
   // particles: fracción de la lluvia; dust/shafts: polvo y haces de luz del tema; pixelRatio: tope.
   // post (CSS sobre el canvas, sin shaders): viñeta, color según la hora (cálido de día, frío de noche) y grano
   GFX: {
@@ -169,7 +169,7 @@ const CONFIG = {
       medio: { shadows: false, post: true,  particles: 1,   dust: true,  shafts: true,  pixelRatio: 1.5 },
       alto:  { shadows: true,  post: true,  particles: 1,   dust: true,  shafts: true,  pixelRatio: 2, shadowMap: 1024 }
     },
-    shadowBox: 40, shadowFar: 140,
+    shadowBox: 50, shadowFar: 140,
     post: { vignette: 0.55, grain: 0.06, warm: 0.14, cold: 14, contrast: 1.06 },
     // el disco del sol (atardecer, bajo al oeste) y la luna (se ve de noche, sobre el mar)
     sunDisk: { dir: [-0.85, 0.1, -0.52], size: 34, color: 0xff9a4a },
@@ -177,7 +177,7 @@ const CONFIG = {
   },
   // F5.16: niebla permanente (Diego): no se ve de un área a la otra. `clip` = camera.far: lo que queda más lejos
   // ni se dibuja (el frustum lo descarta). El cielo no se ve: el fondo es el color de la niebla
-  FOG: { near: 5, far: 30, clip: 34 },
+  FOG: { near: 6, far: 40, clip: 44 },          // F5.16: 30 -> 40 (pedido de Diego)
   WEATHER: {
     darkBy: n => Math.max(0, Math.min(1, (n - 1) / 14)),
     // F7a: ciclo de luz por ronda. La oscuridad k (darkBy) recorre 4 paradas de color: atardecer dorado (R1, el
@@ -594,7 +594,7 @@ const CONFIG = {
                 { room: 'R10', x: -12, z: -11 }, { room: 'R10', x: 1, z: -19 }],
     spots: [
       { room: 'R10', x: -3, z: -13 }, { room: 'R13', x: 16, z: 35 },  { room: 'R12', x: -21, z: 30 },
-      { room: 'R17', x: -58, z: 64 }, { room: 'R15', x: 15, z: 50 },  { room: 'R18', x: 42, z: 20 },   // F5.15: áreas
+      { room: 'R17', x: -58, z: 64 }, { room: 'R15', x: 15, z: 50 },  { room: 'R20', x: 45, z: 64.5 },   // F5.15: áreas (F5.16: la del campamento, al sendero del templo)
       { room: 'R20', x: 66, z: 60 },  { room: 'R19', x: -48, z: -40 }, { room: 'R14', x: -45, z: 31 }
     ],
     every: [3, 4], openTime: 1.5, range: 1.8,
@@ -641,11 +641,7 @@ const CONFIG = {
     // F5.15: las entradas de las áreas (estilo BO3): lianas que se queman en la boca de cada sendero
     hedges: [
       { id: 'H2', x1: -46, x2: -42, z1: 40,  z2: 40 },   // rancho -> claro del búnker (sendero norte del rancho)
-      { id: 'H3', x1: -27, x2: -27, z1: 53,  z2: 58 },   // jardines norte -> claro del búnker
-      { id: 'H4', x1: 20,  x2: 20,  z1: -14, z2: -9 },   // playa -> campamento (sendero de arena)
-      { id: 'H5', x1: -41, x2: -41, z1: -14, z2: -9 },   // playa oeste -> costa del calamar
       { id: 'H6', x1: 28,  x2: 33,  z1: 58,  z2: 58 },   // jardines norte -> templo
-      { id: 'H7', x1: 35,  x2: 35,  z1: 29,  z2: 34 },   // jardín trasero -> campamento
       { id: 'H8', x1: -47, x2: -42, z1: 18,  z2: 18 }    // rancho -> costa del calamar (sendero sur del rancho)
     ]
   },
@@ -679,6 +675,12 @@ const CONFIG = {
   // piso en y = `y`) a la que se baja por la escotilla del jardín norte. Para el jugador, fundido y
   // teletransporte; para los zombies, un enlace del grid (NAV.link) que cruzan escondidos (ojos rojos al bajar).
   // Cerrada hasta que las 2 estatuas de plantas (al lado de la escotilla) despiertan y comen
+  // F5.16: portal Templo ↔ Calamar, ida y vuelta, gratis. Se prende al abrir el templo (door H6). Solo el jugador:
+  // F cerca del arco, fundido a negro (el de la escotilla) y aparece en `out` del otro. Los zombies no lo cruzan
+  // (el flow field no lo ve: si no llegan, el watchdog los respawnea cerca). Sin collider: no toca el grid
+  PORTAL: { door: 'H6', use: 2.3,
+    temple: { room: 'R20', x: 65, z: 59.2, rot: 0,       out: [65, 61.2] },
+    squid:  { room: 'R19', x: -45, z: -25, rot: Math.PI, out: [-45, -27] } },
   BUNKER: {
     // F5.12: se mudó bajo el mar, al sur del muelle (la jungla norte ocupaba sus x,z de antes)
     x1: -38, x2: -10, z1: -90, z2: -66, y: -8, h: 4,
@@ -853,8 +855,12 @@ const CONFIG = {
   WALLBUYS: [
     { weapon:'shotgun', room:'R2', cost:1200, x: -8, z:11, face: 1 },
     { weapon:'smg',     room:'R3', cost:1500, x: 18, z: 9, face:-1 },
-    { weapon:'rifle',   room:'R13', cost:2000, x: 12, z:30, face: 1, axis:'z' },   // F5.6: afuera de la pared norte del dormitorio
-    { weapon:'lmg',     room:'R6', cost:2500, x:-16, z:24, face: 1 },
+    // F5.16 (Diego): la casa queda con 3 (escopeta, subfusil, revólver; el machete es cuerpo a cuerpo) y cada área
+    // con 1-2: rancho doble cañón + rifle · calamar LMG · búnker bazooka + Uzi · templo ballesta
+    { weapon:'rifle',   room:'R14', cost:2000, x:-56, z:34, face: 1 },                // F5.16: espesura oeste del rancho
+    { weapon:'lmg',     room:'R19', cost:2500, x:-60, z:-4, face:-1, axis:'z' },      // F5.16: espesura norte del calamar
+    { weapon:'uzi',     room:'R17', cost:1200, x:-60, z:53, face: 1, axis:'z' },      // F5.16: espesura sur del claro del búnker
+    { weapon:'crossbow',room:'R20', cost:2000, x: 58, z:56, face: 1, axis:'z', post:true },   // F5.16: tablón en la entrada del templo
     // V2 F3b. axis 'z' = pared a lo largo de x (face ±1 = hacia ±z). y = altura de la tiza (cerca de 1.2 m).
     // post = tablón propio (el muelle no tiene paredes). 'machete' no es arma de inventario: ver CONFIG.MACHETE
     // F5.13: en el tablón de la torre de salvavidas (CONFIG.LIFEGUARD), mirando a la casa
@@ -1002,7 +1008,7 @@ const CONFIG = {
     // F5.13: H5 también 2000 (ahora da a la jungla, que lleva a los jardines); sin H2/H3
     // F5.15: las entradas de las áreas (lianas). Desde la playa (H4, H5) 2000: D11 + 2000 = 3250, lo mismo que los
     // jardines; al templo (H6) 2000; las demás 1500
-    H2:1500, H3:1500, H4:2000, H5:2000, H6:2000, H7:1500, H8:1500
+    H2:1500, H6:2000, H8:1500      // F5.16: sin H3, H4, H5 ni H7
   }
 };
 
