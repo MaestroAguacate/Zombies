@@ -73,7 +73,7 @@ fresh(true); clearZ(); setPlayer(-45, 36);
 const TT = TRAPS.turtles, TC = CONFIG.TRAPS.turtles;
 check(G.roomAt(TC.lever.x, TC.lever.z).id === 'R14', 'palanca del tortugario en el rancho');
 player.pos.set(TC.lever.x + 1, P.height, TC.lever.z + 0.5); G.updateInteract();
-check(G.interactState.kind === 'trap' && G.promptFor(G.interactState).text === '[F] Activate TORTUGAS' && G.promptFor(G.interactState).cost === TC.cost,
+check(G.interactState.kind === 'trap' && G.promptFor(G.interactState).text === '[F] Activate TURTLES' && G.promptFor(G.interactState).cost === TC.cost,
   'cartel: activar tortugas, ' + TC.cost);
 setPlayer(-45, 36);
 const prey = [zombieAt(-47, 22, 5000), zombieAt(-45, 26, 5000), zombieAt(-50, 31, 5000)];

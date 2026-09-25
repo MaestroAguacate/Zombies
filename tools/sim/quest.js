@@ -190,7 +190,7 @@ update(Q.shellFall + 0.1);
 check(QUEST.shell.phase === 'ground' && Math.hypot(QUEST.shell.g.position.x - Q.shellLand.x, QUEST.shell.g.position.z - Q.shellLand.z) < 0.01,
   'cae enfrente de la boca');
 standAt(Q.shellLand.x + 0.6, Q.shellLand.z);
-check(G.promptFor(G.interactState).text === '[F] Pick up CARACOLA' && G.interact() && state.quest.shell && !QUEST.shell.g.visible, 'F la recoge');
+check(G.promptFor(G.interactState).text === '[F] Pick up CONCH SHELL' && G.interact() && state.quest.shell && !QUEST.shell.g.visible, 'F la recoge');
 check(!G.shootShell(), 'ya recogida: no se vuelve a caer');
 CONFIG.WEAPONS.m1911.spread = spread0;
 

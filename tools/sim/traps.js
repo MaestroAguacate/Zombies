@@ -40,7 +40,7 @@ check(!G.interact() && TRAPS.shark.phase === 'idle' && state.points === 1000, 's
 state.points = 10000;
 check(G.interact() && TRAPS.shark.phase === 'on' && state.points === 8500, 'con F: cobra 1500 y arranca');
 G.updateInteract();
-check(/funcionando/.test(G.promptFor(G.interactState).text) && !G.interact() && state.points === 8500, 'andando: no se vuelve a cobrar');
+check(/running/.test(G.promptFor(G.interactState).text) && !G.interact() && state.points === 8500, 'andando: no se vuelve a cobrar');
 
 // 2) tiburón: se come a los del muelle, no a los de la playa; 10 s; recarga 60 s
 fresh(); clearZ();
@@ -55,7 +55,7 @@ check(beach.alive, 'al de la playa no');
 check(state.points === pts, 'sin puntos');
 check(TRAPS.shark.phase === 'cool' && !TRAPS.shark.g.visible, 'a los 10 s para');
 standAt(T.shark.lever.x - 1, T.shark.lever.z);
-check(/recargando/.test(G.promptFor(G.interactState).text) && !G.interact(), 'recargando: no se puede usar');
+check(/recharging/.test(G.promptFor(G.interactState).text) && !G.interact(), 'recargando: no se puede usar');
 run(T.shark.cooldown - 0.5);
 check(TRAPS.shark.phase === 'cool', 'todavía a los 59.5 s');
 run(0.6);

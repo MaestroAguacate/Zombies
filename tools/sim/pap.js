@@ -25,7 +25,7 @@ const press = () => { atPap(); return G.interact(); };
 
 // 1) nombres PaP: las 8 armas, en inglés y distintos
 const names = Object.values(CONFIG.WEAPONS).map(w => w.papName), nW = Object.keys(CONFIG.WEAPONS).length;
-check(names.every(n => n && /^[A-Z' ]+$/.test(n)) && new Set(names).size === nW, `${nW} papName en inglés, distintos`, `(${names.join(' · ')})`);
+check(names.every(n => n && /^[A-Z0-9' ]+$/.test(n)) && new Set(names).size === nW, `${nW} papName en inglés, distintos`, `(${names.join(' · ')})`);
 
 // 2) compra: cartel, cobro, el arma entra, manos vacías
 fresh();

@@ -60,11 +60,11 @@ fresh(); clearZ();
 const c0 = L[1];                                        // jardín trasero
 c0.stage = 1; c0.used = false;
 at(c0.x + 0.8, c0.z);
-check(G.interactState.target === c0 && prompt() === 'Almeja VERDE - you need the fumigator', 'sin fumigador: cartel', `("${prompt()}")`);
+check(G.interactState.target === c0 && prompt() === 'GREEN clam - you need the fumigator', 'sin fumigador: cartel', `("${prompt()}")`);
 hold(2);
 check(!c0.used, 'sin fumigador no se abre');
 CLAMS.have = true; G.updateInteract();
-check(prompt() === '[F] Hold: fumigate Almeja VERDE', 'con fumigador: mantener F', `("${prompt()}")`);
+check(prompt() === '[F] Hold: fumigate GREEN clam', 'con fumigador: mantener F', `("${prompt()}")`);
 hold(1.4);
 check(!c0.used, 'a los 1.4 s todavía no');
 G.keys.KeyF = false; G.tick(dt); G.updateClams(dt);
