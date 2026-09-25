@@ -25,7 +25,7 @@ G.meleeState.lastAttack = -1e12; G.meleeAttack(); weaponsState.phase = 'idle';
 check(!z.alive && STATS.killsBy.knife === 1, 'kill con cuchillo contado');
 z = freshZombie(1, 0, 8.6);
 G.meleeState.lastAttack = -1e12; G.meleeAttack(); weaponsState.phase = 'idle';
-check(G.favoriteWeapon() === 'CUCHILLO (2)', 'arma favorita', `("${G.favoriteWeapon()}")`);
+check(G.favoriteWeapon() === 'KNIFE (2)', 'arma favorita', `("${G.favoriteWeapon()}")`);
 
 // 2) puntos ganados (con doble puntos cuenta lo acreditado), gastos no restan
 const p0 = STATS.pointsEarned;
@@ -65,8 +65,8 @@ G.setSensitivity(1);
 
 // 7) menú: inicio vs pausa
 G.showMenu('main');
-check(G.UI.btnPlay.textContent === 'JUGAR' && G.UI.start.attrs['data-mode'] === 'main', 'menú de inicio');
+check(G.UI.btnPlay.textContent === 'PLAY' && G.UI.start.attrs['data-mode'] === 'main', 'menú de inicio');
 G.showMenu('pause');
-check(G.UI.btnPlay.textContent === 'CONTINUAR' && G.UI.start.attrs['data-mode'] === 'pause', 'menú de pausa');
+check(G.UI.btnPlay.textContent === 'RESUME' && G.UI.start.attrs['data-mode'] === 'pause', 'menú de pausa');
 
 console.log(fail ? `FALLA (${fail})` : 'PASA'); process.exit(fail ? 1 : 0);

@@ -59,7 +59,7 @@ fresh();
 const sp0 = SHIELDST.spot.door, rm = G.ROOMS.find(q => q.id === sp0.room);
 const cxr = (rm.x1 + rm.x2) / 2 - sp0.x, czr = (rm.z1 + rm.z2) / 2 - sp0.z, lr = Math.hypot(cxr, czr);
 player.pos.set(sp0.x + cxr / lr * 0.9, 1.7, sp0.z + czr / lr * 0.9); G.updateInteract();   // 0.9 m hacia el centro del cuarto
-check(G.interactState.kind === 'part' && G.promptFor(G.interactState).text === '[F] Recoger PUERTA DE ALACENA', 'cartel de la pieza');
+check(G.interactState.kind === 'part' && G.promptFor(G.interactState).text === '[F] Pick up CUPBOARD DOOR', 'cartel de la pieza');
 check(G.interact() && state.shield.parts.door && !SHIELDST.pieces.door.visible, 'F la recoge');
 G.updateInteract();
 check(G.interactState.kind !== 'part' || G.interactState.target.key !== 'door', 'no se recoge dos veces');
@@ -67,12 +67,12 @@ check(/class="door"/.test(G.UI.shield.innerHTML) && /board off/.test(G.UI.shield
 
 // 4) banco: sin las 3 no arma; con las 3, mantener F 3 s
 fresh(); state.shield.parts.door = true; atBench();
-check(G.interactState.kind === 'bench' && G.promptFor(G.interactState).text === 'Banco de trabajo - faltan piezas (1/3)', 'banco: faltan piezas (1/3)');
+check(G.interactState.kind === 'bench' && G.promptFor(G.interactState).text === 'Workbench - missing parts (1/3)', 'banco: faltan piezas (1/3)');
 check(!G.interact(), 'F sin piezas: nada');
 hold(S.craftTime + 0.2);
 check(!state.shield.built, 'mantener F sin piezas no arma');
 giveAllParts(); G.updateInteract();
-check(G.promptFor(G.interactState).text === '[F] Mantener para armar el escudo', 'con las 3: "mantener para armar"');
+check(G.promptFor(G.interactState).text === '[F] Hold to build the shield', 'con las 3: "mantener para armar"');
 G.interact(); hold(1.5);
 keys.KeyF = false; G.updateShield(dt);
 check(!state.shield.built && SHIELDST.craftT === 0, 'soltar F a la mitad corta el armado');
@@ -137,7 +137,7 @@ check(Object.values(state.shield.parts).every(v => v) && G.SHIELD_PARTS.every(k 
 G.tick(0.1); G.updateShield(dt);
 check(SHIELDST.benchModel.visible, 'el escudo vuelve a estar en el banco');
 atBench();
-check(G.promptFor(G.interactState).text === '[F] Agarrar el escudo' && G.interact() && state.shield.has && state.shield.hp === S.durability,
+check(G.promptFor(G.interactState).text === '[F] Take the shield' && G.interact() && state.shield.has && state.shield.hp === S.durability,
   'F lo saca del banco con la durabilidad llena');
 
 // 9) teclas 1 y 2

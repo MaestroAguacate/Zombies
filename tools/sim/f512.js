@@ -18,10 +18,10 @@ const H4 = state.doors.H6;
 check(CONFIG.BURN.hedges.every(h => state.doors[h.id] && state.doors[h.id].burn), 'F5.16: 3 lianas que se queman (H2, H6, H8)', CONFIG.BURN.hedges.map(h => h.id).join(' '));
 check(CONFIG.BURN.hedges.length === 3 && !nearNav(70, 60), 'con H6 cerrado no se llega al templo');
 player.pos.set(30.5, P.height, 56.8); G.updateInteract();
-check(G.interactState.kind === 'door' && G.interactState.target === H4 && G.promptFor(G.interactState).text === '[F] Quemar el cerco - 2000', 'cartel: "Quemar el cerco - 2000"');
+check(G.interactState.kind === 'door' && G.interactState.target === H4 && G.promptFor(G.interactState).text === '[F] Burn the vines - 2000', 'cartel: "Quemar el cerco - 2000"');
 const pts = state.points;
 check(G.interact() && H4.burning && !H4.open && state.points === pts - 2000, 'cobra y empieza a arder (todavía cerrado)');
-check(G.promptFor(G.interactState).text === 'El cerco se está quemando...' && !G.interact() && state.points === pts - 2000, 'mientras arde no se vuelve a cobrar');
+check(G.promptFor(G.interactState).text === 'The vines are burning...' && !G.interact() && state.points === pts - 2000, 'mientras arde no se vuelve a cobrar');
 for (let i = 0; i < 60; i++) { G.tick(dt); G.updateGarden(dt); }
 const c = H4.mesh.material.color;
 check(H4.flames.every(f => f.visible) && c.r < 0.8 && H4.collider.solid, 'arde: llamas, se pone negro y sigue frenando');

@@ -109,9 +109,9 @@ function trapNear(room, px, pz, bd) {
 }
 function trapPrompt(T) {
   const C = T.cfg;
-  if (T.phase === 'on') return { text: C.name + ' - funcionando', cost: 0 };
-  if (T.phase === 'cool') return { text: C.name + ' - se está recargando (' + Math.ceil(T.t) + ' s)', cost: 0 };
-  return { text: '[F] Activar ' + C.name, cost: C.cost };
+  if (T.phase === 'on') return { text: C.name + ' - running', cost: 0 };
+  if (T.phase === 'cool') return { text: C.name + ' - recharging (' + Math.ceil(T.t) + ' s)', cost: 0 };
+  return { text: '[F] Activate ' + C.name, cost: C.cost };
 }
 function useTrap(T) {
   if (T.phase !== 'idle' || !spendPoints(T.cfg.cost)) return false;

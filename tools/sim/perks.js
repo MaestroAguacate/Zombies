@@ -49,15 +49,15 @@ check(unreach.length === 0, 'se llega caminando a cada una', unreach.join());
 fresh();
 let pts = state.points;
 check(!useMachine('jugg') && state.points === pts && !G.hasPerk('jugg'), 'sin power: no compra ni cobra');
-check(G.perkStatus('jugg').text === 'JUGGERNOG - necesita energía', 'cartel "necesita energía"');
+check(G.perkStatus('jugg').text === 'JUGGERNOG - needs power', 'cartel "necesita energía"');
 const gen = G.PROPS.find(p => p.id === 'generador');
 player.pos.set(gen.box[1] + 1.2, 1.7, (gen.box[2] + gen.box[3]) / 2); G.updateInteract();
 check(G.interactState.kind === 'power' && G.promptFor(G.interactState).text === 'Energía - faltan 4 generadores', 'sin generadores: la palanca dice que faltan 4');
 check(!G.interact() && !state.power, 'sin generadores: F no la prende (bug del playtest)');
 state.generators.muelle = state.generators.caseta = state.generators.garaje = true; G.updateInteract();
-check(G.promptFor(G.interactState).text === 'Energía - falta 1 generador' && !G.interact() && !state.power, 'con 3 de 4: tampoco');
+check(G.promptFor(G.interactState).text === 'Power - 1 generator missing' && !G.interact() && !state.power, 'con 3 de 4: tampoco');
 state.generators.piscina = true; G.updateInteract();
-check(G.promptFor(G.interactState).text === '[F] Encender la energía', 'con los 4: cartel de la palanca en el sótano');
+check(G.promptFor(G.interactState).text === '[F] Turn on the power', 'con los 4: cartel de la palanca en el sótano');
 check(G.interact() && state.power && state.points === pts, 'F prende la energía, gratis');
 G.updateTheme(dt);
 check(WORLD.lamps.every(l => l.mode === 'steady') &&

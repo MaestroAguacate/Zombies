@@ -36,7 +36,7 @@ state.points = 99999;
 let pts = state.points;
 check(press() && state.points === pts - P.cost && PAPST.phase === 'working', 'cobra 5000 y empieza a trabajar');
 check(state.weapons.length === 0 && G.curDef() === null && weaponsState.model === null, 'única arma adentro: manos vacías');
-check(prompt() === 'Pack-a-Punch trabajando...' && !press(), 'trabajando: cartel y F no hace nada');
+check(prompt() === 'Pack-a-Punch working...' && !press(), 'trabajando: cartel y F no hace nada');
 G.meleeState.lastAttack = -1e9; G.meleeAttack();
 wait(0.6);
 check(weaponsState.phase === 'idle', 'con las manos vacías el cuchillo funciona y vuelve a idle');
@@ -45,11 +45,11 @@ wait(P.time - 0.6 - 0.1);
 check(PAPST.phase === 'working', 'a los 3.9 s sigue trabajando');
 wait(0.15);
 check(PAPST.phase === 'ready' && PAPST.display.m1911.visible, 'a los 4 s sale, con el arma en la bandeja');
-check(prompt() === '[F] Agarrar ' + CONFIG.WEAPONS.m1911.papName, 'cartel para agarrarla');
+check(prompt() === '[F] Take ' + CONFIG.WEAPONS.m1911.papName, 'cartel para agarrarla');
 pts = state.points;
 check(press() && state.points === pts, 'F la agarra (gratis)');
 const s = G.curSlot(), d = G.curDef(), b = CONFIG.WEAPONS.m1911;
-check(s.pap && d.pap && d.name === 'RED TIDE', 'queda mejorada: RED TIDE');
+check(s.pap && d.pap && d.name === 'GRAVE WHISPER', 'queda mejorada: GRAVE WHISPER');
 check(d.damage === b.damage * 2 && d.magSize === Math.ceil(b.magSize * 1.5) && d.reserveMax === Math.ceil(b.reserveMax * 1.5),
   'daño ×2, cargador y reserva ×1.5', `(${d.damage} · ${d.magSize} / ${d.reserveMax})`);
 check(s.mag === d.magSize && s.reserve === d.reserveMax, 'sale llena');
@@ -59,7 +59,7 @@ check(camo > 0, 'modelo con camo');
 check(PAPST.phase === 'idle' && Object.values(PAPST.display).every(m => !m.visible), 'la máquina queda libre');
 // 4) sin re-PaP
 pts = state.points;
-check(prompt() === 'RED TIDE - ya mejorada' && !press() && state.points === pts, 'sin re-PaP: no cobra');
+check(prompt() === 'GRAVE WHISPER - already upgraded' && !press() && state.points === pts, 'sin re-PaP: no cobra');
 
 // 5) daño real ×2 contra un zombie
 function dmgPerShot() {
@@ -85,19 +85,19 @@ fresh(); G.giveWeapon('smg'); press(); wait(P.time + 0.1); press();
 const smg = G.curSlot(); smg.reserve = 10;
 const wb = G.WALLBUYS.find(w => w.weapon === 'smg');
 player.pos.set(wb.mx - 1.2, 1.7, wb.mz); G.updateInteract();
-check(G.promptFor(G.interactState).text === '[F] Munición CICADA - ' + P.ammoCost, 'pared: munición de la mejorada a 2500', `("${G.promptFor(G.interactState).text}")`);
+check(G.promptFor(G.interactState).text === '[F] Ammo HIVEMIND - ' + P.ammoCost, 'pared: munición de la mejorada a 2500', `("${G.promptFor(G.interactState).text}")`);
 pts = state.points;
 check(G.interact() && state.points === pts - P.ammoCost && smg.reserve === Math.ceil(160 * 1.5), 'cobra 2500 y llena 240');
 
 // 7) con dos armas: te quedás con la otra; la de la pared no se duplica
 fresh(); G.giveWeapon('smg');
-check(G.curSlot().id === 'smg' && press(), 'con SUBFUSIL equipado');
+check(G.curSlot().id === 'smg' && press(), 'con SMG equipado');
 check(state.weapons.length === 1 && G.curDef().id === 'm1911' && weaponsState.model !== null, 'mientras trabaja, en la mano queda la M1911');
 state.round = 2;
 let offered = 0;
 for (let i = 0; i < 400; i++) if (G.rollBoxResult() === 'smg') offered++;
 check(offered === 0, 'la caja no ofrece la que está en la máquina');
-G.buyWallWeapon(G.WALLBUYS.find(w => w.weapon === 'smg'));   // se compra otra SUBFUSIL mientras tanto
+G.buyWallWeapon(G.WALLBUYS.find(w => w.weapon === 'smg'));   // se compra otra SMG mientras tanto
 wait(P.time + 0.1); press();
 check(state.weapons.filter(w => w.id === 'smg').length === 1 && state.weapons.find(w => w.id === 'smg').pap, 'al agarrarla, reemplaza a la comprada: una sola, mejorada');
 

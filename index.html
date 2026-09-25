@@ -211,7 +211,7 @@
   <div id="bossbar"><div class="name" id="bossname"></div><div class="bar"><b id="bossfill"></b></div><div class="hat"><b id="bosshat"></b></div></div>
   <div id="cross"><i class="h l"></i><i class="h r"></i><i class="v t"></i><i class="v b"></i></div>
   <div id="hitmark"></div>
-  <div id="reloadmsg">RECARGANDO</div>
+  <div id="reloadmsg">RELOADING</div>
   <div id="pubanner"></div>
   <div id="effects"></div>
   <div id="prompt"></div>
@@ -229,67 +229,67 @@
 </div>
 
 <div id="gameover">
-  <h2>CAÍSTE</h2>
+  <h2>YOU DIED</h2>
   <div class="stats">
-    <span>Ronda alcanzada</span><span id="goRound">0</span>
-    <span>Tiempo</span><span id="goTime">0:00</span>
+    <span>Round reached</span><span id="goRound">0</span>
+    <span>Time</span><span id="goTime">0:00</span>
     <span>Kills</span><span id="goKills">0</span>
     <span>Headshots</span><span id="goHeads">0</span>
-    <span>Kills con cuchillo</span><span id="goKnife">0</span>
-    <span>Arma favorita</span><span id="goFav">—</span>
-    <span>Precisión</span><span id="goAcc">0%</span>
-    <span>Puntos ganados</span><span id="goPts">0</span>
-    <span>Daño recibido</span><span id="goDmg">0</span>
-    <span>Puertas abiertas</span><span id="goDoors">0</span>
+    <span>Knife kills</span><span id="goKnife">0</span>
+    <span>Favorite weapon</span><span id="goFav">—</span>
+    <span>Accuracy</span><span id="goAcc">0%</span>
+    <span>Points earned</span><span id="goPts">0</span>
+    <span>Damage taken</span><span id="goDmg">0</span>
+    <span>Doors opened</span><span id="goDoors">0</span>
     <span>Mystery box</span><span id="goBox">0</span>
-    <span>Récord</span><span id="goBest">0</span>
+    <span>Best</span><span id="goBest">0</span>
   </div>
   <div id="record"></div>
   <div class="menu-btns row">
-    <button id="restart" class="primary">REINICIAR</button>
-    <button id="btnGoMenu">MENÚ</button>
+    <button id="restart" class="primary">RESTART</button>
+    <button id="btnGoMenu">MENU</button>
   </div>
 </div>
 
 <!-- menú de inicio y pausa: mismo overlay, data-mode="main" | "pause" -->
 <div id="start" data-mode="main">
   <h1>BEACH HOUSE ZOMBIES</h1>
-  <p class="sub">MARENA · 34B · COSTA SUR, GUATEMALA</p>
-  <h2 class="pause-only">PAUSA</h2>
+  <p class="sub">MARENA · 34B · SOUTH COAST, GUATEMALA</p>
+  <h2 class="pause-only">PAUSED</h2>
   <div class="menu-btns">
-    <button id="btnPlay" class="primary">JUGAR</button>
-    <button id="btnControls">CONTROLES</button>
-    <button id="btnSettings">AJUSTES</button>
-    <button id="btnQuit" class="pause-only">SALIR AL MENÚ</button>
+    <button id="btnPlay" class="primary">PLAY</button>
+    <button id="btnControls">CONTROLS</button>
+    <button id="btnSettings">SETTINGS</button>
+    <button id="btnQuit" class="pause-only">QUIT TO MENU</button>
   </div>
   <div id="panelControls" class="panel">
     <div class="ctl">
-      <span><kbd>WASD</kbd></span><span>moverse</span>
-      <span><kbd>Shift</kbd></span><span>correr</span>
-      <span><kbd>Espacio</kbd></span><span>saltar</span>
-      <span><kbd>Click</kbd></span><span>disparar</span>
-      <span><kbd>R</kbd></span><span>recargar</span>
-      <span><kbd>Q</kbd></span><span>cambiar arma</span>
-      <span><kbd>V</kbd> / <kbd>Ruedita</kbd></span><span>cuchillo (munición infinita)</span>
-      <span><kbd>Clic der.</kbd></span><span>apuntar (mantener)</span>
-      <span><kbd>G</kbd></span><span>granada (mantener = cocinar, 3 s)</span>
-      <span><kbd>1</kbd> <kbd>2</kbd> / <kbd>3</kbd></span><span>armas / escudo (clic = empujón)</span>
-      <span><kbd>F</kbd></span><span>abrir puerta · comprar arma de pared · mystery box</span>
-      <span><kbd>Esc</kbd></span><span>pausa</span>
-      <span class="dim"><kbd>O</kbd> <kbd>N</kbd> <kbd>H</kbd></span><span class="dim">debug: abrir puertas · grid · overlay</span>
+      <span><kbd>WASD</kbd></span><span>move</span>
+      <span><kbd>Shift</kbd></span><span>sprint</span>
+      <span><kbd>Space</kbd></span><span>jump</span>
+      <span><kbd>Click</kbd></span><span>shoot</span>
+      <span><kbd>R</kbd></span><span>reload</span>
+      <span><kbd>Q</kbd></span><span>switch weapon</span>
+      <span><kbd>V</kbd> / <kbd>Wheel</kbd></span><span>knife (infinite ammo)</span>
+      <span><kbd>Right click</kbd></span><span>aim (hold)</span>
+      <span><kbd>G</kbd></span><span>grenade (hold = cook, 3 s)</span>
+      <span><kbd>1</kbd> <kbd>2</kbd> / <kbd>3</kbd></span><span>weapons / shield (click = bash)</span>
+      <span><kbd>F</kbd></span><span>open door · buy wall weapon · mystery box · use</span>
+      <span><kbd>Esc</kbd></span><span>pause</span>
+      <span class="dim"><kbd>O</kbd> <kbd>N</kbd> <kbd>H</kbd></span><span class="dim">debug: unlock all · noclip · overlay</span>
     </div>
   </div>
   <div id="panelSettings" class="panel">
-    <label>Sensibilidad <input id="sens" type="range" min="20" max="300" step="5" value="100"><span id="sensVal">1.00x</span></label>
-    <label>Volumen <input id="vol" type="range" min="0" max="100" step="1" value="70"><span id="volVal">70%</span></label>
-    <label>Música <input id="musicVol" type="range" min="0" max="100" step="1" value="100"><span id="musicVal">100%</span></label>
-    <label>Efectos <input id="sfxVol" type="range" min="0" max="100" step="1" value="100"><span id="sfxVal">100%</span></label>
-    <label>Números de daño <input id="dmgNums" type="checkbox" checked></label>
-    <label>Calidad <select id="quality"><option value="bajo">Bajo</option><option value="medio" selected>Medio</option><option value="alto">Alto (sombras)</option></select></label>
-    <label>Post-proceso <input id="postFx" type="checkbox" checked></label>
-    <label>Niebla <select id="fogSel"><option value="25">Muy espesa (25 m)</option><option value="40" selected>Normal (40 m)</option><option value="60">Liviana (60 m)</option><option value="90">Casi nada (90 m)</option></select></label>
-    <p class="dim">⚠ Menos niebla = se dibuja más lejos = menos FPS.</p>
-    <p class="dim">Los ajustes duran esta sesión.</p>
+    <label>Sensitivity <input id="sens" type="range" min="20" max="300" step="5" value="100"><span id="sensVal">1.00x</span></label>
+    <label>Volume <input id="vol" type="range" min="0" max="100" step="1" value="70"><span id="volVal">70%</span></label>
+    <label>Music <input id="musicVol" type="range" min="0" max="100" step="1" value="100"><span id="musicVal">100%</span></label>
+    <label>Effects <input id="sfxVol" type="range" min="0" max="100" step="1" value="100"><span id="sfxVal">100%</span></label>
+    <label>Damage numbers <input id="dmgNums" type="checkbox" checked></label>
+    <label>Quality <select id="quality"><option value="bajo">Low</option><option value="medio" selected>Medium</option><option value="alto">High (shadows)</option></select></label>
+    <label>Post-processing <input id="postFx" type="checkbox" checked></label>
+    <label>Fog <select id="fogSel"><option value="25">Very thick (25 m)</option><option value="40" selected>Normal (40 m)</option><option value="60">Light (60 m)</option><option value="90">Almost none (90 m)</option></select></label>
+    <p class="dim">⚠ Less fog = draws farther = lower FPS.</p>
+    <p class="dim">Settings last for this session.</p>
   </div>
   <p id="best"></p>
   <p id="menuMsg"></p>
@@ -410,7 +410,7 @@ const CONFIG = {
     sizes: [1, 1.25, 1.5],           // F5.8: tamaño al azar (radio y vida ×tamaño); el de F5.7 es el chico
     poolSize: 8, maxAlive: 8, spawnInterval: 1.0,
     voice: [1.8, 2.4],
-    banner: '¿QUIÉN DESPERTÓ AL CHICHARITO!?', bannerTime: 4,
+    banner: 'WHO WOKE UP CHICHARITO?!', bannerTime: 4,
     night: { fade: 2.5, hemi: 0.32, hemiSky: 0x5a6f9e, hemiGround: 0x0c0c18, sun: 0.14, sunColor: 0x8fa6ff,
              fog: 0x141a2c, sky: 0x283052 },
     lightning: { time: 0.35, hemiBoost: 2.2 }
@@ -429,7 +429,7 @@ const CONFIG = {
     ink: { jet: 1.5, rest: 3, rate: 36, dps: 20, range: [3, 10], speed: 11, gravity: 9.8, radius: 0.3, pool: 64,
            splat: 1.2, spread: 0.05 },
     voice: [0.7, 1.0],
-    banner: '¡LOS CALAMARES SALIERON DEL MAR!',
+    banner: 'THE SQUIDS CRAWLED OUT OF THE SEA!',
     // F5.11: en las rondas con calamares (solo o mezcla) sale del mar un calamar gigante con un rugido y escupe
     // calamares a la playa: así sale la parte `share`; el resto sale de la orilla (spawns del mar). Solo del mar:
     // si la playa no se alcanza, salen de los spawns normales. Se hunde cuando ya salieron todos
@@ -439,7 +439,7 @@ const CONFIG = {
   },
   // F5.9: rondas de mobs (las que caen en DOGS.firstRound/every). 1ra perros, 2da calamares, después mezcla;
   // cada `bossEvery` (la 5ta, la 10ma...) son 4 Sombrerones normales
-  MOBS: { bossEvery: 5, bosses: 4, mixedBanner: '¡PERROS Y CALAMARES!', bossBanner: '¡CUATRO SOMBRERONES!' },
+  MOBS: { bossEvery: 5, bosses: 4, mixedBanner: 'DOGS AND SQUIDS!', bossBanner: 'FOUR SOMBRERONES!' },
   // F5.9: el cielo por ronda (enemies.js setSky). Se oscurece de a poco de R1 a R15 (noche = la de los perros);
   // R15-R20 truenos; R21+ neblina morada; R25+ además truenos y lluvia. Rondas de mobs: noche, lluvia y rayos
   // más seguidos. La lluvia es un solo LineSegments (creado una vez) alrededor del jugador; frena en los techos
@@ -549,7 +549,7 @@ const CONFIG = {
     pool: { sombrero: 4, calamar: 1 }, spread: 3,
     schedule: k => k === 0 ? ['sombrero'] : k === 1 ? ['calamar'] : ['sombrero', 'sombrero', 'calamar'],
     calamar: {
-      name: 'EL CALAMARÓN', healthMul: 2,          // vida del Sombrerón ×2
+      name: 'THE BIG SQUID', healthMul: 2,          // vida del Sombrerón ×2
       summonCount: 2,                               // F5.10: llama menos (Diego: eran demasiados)
       skin: 0x6a2a6a, suit: 0x241022,
       // con poca vida (squidFrac) lanza calamares cada squidEvery s: vuelan en arco (squidSpeed m/s horizontal) y
@@ -583,21 +583,21 @@ const CONFIG = {
   //              automáticas lo necesitan: con la fórmula la LMG satura el shake en 3 disparos
   WEAPONS: {
     m1911: {
-      id:'m1911', name:'M1911', papName:'RED TIDE',
+      id:'m1911', name:'M1911', papName:'GRAVE WHISPER',
       damage:40, headshotMul:2, magSize:8, reserveMax:80,
       fireRate:300, auto:false, reloadTime:1400,
       range:120, spread:0.004, recoil:1.0, pellets:1, reloadAnim:'pistol',
       model:'pistol', bodyColor:0x30343c, gripColor:0x6b4526
     },
     shotgun: {
-      id:'shotgun', name:'ESCOPETA', papName:'BREAKWATER',
+      id:'shotgun', name:'SHOTGUN', papName:'BONECRUSHER 9000',
       damage:25, headshotMul:2, magSize:6, reserveMax:48,
       fireRate:850, auto:false, reloadTime:2100,
       range:40, spread:0.05, recoil:2.4, pellets:8, recoilReturn:0.30, reloadAnim:'shells',
       model:'shotgun', bodyColor:0x2b2f35, gripColor:0x7a4e28
     },
     smg: {
-      id:'smg', name:'SUBFUSIL', papName:'CICADA',
+      id:'smg', name:'SMG', papName:'HIVEMIND',
       damage:30, headshotMul:2, magSize:32, reserveMax:160,
       fireRate:90, auto:true, reloadTime:1900,
       range:70, spread:0.016, recoil:0.55, pellets:1, recoilReturn:0.34, fireShake:0.07,
@@ -605,14 +605,14 @@ const CONFIG = {
     },
     // el spec no define cadencia: automático a 130ms queda entre SMG y LMG en dps y precio
     rifle: {
-      id:'rifle', name:'RIFLE', papName:'THE LIGHTHOUSE',
+      id:'rifle', name:'RIFLE', papName:'DEAD RECKONING',
       damage:55, headshotMul:2, magSize:30, reserveMax:150,
       fireRate:130, auto:true, reloadTime:2200,
       range:120, spread:0.006, recoil:0.9, pellets:1, recoilReturn:0.28, fireShake:0.10,
       model:'rifle', bodyColor:0x2e3136, gripColor:0x5a3a20
     },
     lmg: {
-      id:'lmg', name:'LMG', papName:'HURRICANE',
+      id:'lmg', name:'LMG', papName:'ABYSS CHOIR',
       damage:60, headshotMul:2, magSize:100, reserveMax:300,
       fireRate:120, auto:true, reloadTime:3800,
       range:100, spread:0.02, recoil:0.8, pellets:1, recoilReturn:0.38, fireShake:0.10, reloadAnim:'belt',
@@ -621,7 +621,7 @@ const CONFIG = {
     //--- exclusivas de la mystery box ---
     // splashRadius  daño en área alrededor del impacto (pared o zombie). splashMin = fracción en el borde
     raygun: {
-      id:'raygun', name:'RAY GUN', papName:'LUNAR TIDE',
+      id:'raygun', name:'RAY GUN', papName:'STARBLEED X9',
       damage:500, headshotMul:1, magSize:20, reserveMax:160,
       fireRate:350, auto:false, reloadTime:2600,
       range:100, spread:0.004, recoil:1.3, pellets:1, recoilReturn:0.25, fireShake:0.25,
@@ -629,7 +629,7 @@ const CONFIG = {
       model:'raygun', bodyColor:0x9aa3ad, gripColor:0x3a3f47
     },
     sniper: {
-      id:'sniper', name:'FRANCOTIRADOR', papName:'PELICAN EYE',
+      id:'sniper', name:'SNIPER', papName:'SILENT REQUIEM',
       damage:300, headshotMul:3, magSize:5, reserveMax:40,
       fireRate:1300, auto:false, reloadTime:3000,
       range:200, spread:0, recoil:3.0, pellets:1, recoilReturn:0.45, fireShake:0.35, adsFov:30,
@@ -639,7 +639,7 @@ const CONFIG = {
     // mag = combustible (1 unidad por tick). hitPoints:0 -> los ticks no dan puntos de impacto (solo kill):
     // si no, 8 zombies en el cono = ~320 pts/s de farmeo.
     flamethrower: {
-      id:'flamethrower', name:'LANZALLAMAS', papName:'WATER VOLCANO', flame:true,
+      id:'flamethrower', name:'FLAMETHROWER', papName:'HELLKISS', flame:true,
       dps:40, headshotMul:1, magSize:40, reserveMax:160,
       fireRate:250, auto:true, reloadTime:2500,
       range:6, coneDeg:15, spread:0, recoil:0.15, pellets:1, fireShake:0.03, hitPoints:0,
@@ -648,21 +648,21 @@ const CONFIG = {
     //--- V2 F3b ---
     // reloadAnim: cómo se ve la recarga (mag = cargador, por defecto). pierce: zombies que atraviesa
     revolver: {
-      id:'revolver', name:'REVÓLVER', papName:'SEA SERPENT',
+      id:'revolver', name:'REVOLVER', papName:'SIX FEET UNDER',
       damage:110, headshotMul:2, magSize:6, reserveMax:48,
       fireRate:400, auto:false, reloadTime:2000,
       range:120, spread:0.003, recoil:1.6, pellets:1, recoilReturn:0.30, fireShake:0.14, reloadAnim:'revolver',
       model:'revolver', bodyColor:0x3a3d44, gripColor:0x6b4526
     },
     doublebarrel: {
-      id:'doublebarrel', name:'DOBLE CAÑÓN', papName:'TWIN TIDES',
+      id:'doublebarrel', name:'DOUBLE BARREL', papName:'CERBERUS',
       damage:45, headshotMul:2, magSize:2, reserveMax:32,
       fireRate:250, auto:false, reloadTime:2000,
       range:30, spread:0.07, recoil:3.0, pellets:10, recoilReturn:0.35, fireShake:0.30, reloadAnim:'break',
       model:'doublebarrel', bodyColor:0x2b2f35, gripColor:0x8a5a30
     },
     crossbow: {
-      id:'crossbow', name:'BALLESTA', papName:'NARWHAL',
+      id:'crossbow', name:'CROSSBOW', papName:'NIGHTSTINGER',
       damage:400, headshotMul:2, magSize:1, reserveMax:24,
       fireRate:900, auto:false, reloadTime:1600,
       range:150, spread:0, recoil:1.2, pellets:1, pierce:3, recoilReturn:0.30, fireShake:0.12, reloadAnim:'bolt',
@@ -670,28 +670,28 @@ const CONFIG = {
     },
     //--- V2 F5.11: armas nuevas. Todas salen en la caja; ninguna en paredes (la bazooka, además, en el búnker) ---
     uzi: {
-      id:'uzi', name:'UZI', papName:'SAND FLEA',
+      id:'uzi', name:'UZI', papName:'LIL RIPPER',
       damage:28, headshotMul:2, magSize:32, reserveMax:192,
       fireRate:70, auto:true, reloadTime:1700,
       range:60, spread:0.022, recoil:0.45, pellets:1, recoilReturn:0.3, fireShake:0.06,
       model:'uzi', bodyColor:0x2a2c30, gripColor:0x1a1c20
     },
     ak47: {
-      id:'ak47', name:'AK-47', papName:'UNDERTOW',
+      id:'ak47', name:'AK-47', papName:'RED ZEPHYR',
       damage:70, headshotMul:2, magSize:30, reserveMax:180,
       fireRate:110, auto:true, reloadTime:2400,
       range:120, spread:0.012, recoil:1.1, pellets:1, recoilReturn:0.3, fireShake:0.12,
       model:'ak47', bodyColor:0x2e3034, gripColor:0x8a4a22
     },
     deagle: {
-      id:'deagle', name:'DESERT EAGLE', papName:'BARRACUDA',
+      id:'deagle', name:'DESERT EAGLE', papName:'THUNDERJAW',
       damage:180, headshotMul:2.5, magSize:7, reserveMax:56,
       fireRate:380, auto:false, reloadTime:1800,
       range:120, spread:0.004, recoil:2.2, pellets:1, recoilReturn:0.32, fireShake:0.18, reloadAnim:'pistol',
       model:'deagle', bodyColor:0x9a9ca2, gripColor:0x2a2a2e
     },
     spas: {
-      id:'spas', name:'SPAS-12', papName:'STORM SURGE',
+      id:'spas', name:'SPAS-12', papName:'MEAT GRINDER',
       damage:30, headshotMul:2, magSize:8, reserveMax:64,
       fireRate:320, auto:false, reloadTime:2600,
       range:40, spread:0.045, recoil:2.0, pellets:8, recoilReturn:0.3, fireShake:0.2, reloadAnim:'shells',
@@ -700,7 +700,7 @@ const CONFIG = {
     // arco: se carga manteniendo el clic y dispara al soltar. Daño de chargeMin (toque) a damage (carga llena,
     // chargeTime s). Atraviesa pierce zombies
     bow: {
-      id:'bow', name:'ARCO', papName:'MANTA RAY',
+      id:'bow', name:'BOW', papName:'ECLIPSE STRING',
       damage:900, headshotMul:2, magSize:1, reserveMax:30, charge:true, chargeTime:0.9, chargeMin:0.2,
       fireRate:250, auto:false, reloadTime:600,
       range:150, spread:0, recoil:1.0, pellets:1, pierce:2, recoilReturn:0.3, fireShake:0.1, reloadAnim:'bolt',
@@ -709,7 +709,7 @@ const CONFIG = {
     // bazooka: cohete que vuela (rocketSpeed m/s) y explota al tocar algo: damage en el centro, radius m, cae
     // como la granada. selfDamage si te agarra la explosión
     bazooka: {
-      id:'bazooka', name:'BAZOOKA', papName:'KRAKEN',
+      id:'bazooka', name:'BAZOOKA', papName:'DOOMSDAY PARADE',
       damage:1600, headshotMul:1, magSize:1, reserveMax:12, rocket:true, rocketSpeed:36, radius:5, selfDamage:60,
       fireRate:900, auto:false, reloadTime:2600,
       range:150, spread:0, recoil:3.2, pellets:1, recoilReturn:0.4, fireShake:0.35, flashColor:0xffa040,
@@ -719,7 +719,7 @@ const CONFIG = {
     // que daña (damage) y empuja (knock m, menos en el borde) a todos los que tenga con línea libre.
     // Al Sombrerón le hace damage × bossMul (daño alto, no insta-kill) y no lo mueve
     wave: {
-      id:'wave', name:'OLA ROMPIENTE', papName:"MARENA'S TSUNAMI", wave:true,
+      id:'wave', name:'BREAKING WAVE', papName:"MARENA'S WRATH", wave:true,
       damage:2500, headshotMul:1, magSize:12, reserveMax:36,
       fireRate:900, auto:false, reloadTime:2600,
       range:12, coneDeg:40, knock:4, bossMul:0.4,          // F5.14: 8 m ±30° -> 12 m ±40°
@@ -812,11 +812,11 @@ const CONFIG = {
     craftTime: 3,         // s manteniendo F en el banco
     bashDamage: 100, bashRange: 2, bashAngle: 60, bashKnock: 2, bashCooldown: 0.8,
     parts: {
-      door:   { name: 'PUERTA DE ALACENA', spots: [
+      door:   { name: 'CUPBOARD DOOR', spots: [
         { room: 'R3', x: 15.5, z: 12.8 }, { room: 'R2', x: 6.5, z: 4.5 }, { room: 'R5', x: 4.5, z: 26.5 } ] },
-      board:  { name: 'TABLA DE SURF ROTA', spots: [
+      board:  { name: 'BROKEN SURFBOARD', spots: [
         { room: 'R6', x: -12.5, z: 18.5 }, { room: 'R10', x: -6, z: -20 }, { room: 'R1', x: 4, z: 3.5 } ] },
-      handle: { name: 'MANIJA DE METAL', spots: [
+      handle: { name: 'METAL HANDLE', spots: [
         { room: 'R7', x: -8, z: 39.5 }, { room: 'R9', x: 16.5, z: 25 }, { room: 'R4', x: 3.5, z: 19.5 } ] }
     }
   },
@@ -857,7 +857,7 @@ const CONFIG = {
   // F5.11: langostino bailarín (el mono de BO). Sale de la caja con `max` cargas; tecla 4. Baila `dance` s
   // atrayendo a todos los zombies (no al boss) y explota con el daño de la granada × dmgMul en `radius` m
   // F5.12: baila 10 s y casi no rebota (bounce/friction propios, en vez de los de la granada)
-  MONKEY: { name: 'LANGOSTINO BAILARÍN', max: 3, dance: 10, beat: 0.25, radius: 5, dmgMul: 1.5, flyMax: 4, pool: 3,
+  MONKEY: { name: 'DANCING SHRIMP', max: 3, dance: 10, beat: 0.25, radius: 5, dmgMul: 1.5, flyMax: 4, pool: 3,
             bounce: 0.12, friction: 9, landDamp: 0.55 },   // landDamp: velocidad horizontal que conserva por cuadro en el piso
   // F5.10: rancho de playa (R14, x -41..-27, z 18..40), detrás del lazo D20. Palapa abierta en el medio con el
   // billar; barra contra el cerco oeste; los 4 postes de la palapa son sólidos (finos: casi no cortan el grid).
@@ -898,7 +898,7 @@ const CONFIG = {
     ],
     every: [3, 4], openTime: 1.5, range: 1.8,
     colors: [0x8a8478, 0x4ad86a, 0xf0d040, 0xa04ae8],               // vacía, verde, amarilla, morada
-    names: ['VACÍA', 'VERDE', 'AMARILLA', 'MORADA'],
+    names: ['EMPTY', 'GREEN', 'YELLOW', 'PURPLE'],
     // premios por color: [tipo, peso]. 'piece' = pieza de la Ola (hasta que sale; si ya salió, su peso se reparte)
     rewards: [
       null,
@@ -1009,13 +1009,13 @@ const CONFIG = {
   // `cooldown` s. Los zombies que matan no dan puntos (sí cuentan para la ronda). Al jugador le pegan
   TRAPS: {
     shark: {
-      name: 'TIBURÓN', cost: 1500, time: 10, cooldown: 60, room: 'R11', lever: { x: 1.75, z: -26.5 },
+      name: 'SHARK', cost: 1500, time: 10, cooldown: 60, room: 'R11', lever: { x: 1.75, z: -26.5 },
       // salta de un lado al otro del tronco del muelle; cada salto elige la z de un zombie del muelle (o al azar)
       zone: { x1: -2, x2: 2, z1: -43.5, z2: -25.5 }, side: 3.6, jumpTime: 1.0, peak: 2.4, radius: 1.4,
       playerDamage: 20
     },
     mower: {
-      name: 'CORTADORA', cost: 1000, time: 20, cooldown: 60, room: 'R12', lever: { x: -16.35, z: 29.0 },
+      name: 'MOWER', cost: 1000, time: 20, cooldown: 60, room: 'R12', lever: { x: -16.35, z: 29.0 },
       // da vueltas en un círculo delante del taller de tablas
       center: { x: -21, z: 24 }, radius: 4, lap: 3.2, hitRadius: 0.9, playerDamage: 40, playerCd: 1.0
     },
@@ -1023,7 +1023,7 @@ const CONFIG = {
     // cada una va al zombie más cercano (a menos de `range` m de la salida, con línea libre) y se lo come (`eat`
     // s masticando). Al jugador no le hacen nada. Al terminar vuelven al corral
     turtles: {
-      name: 'TORTUGAS', cost: 1500, time: 20, cooldown: 60, room: 'R14', lever: { x: -49.2, z: 18.6 },   // F5.13: tortugario corrido
+      name: 'TURTLES', cost: 1500, time: 20, cooldown: 60, room: 'R14', lever: { x: -49.2, z: 18.6 },   // F5.13: tortugario corrido
       exit: { x: -49.3, z: 21 }, count: 6, stagger: 0.4, speed: 3.4, range: 14, reach: 0.9, eat: 0.7,
       radius: 0.3, scale: 0.9,
       biteRound: 10          // F5.11: hasta esta ronda matan de un mordisco; después cada uno saca la vida de la R10
@@ -1098,7 +1098,7 @@ const CONFIG = {
   },
   // V2 F2.7: granadas (tecla G; mantener = cocinar). Ver src/grenades.js
   GRENADE: {
-    name: 'GRANADA',
+    name: 'GRENADE',
     max: 4, perRound: 2,           // +2 al empezar cada ronda, tope 4. Max Ammo NO las recarga
     fuse: 3.0,                     // s de mecha total desde que sacás el pin (cocinar la consume)
     radius: 5,                     // m (3D, al centro del cuerpo), con línea libre (no atraviesa paredes)
@@ -1183,7 +1183,7 @@ const CONFIG = {
   // 1 headshot (300) mata rondas 1-2. 2 headshots (600) mata hasta ronda 5 (pide "hasta ronda 4").
   // Golpe al cuerpo sin apuntar cabeza es más débil: 1 mata solo ronda 1, 2 solo hasta ronda 2.
   KNIFE: {
-    id:'knife', name:'CUCHILLO',
+    id:'knife', name:'KNIFE',
     damage:150, headshotMul:2, range:2, cooldown:800, swingTime:380,
     bladeColor:0xcfd6dc, handleColor:0x3a2a1c
   },
@@ -1197,9 +1197,9 @@ const CONFIG = {
     spinSpeed: 2.4, bobFreq: 2.0, bobAmp: 0.12,
     poolSize: 8,
     types: {
-      maxammo:      { color: 0xffd23a, label: 'MUNICIÓN MÁXIMA' },
-      instakill:    { color: 0xff3a3a, label: 'UN GOLPE, UN MUERTO', duration: 30 },
-      doublepoints: { color: 0x3aa0ff, label: 'PUNTOS DOBLES',       duration: 30 },
+      maxammo:      { color: 0xffd23a, label: 'MAX AMMO' },
+      instakill:    { color: 0xff3a3a, label: 'INSTA-KILL', duration: 30 },
+      doublepoints: { color: 0x3aa0ff, label: 'DOUBLE POINTS',       duration: 30 },
       // F5.10: al agarrarlo mueren todos los zombies vivos (menos los bosses), sin puntos ni drops; los cuerpos
       // arden `burn` s y mientras tanto no sale nadie nuevo
       // F5.13: y siempre da points(ronda) puntos (fijo: el doble puntos no lo duplica)
@@ -2125,7 +2125,7 @@ function buildAtlases() {
     });
     // "SE VENDE" pintado a mano
     c.fillStyle = '#d8d0bc'; c.fillRect(128, 384, 256, 128);
-    c.fillStyle = 'rgba(170,40,30,.85)'; c.font = 'bold 44px monospace'; c.fillText('SE VENDE', 256, 430);
+    c.fillStyle = 'rgba(170,40,30,.85)'; c.font = 'bold 44px monospace'; c.fillText('FOR SALE', 256, 430);
     c.font = 'bold 22px monospace'; c.fillText('TEL 5? 34 ??', 256, 478);
   }, false);
   atlasRect('sign34', 0, 0, 256, 128, S, S);
@@ -7385,7 +7385,7 @@ function bossDeath(z) {
   const pts = B.reward.points + (perk ? 0 : B.reward.noPerkPoints);
   state.points += pts; STATS.pointsEarned += pts; pendingPts += pts;   // fijo: el doble puntos no lo duplica
   z.act = null;
-  showBanner(bossName(z) + ' CAYÓ', 3);
+  showBanner(bossName(z) + ' IS DOWN', 3);
   sfxBossRoar();
 }
 // perk gratis al azar que no tengas (aunque no haya power). null = ya tenés el máximo o no queda ninguno
@@ -7894,7 +7894,7 @@ function queueRound(n, delay) {
   roundState.pauseT = delay;
   dodgeDogs(n);
   const dogs = isDogRound(n);
-  showBanner(dogs ? mobBanner(mobKind((roundState.mobCount || 0) + 1)) : 'RONDA ' + n, delay);
+  showBanner(dogs ? mobBanner(mobKind((roundState.mobCount || 0) + 1)) : 'ROUND ' + n, delay);
   roundState.dogBanner = dogs;
   setSky(n, dogs);
 }
@@ -7951,7 +7951,7 @@ function favoriteWeapon() {
   for (const k in STATS.killsBy) if (STATS.killsBy[k] > n) { n = STATS.killsBy[k]; best = k; }
   if (!best) return '—';
   const name = best === 'knife' ? CONFIG.KNIFE.name : best === 'grenade' ? CONFIG.GRENADE.name
-             : best === 'shield' ? 'ESCUDO' : best === 'machete' ? CONFIG.MACHETE.name : CONFIG.WEAPONS[best].name;
+             : best === 'shield' ? 'SHIELD' : best === 'machete' ? CONFIG.MACHETE.name : CONFIG.WEAPONS[best].name;
   return name + ' (' + n + ')';
 }
 
@@ -8857,9 +8857,9 @@ function papMissing() {
   const g = GEN_KEYS.filter(k => !state.generators[k]).length;
   const b = SOUL_KEYS.filter(k => state.souls[k] < CONFIG.SOULS.need).length;
   const parts = [];
-  if (g) parts.push(g + (g === 1 ? ' generador' : ' generadores'));
-  if (b) parts.push(b + (b === 1 ? ' caja de almas' : ' cajas de almas'));
-  return 'faltan ' + parts.join(' y ');
+  if (g) parts.push(g + (g === 1 ? ' generator' : ' generators'));
+  if (b) parts.push(b + (b === 1 ? ' soul box' : ' soul boxes'));
+  return parts.join(' and ') + ' missing';
 }
 // se prende una sola vez por partida (resetRelics la apaga)
 function checkPap() {
@@ -8913,12 +8913,12 @@ function papIdle() {
 }
 function papPrompt() {
   const P = CONFIG.PAP;
-  if (!RELICS.papOn) return { text: 'Pack-a-Punch apagado - ' + papMissing(), cost: 0 };
-  if (PAPST.phase === 'working') return { text: 'Pack-a-Punch trabajando...', cost: 0 };
-  if (PAPST.phase === 'ready') return { text: '[F] Agarrar ' + papDef(PAPST.slot.id).name, cost: 0 };
+  if (!RELICS.papOn) return { text: 'Pack-a-Punch off - ' + papMissing(), cost: 0 };
+  if (PAPST.phase === 'working') return { text: 'Pack-a-Punch working...', cost: 0 };
+  if (PAPST.phase === 'ready') return { text: '[F] Take ' + papDef(PAPST.slot.id).name, cost: 0 };
   const s = curSlot();
-  if (!s) return { text: 'Pack-a-Punch - sin arma', cost: 0 };
-  if (s.pap) return { text: slotDef(s).name + ' - ya mejorada', cost: 0 };
+  if (!s) return { text: 'Pack-a-Punch - no weapon', cost: 0 };
+  if (s.pap) return { text: slotDef(s).name + ' - already upgraded', cost: 0 };
   return { text: '[F] Pack-a-Punch ' + CONFIG.WEAPONS[s.id].name + ' - ' + P.cost, cost: P.cost };
 }
 function updatePap(dt) {
@@ -9115,9 +9115,9 @@ function paintMachine(key) {
 // qué dice la máquina (y si se puede comprar). Lo usan el prompt y buyPerk
 function perkStatus(key) {
   const P = CONFIG.PERKS.list[key];
-  if (!state.power) return { text: P.name + ' - necesita energía', ok: false, cost: 0 };
-  if (hasPerk(key)) return { text: P.name + ' - ya la tenés', ok: false, cost: 0 };
-  if (state.perks.length >= CONFIG.PERKS.max) return { text: 'Máximo ' + CONFIG.PERKS.max + ' perks', ok: false, cost: 0 };
+  if (!state.power) return { text: P.name + ' - needs power', ok: false, cost: 0 };
+  if (hasPerk(key)) return { text: P.name + ' - already owned', ok: false, cost: 0 };
+  if (state.perks.length >= CONFIG.PERKS.max) return { text: 'Max ' + CONFIG.PERKS.max + ' perks', ok: false, cost: 0 };
   return { text: '[F] ' + P.name + ' - ' + P.cost, ok: true, cost: P.cost };
 }
 function buyPerk(key) {
@@ -9281,11 +9281,11 @@ function pickPart(k) {
 // banco: qué dice y qué hace F (agarrar es un toque; armar es mantener, en updateShield)
 function benchPrompt() {
   const S = state.shield;
-  if (S.has) return { text: 'ESCUDO - ya lo tenés', cost: 0 };
-  if (S.built) return { text: '[F] Agarrar el escudo', cost: 0 };
+  if (S.has) return { text: 'SHIELD - already owned', cost: 0 };
+  if (S.built) return { text: '[F] Take the shield', cost: 0 };
   const n = partsCount();
-  if (n < SHIELD_PARTS.length) return { text: 'Banco de trabajo - faltan piezas (' + n + '/' + SHIELD_PARTS.length + ')', cost: 0 };
-  return { text: '[F] Mantener para armar el escudo', cost: 0 };
+  if (n < SHIELD_PARTS.length) return { text: 'Workbench - missing parts (' + n + '/' + SHIELD_PARTS.length + ')', cost: 0 };
+  return { text: '[F] Hold to build the shield', cost: 0 };
 }
 function benchPress() {
   const S = state.shield;
@@ -9337,7 +9337,7 @@ function breakShield() {
   const S = state.shield;
   S.has = false; S.hp = 0;
   unequipShield();
-  sfxShieldBreak(); showBanner('ESCUDO ROTO', 1.4);
+  sfxShieldBreak(); showBanner('SHIELD BROKEN', 1.4);
 }
 
 // clic con el escudo equipado: empujón en cono al frente, con línea libre. Devuelve cuántos pegó
@@ -9376,7 +9376,7 @@ function updateShield(dt) {
       SHIELDST.craftT = 0; S.built = true;
       for (const k of SHIELD_PARTS) SHIELDST.pieces[k].visible = false;
       takeShield();
-      showBanner('ESCUDO ARMADO', 1.4);
+      showBanner('SHIELD BUILT', 1.4);
     }
   } else SHIELDST.craftT = 0;
   UI.craft.style.opacity = SHIELDST.craftT > 0 ? '1' : '0';
@@ -9440,7 +9440,7 @@ function buildQuest() {
   cglow.position.y = 0.2;
   cg.add(cglow);
   cg.visible = false; scene.add(cg);
-  QUEST.coco = { kind: 'coco', name: 'COCO DORADO', phase: 'none', room: 'R10', level: 0, x: 0, z: 0, vy: 0, t: 0,
+  QUEST.coco = { kind: 'coco', name: 'GOLDEN COCONUT', phase: 'none', room: 'R10', level: 0, x: 0, z: 0, vy: 0, t: 0,
                  g: cg, mesh: cm, glow: cglow };
   // cuerda de guitarra: rollo dorado con brillo (se ve desde lejos)
   const sg = new THREE.Group();
@@ -9453,7 +9453,7 @@ function buildQuest() {
   glow.position.y = 0.3;
   sg.add(glow);
   sg.visible = false; scene.add(sg);
-  QUEST.string = { kind: 'string', name: 'CUERDA DE GUITARRA', phase: 'none', room: null, level: 0, x: 0, z: 0, g: sg, glow };
+  QUEST.string = { kind: 'string', name: 'GUITAR STRING', phase: 'none', room: null, level: 0, x: 0, z: 0, g: sg, glow };
   // caracola (F5.9): arriba de la tortuga. F5.13: en la cabeza del calamar
   buildSquidHead();
   buildTurtle();
@@ -9474,7 +9474,7 @@ function buildQuest() {
   shg.add(hit);
   scene.add(shg);
   WORLD.hitMeshes.push(hit);
-  QUEST.shell = { kind: 'shell', name: 'CARACOLA', phase: 'dull', room: Q.shellLand.room, level: 0, x: 0, z: 0, t: 0,
+  QUEST.shell = { kind: 'shell', name: 'CONCH SHELL', phase: 'dull', room: Q.shellLand.room, level: 0, x: 0, z: 0, t: 0,
                   g: shg, mat: shMat, glow: shGlow, hit, from: new THREE.Vector3(), to: new THREE.Vector3() };
   placeShellOnTurtle();
 
@@ -9545,8 +9545,8 @@ function buildWorkshop() {
     c.fillStyle = '#e8dcc0'; c.fillRect(0, 0, s, s);
     c.fillStyle = '#2f7ab0'; c.fillRect(0, s * 0.72, s, s * 0.1);
     c.fillStyle = '#3a2a1c'; c.textAlign = 'center';
-    c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.fillText('TALLER', s / 2, s * 0.34);
-    c.font = 'bold ' + Math.floor(s * 0.13) + 'px monospace'; c.fillText('DE TABLAS', s / 2, s * 0.6);
+    c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.fillText('BOARD', s / 2, s * 0.34);
+    c.font = 'bold ' + Math.floor(s * 0.13) + 'px monospace'; c.fillText('WORKSHOP', s / 2, s * 0.6);
   }, 1, 128);
   tex.magFilter = THREE.LinearFilter;
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.55), new THREE.MeshLambertMaterial({ map: tex }));
@@ -9731,7 +9731,7 @@ function setSquidHead(n, snap) {
   if (squidHeadSolid(n >= H.openRound)) {
     buildNavGrid();
     if (typeof FLOW !== 'undefined' && FLOW.dist) updateFlowField(true);
-    if (SQHEAD.open && !snap) showBanner('LA CABEZA DEL CALAMAR SE ABRIÓ', 3);
+    if (SQHEAD.open && !snap) showBanner('THE SQUID HEAD OPENED', 3);
   }
 }
 function moveSquidHead(y) {
@@ -9809,12 +9809,12 @@ function haveWave() {
 }
 function workshopPrompt() {
   if (state.quest.built) {
-    if (haveWave()) return { text: slotDef(QUEST.slot).name + ' - ya la tenés', cost: 0 };
-    return { text: '[F] Agarrar ' + slotDef(QUEST.slot).name, cost: 0 };
+    if (haveWave()) return { text: slotDef(QUEST.slot).name + ' - already owned', cost: 0 };
+    return { text: '[F] Take ' + slotDef(QUEST.slot).name, cost: 0 };
   }
   const n = questCount();
-  if (n < 3) return { text: 'Taller de tablas - faltan piezas (' + n + '/3)', cost: 0 };
-  return { text: '[F] Mantener para armar la ' + CONFIG.WEAPONS.wave.name, cost: 0 };
+  if (n < 3) return { text: 'Board workshop - missing parts (' + n + '/3)', cost: 0 };
+  return { text: '[F] Hold to build the ' + CONFIG.WEAPONS.wave.name, cost: 0 };
 }
 function workshopPress() {
   if (weaponsState.phase !== 'grenade') {
@@ -10301,7 +10301,7 @@ function buildRancho() {
     s.position.set(x, y, z); s.rotation.y = ry; scene.add(s);
   };
   sign('RANCHO', 'DON MARENA', cx, P.h - 0.2, P.z1 - 0.12, Math.PI, 1.8);
-  sign('TORTUGARIO', 'NO MOLESTAR', -50.4, 1.55, 24.5, 0, 1.0);
+  sign('TURTLE PEN', 'DO NOT DISTURB', -50.4, 1.55, 24.5, 0, 1.0);
   // foquitos colgando del borde de la palapa: un InstancedMesh MeshBasic que late (sin luces)
   const n = 28, geo = new THREE.BoxGeometry(0.12, 0.16, 0.12);
   const bulbs = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: 0xffd890 }), n);
@@ -10690,8 +10690,8 @@ function buildLifeguard() {
   const tex = makeTex((c, s) => {
     c.fillStyle = '#d8322a'; c.fillRect(0, 0, s, s);
     c.fillStyle = '#fff'; c.textAlign = 'center';
-    c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.fillText('SALVA', s / 2, s * 0.42);
-    c.fillText('VIDAS', s / 2, s * 0.68);
+    c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.fillText('LIFE', s / 2, s * 0.42);
+    c.fillText('GUARD', s / 2, s * 0.68);
   }, 1, 128);
   tex.magFilter = THREE.LinearFilter;
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.6), new THREE.MeshLambertMaterial({ map: tex }));
@@ -11119,9 +11119,9 @@ function trapNear(room, px, pz, bd) {
 }
 function trapPrompt(T) {
   const C = T.cfg;
-  if (T.phase === 'on') return { text: C.name + ' - funcionando', cost: 0 };
-  if (T.phase === 'cool') return { text: C.name + ' - se está recargando (' + Math.ceil(T.t) + ' s)', cost: 0 };
-  return { text: '[F] Activar ' + C.name, cost: C.cost };
+  if (T.phase === 'on') return { text: C.name + ' - running', cost: 0 };
+  if (T.phase === 'cool') return { text: C.name + ' - recharging (' + Math.ceil(T.t) + ' s)', cost: 0 };
+  return { text: '[F] Activate ' + C.name, cost: C.cost };
 }
 function useTrap(T) {
   if (T.phase !== 'idle' || !spendPoints(T.cfg.cost)) return false;
@@ -11418,7 +11418,7 @@ function buildBunker() {
   const sign = makeTex((c, s) => {
     c.fillStyle = '#1a0806'; c.fillRect(0, 0, s, s);
     c.fillStyle = '#ff3a2a'; c.textAlign = 'center';
-    c.font = 'bold ' + Math.floor(s * 0.13) + 'px monospace'; c.fillText('FUERA DE', s / 2, s * 0.45); c.fillText('SERVICIO', s / 2, s * 0.65);
+    c.font = 'bold ' + Math.floor(s * 0.13) + 'px monospace'; c.fillText('OUT OF', s / 2, s * 0.45); c.fillText('ORDER', s / 2, s * 0.65);
   }, 1, 128);
   sign.magFilter = THREE.LinearFilter;
   const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.1), new THREE.MeshBasicMaterial({ map: sign }));
@@ -11498,7 +11498,7 @@ function buildHatch() {
   const sign = makeTex((c, s) => {
     c.fillStyle = '#2a2a28'; c.fillRect(0, 0, s, s);
     c.fillStyle = '#f0c020'; c.textAlign = 'center';
-    c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.fillText('BÚNKER', s / 2, s * 0.45);
+    c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.fillText('BUNKER', s / 2, s * 0.45);
     c.font = 'bold ' + Math.floor(s * 0.12) + 'px monospace'; c.fillText('34B', s / 2, s * 0.7);
   }, 1, 128);
   sign.magFilter = THREE.LinearFilter;
@@ -11612,7 +11612,7 @@ function openBunker() {
   BUNK.hole.visible = true;
   BUNK.lamp.material.color.setHex(0x3aff5a);
   BUNK.seahorse.visible = true;
-  showBanner('SE ABRIÓ EL BÚNKER', 3);
+  showBanner('THE BUNKER OPENED', 3);
   sfxShellRise();
   return true;
 }
@@ -11630,8 +11630,8 @@ function hatchNear(room, px, pz, bd) {
   return null;
 }
 function hatchPrompt(t) {
-  if (!BUNK.open) return { text: 'Búnker cerrado', cost: 0 };
-  return { text: t.down ? '[F] Bajar al búnker' : '[F] Subir al jardín', cost: 0 };
+  if (!BUNK.open) return { text: 'Bunker closed', cost: 0 };
+  return { text: t.down ? '[F] Go down to the bunker' : '[F] Climb up', cost: 0 };
 }
 function useHatch(t) {
   if (!BUNK.open || BUNK.fadeT > 0) return false;
@@ -11729,7 +11729,7 @@ function openPortals() {
   PORTAL.tomb.visible = false;
   const i = WORLD.hitMeshes.indexOf(PORTAL.tombHit); if (i >= 0) WORLD.hitMeshes.splice(i, 1);
   for (const A of PORTAL.arcs) { A.arc.visible = A.ring.visible = A.core.visible = true; }
-  showBanner('SE ABRIÓ UN PORTAL');
+  showBanner('A PORTAL OPENED', 3);
   sfxShieldTake();
 }
 function portalNear(room, px, pz, bd) {
@@ -11743,8 +11743,8 @@ function portalNear(room, px, pz, bd) {
   return null;
 }
 function portalPrompt(t) {
-  if (PORTAL.cd > 0) return { text: 'El portal se está recargando...', cost: 0 };
-  return { text: t.portal === 'temple' ? '[F] Viajar a la Playa del Calamar' : '[F] Viajar al Templo', cost: 0 };
+  if (PORTAL.cd > 0) return { text: 'The portal is recharging...', cost: 0 };
+  return { text: t.portal === 'temple' ? '[F] Travel to Squid Beach' : '[F] Travel to the Temple', cost: 0 };
 }
 function usePortal(t) {
   if (!PORTAL.open || PORTAL.cd > 0 || BUNK.fadeT > 0) return false;
@@ -11976,12 +11976,12 @@ function clamNear(room, px, pz, bd) {
 }
 function clamReady(c) { return CLAMS.have && c.stage > 0 && !c.used; }
 function clamPrompt(it) {
-  if (it.kind === 'fumigator') return { text: '[F] Agarrar FUMIGADOR', cost: 0 };
+  if (it.kind === 'fumigator') return { text: '[F] Take FUMIGATOR', cost: 0 };
   const c = it.target;
-  if (c.stage === 0 || c.used) return { text: 'Almeja vacía', cost: 0 };
-  const name = 'Almeja ' + CONFIG.CLAMS.names[c.stage];
-  if (!CLAMS.have) return { text: name + ' - necesitás el fumigador', cost: 0 };
-  return { text: '[F] Mantener: fumigar ' + name, cost: 0 };
+  if (c.stage === 0 || c.used) return { text: 'Empty clam', cost: 0 };
+  const name = CONFIG.CLAMS.names[c.stage] + ' clam';
+  if (!CLAMS.have) return { text: name + ' - you need the fumigator', cost: 0 };
+  return { text: '[F] Hold: fumigate ' + name, cost: 0 };
 }
 function clamPress(it) {
   if (it.kind === 'fumigator') {
@@ -11989,7 +11989,7 @@ function clamPress(it) {
     if (F.taken) return false;
     F.taken = true; F.g.visible = false; CLAMS.have = true;
     sfxPartPickup();
-    showBanner('FUMIGADOR', 1.5);
+    showBanner('FUMIGATOR', 1.5);
     return true;
   }
   return clamReady(it.target);
@@ -12094,19 +12094,19 @@ function initUI() {
 //--- prompt de interacción [F] ---
 let promptText = '', promptPoor = null, promptDenyT = 0;
 function promptFor(it) {
-  if (it.kind === 'door' && it.target.power) return { text: 'Portón - se abre con la energía', cost: 0 };   // F5.7
-  if (it.kind === 'door' && it.target.burning) return { text: 'El cerco se está quemando...', cost: 0 };   // F5.12
-  if (it.kind === 'door' && it.target.burn) return { text: '[F] Quemar el cerco - ' + it.target.cost, cost: it.target.cost };
-  if (it.kind === 'door') return { text: '[F] Abrir puerta - ' + it.target.cost, cost: it.target.cost };
-  if (it.kind === 'gen') return { text: 'Generador apagado - [V] golpealo con el cuchillo', cost: 0 };
+  if (it.kind === 'door' && it.target.power) return { text: 'Gate - opens with the power', cost: 0 };   // F5.7
+  if (it.kind === 'door' && it.target.burning) return { text: 'The vines are burning...', cost: 0 };   // F5.12
+  if (it.kind === 'door' && it.target.burn) return { text: '[F] Burn the vines - ' + it.target.cost, cost: it.target.cost };
+  if (it.kind === 'door') return { text: '[F] Open door - ' + it.target.cost, cost: it.target.cost };
+  if (it.kind === 'gen') return { text: 'Generator off - [V] hit it with the knife', cost: 0 };
   if (it.kind === 'perk') { const st = perkStatus(it.target.key); return { text: st.text, cost: st.cost }; }
   if (it.kind === 'power') {                                        // F5.6: pide los 4 generadores
     const n = powerMissing();
-    return { text: n ? 'Energía - ' + (n === 1 ? 'falta 1 generador' : 'faltan ' + n + ' generadores') : '[F] Encender la energía', cost: 0 };
+    return { text: n ? 'Power - ' + (n === 1 ? '1 generator missing' : n + ' generators missing') : '[F] Turn on the power', cost: 0 };
   }
-  if (it.kind === 'part') return { text: '[F] Recoger ' + CONFIG.SHIELD.parts[it.target.key].name, cost: 0 };
+  if (it.kind === 'part') return { text: '[F] Pick up ' + CONFIG.SHIELD.parts[it.target.key].name, cost: 0 };
   if (it.kind === 'bench') return benchPrompt();
-  if (it.kind === 'qpiece') return { text: '[F] Recoger ' + it.target.name, cost: 0 };   // F5.5
+  if (it.kind === 'qpiece') return { text: '[F] Pick up ' + it.target.name, cost: 0 };   // F5.5
   if (it.kind === 'workshop') return workshopPrompt();
   if (it.kind === 'trap') return trapPrompt(it.target);   // F5.9
   if (it.kind === 'hatch') return hatchPrompt(it.target); // F5.11
@@ -12114,17 +12114,17 @@ function promptFor(it) {
   if (it.kind === 'fumigator' || it.kind === 'clam') return clamPrompt(it);   // F5.14
   if (it.kind === 'pap') return papPrompt();
   if (it.kind === 'box') {
-    if (BOX.phase === 'ready') return { text: '[F] Agarrar ' + (BOX.result === 'monkey' ? CONFIG.MONKEY.name : CONFIG.WEAPONS[BOX.result].name), cost: 0 };
+    if (BOX.phase === 'ready') return { text: '[F] Take ' + (BOX.result === 'monkey' ? CONFIG.MONKEY.name : CONFIG.WEAPONS[BOX.result].name), cost: 0 };
     return { text: '[F] Mystery Box - ' + CONFIG.BOX.cost, cost: CONFIG.BOX.cost };
   }
   const wb = it.target;
-  if (wb.weapon === 'machete') return state.machete ? { text: 'MACHETE - ya lo tenés', cost: 0 }
-                                                     : { text: '[F] Comprar MACHETE - ' + wb.cost, cost: wb.cost };
+  if (wb.weapon === 'machete') return state.machete ? { text: 'MACHETE - already owned', cost: 0 }
+                                                     : { text: '[F] Buy MACHETE - ' + wb.cost, cost: wb.cost };
   const owned = state.weapons.find(w => w.id === wb.weapon);
-  if (!owned) return { text: '[F] Comprar ' + CONFIG.WEAPONS[wb.weapon].name + ' - ' + wb.cost, cost: wb.cost };
+  if (!owned) return { text: '[F] Buy ' + CONFIG.WEAPONS[wb.weapon].name + ' - ' + wb.cost, cost: wb.cost };
   const def = slotDef(owned), ac = ammoCostOf(owned);            // F2b: mejorada = su nombre y munición a 2500
-  if (owned.reserve >= def.reserveMax) return { text: def.name + ' - munición llena', cost: 0 };
-  return { text: '[F] Munición ' + def.name + ' - ' + ac, cost: ac };
+  if (owned.reserve >= def.reserveMax) return { text: def.name + ' - ammo full', cost: 0 };
+  return { text: '[F] Ammo ' + def.name + ' - ' + ac, cost: ac };
 }
 function updatePromptUI(dt) {
   const it = interactState;
@@ -12164,8 +12164,8 @@ function showPowerupBanner(type) {
 function updatePowerupUI(dt) {
   if (puT > 0) { puT -= dt; if (puT < 0.6) UI.pu.style.opacity = '0'; }
   const parts = [];
-  if (state.effects.instakill > 0) parts.push('<b style="color:#ff5a4d">UN GOLPE</b> ' + Math.ceil(state.effects.instakill) + 's');
-  if (state.effects.doublePoints > 0) parts.push('<b style="color:#5ab0ff">x2 PUNTOS</b> ' + Math.ceil(state.effects.doublePoints) + 's');
+  if (state.effects.instakill > 0) parts.push('<b style="color:#ff5a4d">INSTA-KILL</b> ' + Math.ceil(state.effects.instakill) + 's');
+  if (state.effects.doublePoints > 0) parts.push('<b style="color:#5ab0ff">DOUBLE POINTS</b> ' + Math.ceil(state.effects.doublePoints) + 's');
   UI.fx.innerHTML = parts.join('<br>');
 }
 
@@ -12177,7 +12177,7 @@ function resetHUD() {
   UI.banner.style.opacity = '0';
   UI.go.classList.remove('show');
   UI.round.textContent = '';
-  UI.best.textContent = 'Récord: ronda ' + loadHighScore();
+  UI.best.textContent = 'Best: round ' + loadHighScore();
 }
 // F5.12: la ronda en números romanos (12 -> XII)
 function roman(n) {
@@ -12205,8 +12205,8 @@ const MENU = { started: false };
 function showMenu(mode) {                  // 'main' | 'pause' | null (ocultar)
   if (!mode) { UI.start.classList.add('hidden'); return; }
   UI.start.setAttribute('data-mode', mode);
-  UI.btnPlay.textContent = mode === 'pause' ? 'CONTINUAR' : 'JUGAR';
-  UI.best.textContent = 'Récord: ronda ' + loadHighScore();
+  UI.btnPlay.textContent = mode === 'pause' ? 'RESUME' : 'PLAY';
+  UI.best.textContent = 'Best: round ' + loadHighScore();
   UI.start.classList.remove('hidden');
 }
 function menuPanel(which) {                // abre uno, cierra el otro; clic de nuevo = cerrar
@@ -12233,7 +12233,7 @@ function showGameOver(isNew, best) {
   UI.goDoors.textContent = STATS.doors + ' / ' + Object.keys(state.doors).length;
   UI.goBox.textContent = STATS.boxUses;
   UI.goBest.textContent = best;
-  UI.record.textContent = isNew ? 'NUEVO RÉCORD' : '';
+  UI.record.textContent = isNew ? 'NEW RECORD' : '';
   UI.go.classList.add('show');
 }
 function updateHUD(dt) {
@@ -12360,9 +12360,9 @@ function updateDebug(dt) {
     (renderer.info ? '  DRAW ' + renderer.info.render.calls : '') +
     (THEMEFX.quality ? '\nCAL  -' + THEMEFX.quality + ' (' + QUALITY.msg + ')' : '') +
     '\nXZ   ' + player.pos.x.toFixed(1) + ' , ' + player.pos.z.toFixed(1) +
-    '\nSALA ' + (r ? r.id + ' ' + r.name : 'FUERA') +
+    '\nROOM ' + (r ? r.id + ' ' + r.name : 'OUTSIDE') +
     '\nHP   ' + Math.round(state.health) +
-    '\nRND  ' + state.round + '  quedan ' + zombiesLeft() + '  ' + roundState.phase +
+    '\nRND  ' + state.round + '  left ' + zombiesLeft() + '  ' + roundState.phase +
     '\nPREC ' + (state.shotsFired ? Math.round(state.shotsHit / state.shotsFired * 100) : 0) + '%' +
     '\nZOMB ' + zCount() +
     '\nKILL ' + state.kills;
@@ -13539,7 +13539,7 @@ function bindInput() {
   document.addEventListener('pointerlockerror', () => {
     if (state.gameOver) return;
     showMenu(MENU.started ? 'pause' : 'main');
-    UI.menuMsg.textContent = 'El navegador bloqueó el mouse un instante. Probá de nuevo.';
+    UI.menuMsg.textContent = 'The browser blocked the mouse for a moment. Try again.';
   });
   UI.restart.addEventListener('click', () => {
     initAudio();

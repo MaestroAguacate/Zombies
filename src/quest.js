@@ -29,7 +29,7 @@ function buildQuest() {
   cglow.position.y = 0.2;
   cg.add(cglow);
   cg.visible = false; scene.add(cg);
-  QUEST.coco = { kind: 'coco', name: 'COCO DORADO', phase: 'none', room: 'R10', level: 0, x: 0, z: 0, vy: 0, t: 0,
+  QUEST.coco = { kind: 'coco', name: 'GOLDEN COCONUT', phase: 'none', room: 'R10', level: 0, x: 0, z: 0, vy: 0, t: 0,
                  g: cg, mesh: cm, glow: cglow };
   // cuerda de guitarra: rollo dorado con brillo (se ve desde lejos)
   const sg = new THREE.Group();
@@ -42,7 +42,7 @@ function buildQuest() {
   glow.position.y = 0.3;
   sg.add(glow);
   sg.visible = false; scene.add(sg);
-  QUEST.string = { kind: 'string', name: 'CUERDA DE GUITARRA', phase: 'none', room: null, level: 0, x: 0, z: 0, g: sg, glow };
+  QUEST.string = { kind: 'string', name: 'GUITAR STRING', phase: 'none', room: null, level: 0, x: 0, z: 0, g: sg, glow };
   // caracola (F5.9): arriba de la tortuga. F5.13: en la cabeza del calamar
   buildSquidHead();
   buildTurtle();
@@ -63,7 +63,7 @@ function buildQuest() {
   shg.add(hit);
   scene.add(shg);
   WORLD.hitMeshes.push(hit);
-  QUEST.shell = { kind: 'shell', name: 'CARACOLA', phase: 'dull', room: Q.shellLand.room, level: 0, x: 0, z: 0, t: 0,
+  QUEST.shell = { kind: 'shell', name: 'CONCH SHELL', phase: 'dull', room: Q.shellLand.room, level: 0, x: 0, z: 0, t: 0,
                   g: shg, mat: shMat, glow: shGlow, hit, from: new THREE.Vector3(), to: new THREE.Vector3() };
   placeShellOnTurtle();
 
@@ -134,8 +134,8 @@ function buildWorkshop() {
     c.fillStyle = '#e8dcc0'; c.fillRect(0, 0, s, s);
     c.fillStyle = '#2f7ab0'; c.fillRect(0, s * 0.72, s, s * 0.1);
     c.fillStyle = '#3a2a1c'; c.textAlign = 'center';
-    c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.fillText('TALLER', s / 2, s * 0.34);
-    c.font = 'bold ' + Math.floor(s * 0.13) + 'px monospace'; c.fillText('DE TABLAS', s / 2, s * 0.6);
+    c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.fillText('BOARD', s / 2, s * 0.34);
+    c.font = 'bold ' + Math.floor(s * 0.13) + 'px monospace'; c.fillText('WORKSHOP', s / 2, s * 0.6);
   }, 1, 128);
   tex.magFilter = THREE.LinearFilter;
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.55), new THREE.MeshLambertMaterial({ map: tex }));
@@ -320,7 +320,7 @@ function setSquidHead(n, snap) {
   if (squidHeadSolid(n >= H.openRound)) {
     buildNavGrid();
     if (typeof FLOW !== 'undefined' && FLOW.dist) updateFlowField(true);
-    if (SQHEAD.open && !snap) showBanner('LA CABEZA DEL CALAMAR SE ABRIÓ', 3);
+    if (SQHEAD.open && !snap) showBanner('THE SQUID HEAD OPENED', 3);
   }
 }
 function moveSquidHead(y) {
@@ -398,12 +398,12 @@ function haveWave() {
 }
 function workshopPrompt() {
   if (state.quest.built) {
-    if (haveWave()) return { text: slotDef(QUEST.slot).name + ' - ya la tenés', cost: 0 };
-    return { text: '[F] Agarrar ' + slotDef(QUEST.slot).name, cost: 0 };
+    if (haveWave()) return { text: slotDef(QUEST.slot).name + ' - already owned', cost: 0 };
+    return { text: '[F] Take ' + slotDef(QUEST.slot).name, cost: 0 };
   }
   const n = questCount();
-  if (n < 3) return { text: 'Taller de tablas - faltan piezas (' + n + '/3)', cost: 0 };
-  return { text: '[F] Mantener para armar la ' + CONFIG.WEAPONS.wave.name, cost: 0 };
+  if (n < 3) return { text: 'Board workshop - missing parts (' + n + '/3)', cost: 0 };
+  return { text: '[F] Hold to build the ' + CONFIG.WEAPONS.wave.name, cost: 0 };
 }
 function workshopPress() {
   if (weaponsState.phase !== 'grenade') {

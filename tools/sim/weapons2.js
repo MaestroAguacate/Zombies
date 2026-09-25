@@ -35,7 +35,7 @@ check(['revolver', 'doublebarrel', 'crossbow'].every(id => /^[A-Z ]+$/.test(W[id
 for (const [id, cost, room] of [['revolver', 900, 'la torre de la playa oeste (F5.15)'], ['doublebarrel', 1500, 'el rancho (F5.16)']]) {
   fresh(); const wb = wbOf(id); atWall(wb);
   const txt = G.interactState.kind === 'wall' ? G.promptFor(G.interactState).text : '(sin cartel)';
-  check(txt === '[F] Comprar ' + W[id].name + ' - ' + cost, `${id}: cartel en ${room}`, `("${txt}")`);
+  check(txt === '[F] Buy ' + W[id].name + ' - ' + cost, `${id}: cartel en ${room}`, `("${txt}")`);
   const pts = state.points;
   check(G.interact() && state.points === pts - cost && G.curDef().id === id, `${id}: cobra ${cost} y la da`);
 }
@@ -43,11 +43,11 @@ check(!CONFIG.WALLBUYS.find(w => w.weapon === 'doublebarrel').level && G.roomAt(
 
 // 3) machete: reemplaza al cuchillo, una vez, 500 parejo; resetGame vuelve al cuchillo
 fresh(); const wm = wbOf('machete'); atWall(wm);
-check(G.promptFor(G.interactState).text === '[F] Comprar MACHETE - 3000', 'machete: cartel en la cocina');
+check(G.promptFor(G.interactState).text === '[F] Buy MACHETE - 3000', 'machete: cartel en la cocina');
 let pts = state.points;
 check(G.interact() && state.machete && state.points === pts - 3000 && state.weapons.length === 1, 'lo compra (no ocupa slot de arma)');
 pts = state.points; G.updateInteract();
-check(G.promptFor(G.interactState).text === 'MACHETE - ya lo tenés' && !G.interact() && state.points === pts, 'no se compra dos veces');
+check(G.promptFor(G.interactState).text === 'MACHETE - already owned' && !G.interact() && state.points === pts, 'no se compra dos veces');
 function swingAt(head) {
   clearZombies();
   player.pos.set(0, 1.7, 10); G.setCam(0);

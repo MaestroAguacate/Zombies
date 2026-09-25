@@ -78,9 +78,9 @@ function paintMachine(key) {
 // qué dice la máquina (y si se puede comprar). Lo usan el prompt y buyPerk
 function perkStatus(key) {
   const P = CONFIG.PERKS.list[key];
-  if (!state.power) return { text: P.name + ' - necesita energía', ok: false, cost: 0 };
-  if (hasPerk(key)) return { text: P.name + ' - ya la tenés', ok: false, cost: 0 };
-  if (state.perks.length >= CONFIG.PERKS.max) return { text: 'Máximo ' + CONFIG.PERKS.max + ' perks', ok: false, cost: 0 };
+  if (!state.power) return { text: P.name + ' - needs power', ok: false, cost: 0 };
+  if (hasPerk(key)) return { text: P.name + ' - already owned', ok: false, cost: 0 };
+  if (state.perks.length >= CONFIG.PERKS.max) return { text: 'Max ' + CONFIG.PERKS.max + ' perks', ok: false, cost: 0 };
   return { text: '[F] ' + P.name + ' - ' + P.cost, ok: true, cost: P.cost };
 }
 function buyPerk(key) {

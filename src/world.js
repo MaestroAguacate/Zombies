@@ -775,7 +775,7 @@ function buildAtlases() {
     });
     // "SE VENDE" pintado a mano
     c.fillStyle = '#d8d0bc'; c.fillRect(128, 384, 256, 128);
-    c.fillStyle = 'rgba(170,40,30,.85)'; c.font = 'bold 44px monospace'; c.fillText('SE VENDE', 256, 430);
+    c.fillStyle = 'rgba(170,40,30,.85)'; c.font = 'bold 44px monospace'; c.fillText('FOR SALE', 256, 430);
     c.font = 'bold 22px monospace'; c.fillText('TEL 5? 34 ??', 256, 478);
   }, false);
   atlasRect('sign34', 0, 0, 256, 128, S, S);

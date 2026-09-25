@@ -33,7 +33,7 @@ player.pos.set(0, 1.7, -2); G.updateFlowField(true);
 const reach = L => { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (G.flowAt(Math.floor(L.x) + dx, Math.floor(L.z) + dz) >= 0) return true; return false; };
 check(reach(T.shark.lever) && reach(T.mower.lever), 'se llega a las dos palancas caminando');
 standAt(T.shark.lever.x - 1, T.shark.lever.z);
-check(G.interactState.kind === 'trap' && G.promptFor(G.interactState).text === '[F] Activar TIBURÓN' && G.promptFor(G.interactState).cost === 1500,
+check(G.interactState.kind === 'trap' && G.promptFor(G.interactState).text === '[F] Activate SHARK' && G.promptFor(G.interactState).cost === 1500,
   'cartel: activar tiburón, 1500');
 state.points = 1000;
 check(!G.interact() && TRAPS.shark.phase === 'idle' && state.points === 1000, 'sin plata no anda');
@@ -91,7 +91,7 @@ player.pos.set(-25, 1.7, 34);                                    // lejos del c�
 const ring = [0, 1, 2, 3].map(i => zombieAt(C.x + Math.cos(i * 1.6) * M.radius, C.z + Math.sin(i * 1.6) * M.radius));
 const inside = zombieAt(C.x, C.z);
 standAt(M.lever.x - 1, M.lever.z);
-check(G.promptFor(G.interactState).text === '[F] Activar CORTADORA' && G.promptFor(G.interactState).cost === 1000 && G.interact(),
+check(G.promptFor(G.interactState).text === '[F] Activate MOWER' && G.promptFor(G.interactState).cost === 1000 && G.interact(),
   'cartel: activar cortadora, 1000');
 player.pos.set(-25, 1.7, 34);
 const pts2 = state.points;

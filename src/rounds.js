@@ -84,7 +84,7 @@ function queueRound(n, delay) {
   roundState.pauseT = delay;
   dodgeDogs(n);
   const dogs = isDogRound(n);
-  showBanner(dogs ? mobBanner(mobKind((roundState.mobCount || 0) + 1)) : 'RONDA ' + n, delay);
+  showBanner(dogs ? mobBanner(mobKind((roundState.mobCount || 0) + 1)) : 'ROUND ' + n, delay);
   roundState.dogBanner = dogs;
   setSky(n, dogs);
 }
@@ -141,7 +141,7 @@ function favoriteWeapon() {
   for (const k in STATS.killsBy) if (STATS.killsBy[k] > n) { n = STATS.killsBy[k]; best = k; }
   if (!best) return '—';
   const name = best === 'knife' ? CONFIG.KNIFE.name : best === 'grenade' ? CONFIG.GRENADE.name
-             : best === 'shield' ? 'ESCUDO' : best === 'machete' ? CONFIG.MACHETE.name : CONFIG.WEAPONS[best].name;
+             : best === 'shield' ? 'SHIELD' : best === 'machete' ? CONFIG.MACHETE.name : CONFIG.WEAPONS[best].name;
   return name + ' (' + n + ')';
 }
 

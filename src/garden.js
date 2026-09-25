@@ -297,7 +297,7 @@ function buildRancho() {
     s.position.set(x, y, z); s.rotation.y = ry; scene.add(s);
   };
   sign('RANCHO', 'DON MARENA', cx, P.h - 0.2, P.z1 - 0.12, Math.PI, 1.8);
-  sign('TORTUGARIO', 'NO MOLESTAR', -50.4, 1.55, 24.5, 0, 1.0);
+  sign('TURTLE PEN', 'DO NOT DISTURB', -50.4, 1.55, 24.5, 0, 1.0);
   // foquitos colgando del borde de la palapa: un InstancedMesh MeshBasic que late (sin luces)
   const n = 28, geo = new THREE.BoxGeometry(0.12, 0.16, 0.12);
   const bulbs = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: 0xffd890 }), n);
@@ -686,8 +686,8 @@ function buildLifeguard() {
   const tex = makeTex((c, s) => {
     c.fillStyle = '#d8322a'; c.fillRect(0, 0, s, s);
     c.fillStyle = '#fff'; c.textAlign = 'center';
-    c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.fillText('SALVA', s / 2, s * 0.42);
-    c.fillText('VIDAS', s / 2, s * 0.68);
+    c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.fillText('LIFE', s / 2, s * 0.42);
+    c.fillText('GUARD', s / 2, s * 0.68);
   }, 1, 128);
   tex.magFilter = THREE.LinearFilter;
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.6), new THREE.MeshLambertMaterial({ map: tex }));

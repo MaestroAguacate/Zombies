@@ -142,7 +142,7 @@ check(flashSeen, 'relámpago al aparecer');
 check(ammoAtLast && !ammoEarly, 'el último perro suelta Max Ammo (y ninguno antes)');
 check(G.scene.children.length === kids0, 'la escena no crece (pools)', `(${kids0})`);
 const dark6 = CONFIG.WEATHER.darkBy(6);
-check(roundState.phase === 'pause' && roundState.next === 6 && NIGHT.target === dark6 && G.UI.banner.textContent === 'RONDA 6', 'termina: ronda 6 y aclara (F5.9: al cielo de la R6)');
+check(roundState.phase === 'pause' && roundState.next === 6 && NIGHT.target === dark6 && G.UI.banner.textContent === 'ROUND 6', 'termina: ronda 6 y aclara (F5.9: al cielo de la R6)');
 for (let i = 0; i < 60 * 3; i++) { G.tick(dt); G.updateNight(dt); }
 const hemiNight = CONFIG.DOGS.night.hemi;
 check(NIGHT.k === dark6 && Math.abs(WORLD.hemi.intensity - (hemiDay + (hemiNight - hemiDay) * dark6)) < 1e-9, 'vuelve exacto al cielo de la R6',

@@ -213,9 +213,9 @@ function papMissing() {
   const g = GEN_KEYS.filter(k => !state.generators[k]).length;
   const b = SOUL_KEYS.filter(k => state.souls[k] < CONFIG.SOULS.need).length;
   const parts = [];
-  if (g) parts.push(g + (g === 1 ? ' generador' : ' generadores'));
-  if (b) parts.push(b + (b === 1 ? ' caja de almas' : ' cajas de almas'));
-  return 'faltan ' + parts.join(' y ');
+  if (g) parts.push(g + (g === 1 ? ' generator' : ' generators'));
+  if (b) parts.push(b + (b === 1 ? ' soul box' : ' soul boxes'));
+  return parts.join(' and ') + ' missing';
 }
 // se prende una sola vez por partida (resetRelics la apaga)
 function checkPap() {
@@ -269,12 +269,12 @@ function papIdle() {
 }
 function papPrompt() {
   const P = CONFIG.PAP;
-  if (!RELICS.papOn) return { text: 'Pack-a-Punch apagado - ' + papMissing(), cost: 0 };
-  if (PAPST.phase === 'working') return { text: 'Pack-a-Punch trabajando...', cost: 0 };
-  if (PAPST.phase === 'ready') return { text: '[F] Agarrar ' + papDef(PAPST.slot.id).name, cost: 0 };
+  if (!RELICS.papOn) return { text: 'Pack-a-Punch off - ' + papMissing(), cost: 0 };
+  if (PAPST.phase === 'working') return { text: 'Pack-a-Punch working...', cost: 0 };
+  if (PAPST.phase === 'ready') return { text: '[F] Take ' + papDef(PAPST.slot.id).name, cost: 0 };
   const s = curSlot();
-  if (!s) return { text: 'Pack-a-Punch - sin arma', cost: 0 };
-  if (s.pap) return { text: slotDef(s).name + ' - ya mejorada', cost: 0 };
+  if (!s) return { text: 'Pack-a-Punch - no weapon', cost: 0 };
+  if (s.pap) return { text: slotDef(s).name + ' - already upgraded', cost: 0 };
   return { text: '[F] Pack-a-Punch ' + CONFIG.WEAPONS[s.id].name + ' - ' + P.cost, cost: P.cost };
 }
 function updatePap(dt) {

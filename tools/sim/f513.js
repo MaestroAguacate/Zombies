@@ -90,7 +90,7 @@ check(nearNav(L.x, L.z), 'se camina por debajo de la torre');
 const rv = CONFIG.WALLBUYS.find(w => w.weapon === 'revolver');
 check(rv.post && Math.abs(rv.x - L.x) < 0.01 && rv.z > L.z, 'el revólver se compra en el tablón de la torre');
 player.pos.set(rv.x, P.height, rv.z + 1.2); G.updateInteract();
-check(G.interactState.kind === 'wall' && /REVÓLVER/.test(G.promptFor(G.interactState).text), 'cartel del revólver frente a la torre', `("${G.interactState.kind && G.promptFor(G.interactState).text}")`);
+check(G.interactState.kind === 'wall' && /REVOLVER/.test(G.promptFor(G.interactState).text), 'cartel del revólver frente a la torre', `("${G.interactState.kind && G.promptFor(G.interactState).text}")`);
 
 // 5) borde oeste en x -75 y la lengua de arena
 fresh(); G.debugOpenAllDoors(); setPlayer(-60, -30);
@@ -141,12 +141,12 @@ const FC = E.face || 1;                                                  // F5.1
 setPlayer(BH.x, BH.z + FC * 0.8);
 check(nearNav(BH.out[0], BH.out[1]), 'delante de la entrada se llega');
 player.pos.set(BH.x, P.height, BH.z + FC * 0.8); G.updateInteract();
-check(G.interactState.kind === 'hatch' && G.promptFor(G.interactState).text === 'Búnker cerrado', 'cerrada: cartel');
+check(G.interactState.kind === 'hatch' && G.promptFor(G.interactState).text === 'Bunker closed', 'cerrada: cartel');
 G.openBunker();
 for (let i = 0; i < 60 * 3; i++) { G.tick(dt); G.updateBunker(dt); }
 check(BUNK.halves[0].position.x < -2 && BUNK.halves[1].position.x > 2, 'al abrirse las puertas blindadas se corren');
 G.updateInteract();
-check(G.promptFor(G.interactState).text === '[F] Bajar al búnker', 'abierta: F para bajar');
+check(G.promptFor(G.interactState).text === '[F] Go down to the bunker', 'abierta: F para bajar');
 G.resetGame();
 check(Math.abs(BUNK.halves[0].position.x + 1.1) < 1e-6, 'resetGame: puertas cerradas');
 

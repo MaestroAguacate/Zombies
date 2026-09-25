@@ -146,7 +146,7 @@ function bindInput() {
   document.addEventListener('pointerlockerror', () => {
     if (state.gameOver) return;
     showMenu(MENU.started ? 'pause' : 'main');
-    UI.menuMsg.textContent = 'El navegador bloqueó el mouse un instante. Probá de nuevo.';
+    UI.menuMsg.textContent = 'The browser blocked the mouse for a moment. Try again.';
   });
   UI.restart.addEventListener('click', () => {
     initAudio();

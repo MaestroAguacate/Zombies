@@ -211,7 +211,7 @@
   <div id="bossbar"><div class="name" id="bossname"></div><div class="bar"><b id="bossfill"></b></div><div class="hat"><b id="bosshat"></b></div></div>
   <div id="cross"><i class="h l"></i><i class="h r"></i><i class="v t"></i><i class="v b"></i></div>
   <div id="hitmark"></div>
-  <div id="reloadmsg">RECARGANDO</div>
+  <div id="reloadmsg">RELOADING</div>
   <div id="pubanner"></div>
   <div id="effects"></div>
   <div id="prompt"></div>
@@ -229,67 +229,67 @@
 </div>
 
 <div id="gameover">
-  <h2>CAÍSTE</h2>
+  <h2>YOU DIED</h2>
   <div class="stats">
-    <span>Ronda alcanzada</span><span id="goRound">0</span>
-    <span>Tiempo</span><span id="goTime">0:00</span>
+    <span>Round reached</span><span id="goRound">0</span>
+    <span>Time</span><span id="goTime">0:00</span>
     <span>Kills</span><span id="goKills">0</span>
     <span>Headshots</span><span id="goHeads">0</span>
-    <span>Kills con cuchillo</span><span id="goKnife">0</span>
-    <span>Arma favorita</span><span id="goFav">—</span>
-    <span>Precisión</span><span id="goAcc">0%</span>
-    <span>Puntos ganados</span><span id="goPts">0</span>
-    <span>Daño recibido</span><span id="goDmg">0</span>
-    <span>Puertas abiertas</span><span id="goDoors">0</span>
+    <span>Knife kills</span><span id="goKnife">0</span>
+    <span>Favorite weapon</span><span id="goFav">—</span>
+    <span>Accuracy</span><span id="goAcc">0%</span>
+    <span>Points earned</span><span id="goPts">0</span>
+    <span>Damage taken</span><span id="goDmg">0</span>
+    <span>Doors opened</span><span id="goDoors">0</span>
     <span>Mystery box</span><span id="goBox">0</span>
-    <span>Récord</span><span id="goBest">0</span>
+    <span>Best</span><span id="goBest">0</span>
   </div>
   <div id="record"></div>
   <div class="menu-btns row">
-    <button id="restart" class="primary">REINICIAR</button>
-    <button id="btnGoMenu">MENÚ</button>
+    <button id="restart" class="primary">RESTART</button>
+    <button id="btnGoMenu">MENU</button>
   </div>
 </div>
 
 <!-- menú de inicio y pausa: mismo overlay, data-mode="main" | "pause" -->
 <div id="start" data-mode="main">
   <h1>BEACH HOUSE ZOMBIES</h1>
-  <p class="sub">MARENA · 34B · COSTA SUR, GUATEMALA</p>
-  <h2 class="pause-only">PAUSA</h2>
+  <p class="sub">MARENA · 34B · SOUTH COAST, GUATEMALA</p>
+  <h2 class="pause-only">PAUSED</h2>
   <div class="menu-btns">
-    <button id="btnPlay" class="primary">JUGAR</button>
-    <button id="btnControls">CONTROLES</button>
-    <button id="btnSettings">AJUSTES</button>
-    <button id="btnQuit" class="pause-only">SALIR AL MENÚ</button>
+    <button id="btnPlay" class="primary">PLAY</button>
+    <button id="btnControls">CONTROLS</button>
+    <button id="btnSettings">SETTINGS</button>
+    <button id="btnQuit" class="pause-only">QUIT TO MENU</button>
   </div>
   <div id="panelControls" class="panel">
     <div class="ctl">
-      <span><kbd>WASD</kbd></span><span>moverse</span>
-      <span><kbd>Shift</kbd></span><span>correr</span>
-      <span><kbd>Espacio</kbd></span><span>saltar</span>
-      <span><kbd>Click</kbd></span><span>disparar</span>
-      <span><kbd>R</kbd></span><span>recargar</span>
-      <span><kbd>Q</kbd></span><span>cambiar arma</span>
-      <span><kbd>V</kbd> / <kbd>Ruedita</kbd></span><span>cuchillo (munición infinita)</span>
-      <span><kbd>Clic der.</kbd></span><span>apuntar (mantener)</span>
-      <span><kbd>G</kbd></span><span>granada (mantener = cocinar, 3 s)</span>
-      <span><kbd>1</kbd> <kbd>2</kbd> / <kbd>3</kbd></span><span>armas / escudo (clic = empujón)</span>
-      <span><kbd>F</kbd></span><span>abrir puerta · comprar arma de pared · mystery box</span>
-      <span><kbd>Esc</kbd></span><span>pausa</span>
-      <span class="dim"><kbd>O</kbd> <kbd>N</kbd> <kbd>H</kbd></span><span class="dim">debug: abrir puertas · grid · overlay</span>
+      <span><kbd>WASD</kbd></span><span>move</span>
+      <span><kbd>Shift</kbd></span><span>sprint</span>
+      <span><kbd>Space</kbd></span><span>jump</span>
+      <span><kbd>Click</kbd></span><span>shoot</span>
+      <span><kbd>R</kbd></span><span>reload</span>
+      <span><kbd>Q</kbd></span><span>switch weapon</span>
+      <span><kbd>V</kbd> / <kbd>Wheel</kbd></span><span>knife (infinite ammo)</span>
+      <span><kbd>Right click</kbd></span><span>aim (hold)</span>
+      <span><kbd>G</kbd></span><span>grenade (hold = cook, 3 s)</span>
+      <span><kbd>1</kbd> <kbd>2</kbd> / <kbd>3</kbd></span><span>weapons / shield (click = bash)</span>
+      <span><kbd>F</kbd></span><span>open door · buy wall weapon · mystery box · use</span>
+      <span><kbd>Esc</kbd></span><span>pause</span>
+      <span class="dim"><kbd>O</kbd> <kbd>N</kbd> <kbd>H</kbd></span><span class="dim">debug: unlock all · noclip · overlay</span>
     </div>
   </div>
   <div id="panelSettings" class="panel">
-    <label>Sensibilidad <input id="sens" type="range" min="20" max="300" step="5" value="100"><span id="sensVal">1.00x</span></label>
-    <label>Volumen <input id="vol" type="range" min="0" max="100" step="1" value="70"><span id="volVal">70%</span></label>
-    <label>Música <input id="musicVol" type="range" min="0" max="100" step="1" value="100"><span id="musicVal">100%</span></label>
-    <label>Efectos <input id="sfxVol" type="range" min="0" max="100" step="1" value="100"><span id="sfxVal">100%</span></label>
-    <label>Números de daño <input id="dmgNums" type="checkbox" checked></label>
-    <label>Calidad <select id="quality"><option value="bajo">Bajo</option><option value="medio" selected>Medio</option><option value="alto">Alto (sombras)</option></select></label>
-    <label>Post-proceso <input id="postFx" type="checkbox" checked></label>
-    <label>Niebla <select id="fogSel"><option value="25">Muy espesa (25 m)</option><option value="40" selected>Normal (40 m)</option><option value="60">Liviana (60 m)</option><option value="90">Casi nada (90 m)</option></select></label>
-    <p class="dim">⚠ Menos niebla = se dibuja más lejos = menos FPS.</p>
-    <p class="dim">Los ajustes duran esta sesión.</p>
+    <label>Sensitivity <input id="sens" type="range" min="20" max="300" step="5" value="100"><span id="sensVal">1.00x</span></label>
+    <label>Volume <input id="vol" type="range" min="0" max="100" step="1" value="70"><span id="volVal">70%</span></label>
+    <label>Music <input id="musicVol" type="range" min="0" max="100" step="1" value="100"><span id="musicVal">100%</span></label>
+    <label>Effects <input id="sfxVol" type="range" min="0" max="100" step="1" value="100"><span id="sfxVal">100%</span></label>
+    <label>Damage numbers <input id="dmgNums" type="checkbox" checked></label>
+    <label>Quality <select id="quality"><option value="bajo">Low</option><option value="medio" selected>Medium</option><option value="alto">High (shadows)</option></select></label>
+    <label>Post-processing <input id="postFx" type="checkbox" checked></label>
+    <label>Fog <select id="fogSel"><option value="25">Very thick (25 m)</option><option value="40" selected>Normal (40 m)</option><option value="60">Light (60 m)</option><option value="90">Almost none (90 m)</option></select></label>
+    <p class="dim">⚠ Less fog = draws farther = lower FPS.</p>
+    <p class="dim">Settings last for this session.</p>
   </div>
   <p id="best"></p>
   <p id="menuMsg"></p>

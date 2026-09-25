@@ -165,12 +165,12 @@ function clamNear(room, px, pz, bd) {
 }
 function clamReady(c) { return CLAMS.have && c.stage > 0 && !c.used; }
 function clamPrompt(it) {
-  if (it.kind === 'fumigator') return { text: '[F] Agarrar FUMIGADOR', cost: 0 };
+  if (it.kind === 'fumigator') return { text: '[F] Take FUMIGATOR', cost: 0 };
   const c = it.target;
-  if (c.stage === 0 || c.used) return { text: 'Almeja vacía', cost: 0 };
-  const name = 'Almeja ' + CONFIG.CLAMS.names[c.stage];
-  if (!CLAMS.have) return { text: name + ' - necesitás el fumigador', cost: 0 };
-  return { text: '[F] Mantener: fumigar ' + name, cost: 0 };
+  if (c.stage === 0 || c.used) return { text: 'Empty clam', cost: 0 };
+  const name = CONFIG.CLAMS.names[c.stage] + ' clam';
+  if (!CLAMS.have) return { text: name + ' - you need the fumigator', cost: 0 };
+  return { text: '[F] Hold: fumigate ' + name, cost: 0 };
 }
 function clamPress(it) {
   if (it.kind === 'fumigator') {
@@ -178,7 +178,7 @@ function clamPress(it) {
     if (F.taken) return false;
     F.taken = true; F.g.visible = false; CLAMS.have = true;
     sfxPartPickup();
-    showBanner('FUMIGADOR', 1.5);
+    showBanner('FUMIGATOR', 1.5);
     return true;
   }
   return clamReady(it.target);

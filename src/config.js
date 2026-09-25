@@ -111,7 +111,7 @@ const CONFIG = {
     sizes: [1, 1.25, 1.5],           // F5.8: tamaño al azar (radio y vida ×tamaño); el de F5.7 es el chico
     poolSize: 8, maxAlive: 8, spawnInterval: 1.0,
     voice: [1.8, 2.4],
-    banner: '¿QUIÉN DESPERTÓ AL CHICHARITO!?', bannerTime: 4,
+    banner: 'WHO WOKE UP CHICHARITO?!', bannerTime: 4,
     night: { fade: 2.5, hemi: 0.32, hemiSky: 0x5a6f9e, hemiGround: 0x0c0c18, sun: 0.14, sunColor: 0x8fa6ff,
              fog: 0x141a2c, sky: 0x283052 },
     lightning: { time: 0.35, hemiBoost: 2.2 }
@@ -130,7 +130,7 @@ const CONFIG = {
     ink: { jet: 1.5, rest: 3, rate: 36, dps: 20, range: [3, 10], speed: 11, gravity: 9.8, radius: 0.3, pool: 64,
            splat: 1.2, spread: 0.05 },
     voice: [0.7, 1.0],
-    banner: '¡LOS CALAMARES SALIERON DEL MAR!',
+    banner: 'THE SQUIDS CRAWLED OUT OF THE SEA!',
     // F5.11: en las rondas con calamares (solo o mezcla) sale del mar un calamar gigante con un rugido y escupe
     // calamares a la playa: así sale la parte `share`; el resto sale de la orilla (spawns del mar). Solo del mar:
     // si la playa no se alcanza, salen de los spawns normales. Se hunde cuando ya salieron todos
@@ -140,7 +140,7 @@ const CONFIG = {
   },
   // F5.9: rondas de mobs (las que caen en DOGS.firstRound/every). 1ra perros, 2da calamares, después mezcla;
   // cada `bossEvery` (la 5ta, la 10ma...) son 4 Sombrerones normales
-  MOBS: { bossEvery: 5, bosses: 4, mixedBanner: '¡PERROS Y CALAMARES!', bossBanner: '¡CUATRO SOMBRERONES!' },
+  MOBS: { bossEvery: 5, bosses: 4, mixedBanner: 'DOGS AND SQUIDS!', bossBanner: 'FOUR SOMBRERONES!' },
   // F5.9: el cielo por ronda (enemies.js setSky). Se oscurece de a poco de R1 a R15 (noche = la de los perros);
   // R15-R20 truenos; R21+ neblina morada; R25+ además truenos y lluvia. Rondas de mobs: noche, lluvia y rayos
   // más seguidos. La lluvia es un solo LineSegments (creado una vez) alrededor del jugador; frena en los techos
@@ -250,7 +250,7 @@ const CONFIG = {
     pool: { sombrero: 4, calamar: 1 }, spread: 3,
     schedule: k => k === 0 ? ['sombrero'] : k === 1 ? ['calamar'] : ['sombrero', 'sombrero', 'calamar'],
     calamar: {
-      name: 'EL CALAMARÓN', healthMul: 2,          // vida del Sombrerón ×2
+      name: 'THE BIG SQUID', healthMul: 2,          // vida del Sombrerón ×2
       summonCount: 2,                               // F5.10: llama menos (Diego: eran demasiados)
       skin: 0x6a2a6a, suit: 0x241022,
       // con poca vida (squidFrac) lanza calamares cada squidEvery s: vuelan en arco (squidSpeed m/s horizontal) y
@@ -284,21 +284,21 @@ const CONFIG = {
   //              automáticas lo necesitan: con la fórmula la LMG satura el shake en 3 disparos
   WEAPONS: {
     m1911: {
-      id:'m1911', name:'M1911', papName:'RED TIDE',
+      id:'m1911', name:'M1911', papName:'GRAVE WHISPER',
       damage:40, headshotMul:2, magSize:8, reserveMax:80,
       fireRate:300, auto:false, reloadTime:1400,
       range:120, spread:0.004, recoil:1.0, pellets:1, reloadAnim:'pistol',
       model:'pistol', bodyColor:0x30343c, gripColor:0x6b4526
     },
     shotgun: {
-      id:'shotgun', name:'ESCOPETA', papName:'BREAKWATER',
+      id:'shotgun', name:'SHOTGUN', papName:'BONECRUSHER 9000',
       damage:25, headshotMul:2, magSize:6, reserveMax:48,
       fireRate:850, auto:false, reloadTime:2100,
       range:40, spread:0.05, recoil:2.4, pellets:8, recoilReturn:0.30, reloadAnim:'shells',
       model:'shotgun', bodyColor:0x2b2f35, gripColor:0x7a4e28
     },
     smg: {
-      id:'smg', name:'SUBFUSIL', papName:'CICADA',
+      id:'smg', name:'SMG', papName:'HIVEMIND',
       damage:30, headshotMul:2, magSize:32, reserveMax:160,
       fireRate:90, auto:true, reloadTime:1900,
       range:70, spread:0.016, recoil:0.55, pellets:1, recoilReturn:0.34, fireShake:0.07,
@@ -306,14 +306,14 @@ const CONFIG = {
     },
     // el spec no define cadencia: automático a 130ms queda entre SMG y LMG en dps y precio
     rifle: {
-      id:'rifle', name:'RIFLE', papName:'THE LIGHTHOUSE',
+      id:'rifle', name:'RIFLE', papName:'DEAD RECKONING',
       damage:55, headshotMul:2, magSize:30, reserveMax:150,
       fireRate:130, auto:true, reloadTime:2200,
       range:120, spread:0.006, recoil:0.9, pellets:1, recoilReturn:0.28, fireShake:0.10,
       model:'rifle', bodyColor:0x2e3136, gripColor:0x5a3a20
     },
     lmg: {
-      id:'lmg', name:'LMG', papName:'HURRICANE',
+      id:'lmg', name:'LMG', papName:'ABYSS CHOIR',
       damage:60, headshotMul:2, magSize:100, reserveMax:300,
       fireRate:120, auto:true, reloadTime:3800,
       range:100, spread:0.02, recoil:0.8, pellets:1, recoilReturn:0.38, fireShake:0.10, reloadAnim:'belt',
@@ -322,7 +322,7 @@ const CONFIG = {
     //--- exclusivas de la mystery box ---
     // splashRadius  daño en área alrededor del impacto (pared o zombie). splashMin = fracción en el borde
     raygun: {
-      id:'raygun', name:'RAY GUN', papName:'LUNAR TIDE',
+      id:'raygun', name:'RAY GUN', papName:'STARBLEED X9',
       damage:500, headshotMul:1, magSize:20, reserveMax:160,
       fireRate:350, auto:false, reloadTime:2600,
       range:100, spread:0.004, recoil:1.3, pellets:1, recoilReturn:0.25, fireShake:0.25,
@@ -330,7 +330,7 @@ const CONFIG = {
       model:'raygun', bodyColor:0x9aa3ad, gripColor:0x3a3f47
     },
     sniper: {
-      id:'sniper', name:'FRANCOTIRADOR', papName:'PELICAN EYE',
+      id:'sniper', name:'SNIPER', papName:'SILENT REQUIEM',
       damage:300, headshotMul:3, magSize:5, reserveMax:40,
       fireRate:1300, auto:false, reloadTime:3000,
       range:200, spread:0, recoil:3.0, pellets:1, recoilReturn:0.45, fireShake:0.35, adsFov:30,
@@ -340,7 +340,7 @@ const CONFIG = {
     // mag = combustible (1 unidad por tick). hitPoints:0 -> los ticks no dan puntos de impacto (solo kill):
     // si no, 8 zombies en el cono = ~320 pts/s de farmeo.
     flamethrower: {
-      id:'flamethrower', name:'LANZALLAMAS', papName:'WATER VOLCANO', flame:true,
+      id:'flamethrower', name:'FLAMETHROWER', papName:'HELLKISS', flame:true,
       dps:40, headshotMul:1, magSize:40, reserveMax:160,
       fireRate:250, auto:true, reloadTime:2500,
       range:6, coneDeg:15, spread:0, recoil:0.15, pellets:1, fireShake:0.03, hitPoints:0,
@@ -349,21 +349,21 @@ const CONFIG = {
     //--- V2 F3b ---
     // reloadAnim: cómo se ve la recarga (mag = cargador, por defecto). pierce: zombies que atraviesa
     revolver: {
-      id:'revolver', name:'REVÓLVER', papName:'SEA SERPENT',
+      id:'revolver', name:'REVOLVER', papName:'SIX FEET UNDER',
       damage:110, headshotMul:2, magSize:6, reserveMax:48,
       fireRate:400, auto:false, reloadTime:2000,
       range:120, spread:0.003, recoil:1.6, pellets:1, recoilReturn:0.30, fireShake:0.14, reloadAnim:'revolver',
       model:'revolver', bodyColor:0x3a3d44, gripColor:0x6b4526
     },
     doublebarrel: {
-      id:'doublebarrel', name:'DOBLE CAÑÓN', papName:'TWIN TIDES',
+      id:'doublebarrel', name:'DOUBLE BARREL', papName:'CERBERUS',
       damage:45, headshotMul:2, magSize:2, reserveMax:32,
       fireRate:250, auto:false, reloadTime:2000,
       range:30, spread:0.07, recoil:3.0, pellets:10, recoilReturn:0.35, fireShake:0.30, reloadAnim:'break',
       model:'doublebarrel', bodyColor:0x2b2f35, gripColor:0x8a5a30
     },
     crossbow: {
-      id:'crossbow', name:'BALLESTA', papName:'NARWHAL',
+      id:'crossbow', name:'CROSSBOW', papName:'NIGHTSTINGER',
       damage:400, headshotMul:2, magSize:1, reserveMax:24,
       fireRate:900, auto:false, reloadTime:1600,
       range:150, spread:0, recoil:1.2, pellets:1, pierce:3, recoilReturn:0.30, fireShake:0.12, reloadAnim:'bolt',
@@ -371,28 +371,28 @@ const CONFIG = {
     },
     //--- V2 F5.11: armas nuevas. Todas salen en la caja; ninguna en paredes (la bazooka, además, en el búnker) ---
     uzi: {
-      id:'uzi', name:'UZI', papName:'SAND FLEA',
+      id:'uzi', name:'UZI', papName:'LIL RIPPER',
       damage:28, headshotMul:2, magSize:32, reserveMax:192,
       fireRate:70, auto:true, reloadTime:1700,
       range:60, spread:0.022, recoil:0.45, pellets:1, recoilReturn:0.3, fireShake:0.06,
       model:'uzi', bodyColor:0x2a2c30, gripColor:0x1a1c20
     },
     ak47: {
-      id:'ak47', name:'AK-47', papName:'UNDERTOW',
+      id:'ak47', name:'AK-47', papName:'RED ZEPHYR',
       damage:70, headshotMul:2, magSize:30, reserveMax:180,
       fireRate:110, auto:true, reloadTime:2400,
       range:120, spread:0.012, recoil:1.1, pellets:1, recoilReturn:0.3, fireShake:0.12,
       model:'ak47', bodyColor:0x2e3034, gripColor:0x8a4a22
     },
     deagle: {
-      id:'deagle', name:'DESERT EAGLE', papName:'BARRACUDA',
+      id:'deagle', name:'DESERT EAGLE', papName:'THUNDERJAW',
       damage:180, headshotMul:2.5, magSize:7, reserveMax:56,
       fireRate:380, auto:false, reloadTime:1800,
       range:120, spread:0.004, recoil:2.2, pellets:1, recoilReturn:0.32, fireShake:0.18, reloadAnim:'pistol',
       model:'deagle', bodyColor:0x9a9ca2, gripColor:0x2a2a2e
     },
     spas: {
-      id:'spas', name:'SPAS-12', papName:'STORM SURGE',
+      id:'spas', name:'SPAS-12', papName:'MEAT GRINDER',
       damage:30, headshotMul:2, magSize:8, reserveMax:64,
       fireRate:320, auto:false, reloadTime:2600,
       range:40, spread:0.045, recoil:2.0, pellets:8, recoilReturn:0.3, fireShake:0.2, reloadAnim:'shells',
@@ -401,7 +401,7 @@ const CONFIG = {
     // arco: se carga manteniendo el clic y dispara al soltar. Daño de chargeMin (toque) a damage (carga llena,
     // chargeTime s). Atraviesa pierce zombies
     bow: {
-      id:'bow', name:'ARCO', papName:'MANTA RAY',
+      id:'bow', name:'BOW', papName:'ECLIPSE STRING',
       damage:900, headshotMul:2, magSize:1, reserveMax:30, charge:true, chargeTime:0.9, chargeMin:0.2,
       fireRate:250, auto:false, reloadTime:600,
       range:150, spread:0, recoil:1.0, pellets:1, pierce:2, recoilReturn:0.3, fireShake:0.1, reloadAnim:'bolt',
@@ -410,7 +410,7 @@ const CONFIG = {
     // bazooka: cohete que vuela (rocketSpeed m/s) y explota al tocar algo: damage en el centro, radius m, cae
     // como la granada. selfDamage si te agarra la explosión
     bazooka: {
-      id:'bazooka', name:'BAZOOKA', papName:'KRAKEN',
+      id:'bazooka', name:'BAZOOKA', papName:'DOOMSDAY PARADE',
       damage:1600, headshotMul:1, magSize:1, reserveMax:12, rocket:true, rocketSpeed:36, radius:5, selfDamage:60,
       fireRate:900, auto:false, reloadTime:2600,
       range:150, spread:0, recoil:3.2, pellets:1, recoilReturn:0.4, fireShake:0.35, flashColor:0xffa040,
@@ -420,7 +420,7 @@ const CONFIG = {
     // que daña (damage) y empuja (knock m, menos en el borde) a todos los que tenga con línea libre.
     // Al Sombrerón le hace damage × bossMul (daño alto, no insta-kill) y no lo mueve
     wave: {
-      id:'wave', name:'OLA ROMPIENTE', papName:"MARENA'S TSUNAMI", wave:true,
+      id:'wave', name:'BREAKING WAVE', papName:"MARENA'S WRATH", wave:true,
       damage:2500, headshotMul:1, magSize:12, reserveMax:36,
       fireRate:900, auto:false, reloadTime:2600,
       range:12, coneDeg:40, knock:4, bossMul:0.4,          // F5.14: 8 m ±30° -> 12 m ±40°
@@ -513,11 +513,11 @@ const CONFIG = {
     craftTime: 3,         // s manteniendo F en el banco
     bashDamage: 100, bashRange: 2, bashAngle: 60, bashKnock: 2, bashCooldown: 0.8,
     parts: {
-      door:   { name: 'PUERTA DE ALACENA', spots: [
+      door:   { name: 'CUPBOARD DOOR', spots: [
         { room: 'R3', x: 15.5, z: 12.8 }, { room: 'R2', x: 6.5, z: 4.5 }, { room: 'R5', x: 4.5, z: 26.5 } ] },
-      board:  { name: 'TABLA DE SURF ROTA', spots: [
+      board:  { name: 'BROKEN SURFBOARD', spots: [
         { room: 'R6', x: -12.5, z: 18.5 }, { room: 'R10', x: -6, z: -20 }, { room: 'R1', x: 4, z: 3.5 } ] },
-      handle: { name: 'MANIJA DE METAL', spots: [
+      handle: { name: 'METAL HANDLE', spots: [
         { room: 'R7', x: -8, z: 39.5 }, { room: 'R9', x: 16.5, z: 25 }, { room: 'R4', x: 3.5, z: 19.5 } ] }
     }
   },
@@ -558,7 +558,7 @@ const CONFIG = {
   // F5.11: langostino bailarín (el mono de BO). Sale de la caja con `max` cargas; tecla 4. Baila `dance` s
   // atrayendo a todos los zombies (no al boss) y explota con el daño de la granada × dmgMul en `radius` m
   // F5.12: baila 10 s y casi no rebota (bounce/friction propios, en vez de los de la granada)
-  MONKEY: { name: 'LANGOSTINO BAILARÍN', max: 3, dance: 10, beat: 0.25, radius: 5, dmgMul: 1.5, flyMax: 4, pool: 3,
+  MONKEY: { name: 'DANCING SHRIMP', max: 3, dance: 10, beat: 0.25, radius: 5, dmgMul: 1.5, flyMax: 4, pool: 3,
             bounce: 0.12, friction: 9, landDamp: 0.55 },   // landDamp: velocidad horizontal que conserva por cuadro en el piso
   // F5.10: rancho de playa (R14, x -41..-27, z 18..40), detrás del lazo D20. Palapa abierta en el medio con el
   // billar; barra contra el cerco oeste; los 4 postes de la palapa son sólidos (finos: casi no cortan el grid).
@@ -599,7 +599,7 @@ const CONFIG = {
     ],
     every: [3, 4], openTime: 1.5, range: 1.8,
     colors: [0x8a8478, 0x4ad86a, 0xf0d040, 0xa04ae8],               // vacía, verde, amarilla, morada
-    names: ['VACÍA', 'VERDE', 'AMARILLA', 'MORADA'],
+    names: ['EMPTY', 'GREEN', 'YELLOW', 'PURPLE'],
     // premios por color: [tipo, peso]. 'piece' = pieza de la Ola (hasta que sale; si ya salió, su peso se reparte)
     rewards: [
       null,
@@ -710,13 +710,13 @@ const CONFIG = {
   // `cooldown` s. Los zombies que matan no dan puntos (sí cuentan para la ronda). Al jugador le pegan
   TRAPS: {
     shark: {
-      name: 'TIBURÓN', cost: 1500, time: 10, cooldown: 60, room: 'R11', lever: { x: 1.75, z: -26.5 },
+      name: 'SHARK', cost: 1500, time: 10, cooldown: 60, room: 'R11', lever: { x: 1.75, z: -26.5 },
       // salta de un lado al otro del tronco del muelle; cada salto elige la z de un zombie del muelle (o al azar)
       zone: { x1: -2, x2: 2, z1: -43.5, z2: -25.5 }, side: 3.6, jumpTime: 1.0, peak: 2.4, radius: 1.4,
       playerDamage: 20
     },
     mower: {
-      name: 'CORTADORA', cost: 1000, time: 20, cooldown: 60, room: 'R12', lever: { x: -16.35, z: 29.0 },
+      name: 'MOWER', cost: 1000, time: 20, cooldown: 60, room: 'R12', lever: { x: -16.35, z: 29.0 },
       // da vueltas en un círculo delante del taller de tablas
       center: { x: -21, z: 24 }, radius: 4, lap: 3.2, hitRadius: 0.9, playerDamage: 40, playerCd: 1.0
     },
@@ -724,7 +724,7 @@ const CONFIG = {
     // cada una va al zombie más cercano (a menos de `range` m de la salida, con línea libre) y se lo come (`eat`
     // s masticando). Al jugador no le hacen nada. Al terminar vuelven al corral
     turtles: {
-      name: 'TORTUGAS', cost: 1500, time: 20, cooldown: 60, room: 'R14', lever: { x: -49.2, z: 18.6 },   // F5.13: tortugario corrido
+      name: 'TURTLES', cost: 1500, time: 20, cooldown: 60, room: 'R14', lever: { x: -49.2, z: 18.6 },   // F5.13: tortugario corrido
       exit: { x: -49.3, z: 21 }, count: 6, stagger: 0.4, speed: 3.4, range: 14, reach: 0.9, eat: 0.7,
       radius: 0.3, scale: 0.9,
       biteRound: 10          // F5.11: hasta esta ronda matan de un mordisco; después cada uno saca la vida de la R10
@@ -799,7 +799,7 @@ const CONFIG = {
   },
   // V2 F2.7: granadas (tecla G; mantener = cocinar). Ver src/grenades.js
   GRENADE: {
-    name: 'GRANADA',
+    name: 'GRENADE',
     max: 4, perRound: 2,           // +2 al empezar cada ronda, tope 4. Max Ammo NO las recarga
     fuse: 3.0,                     // s de mecha total desde que sacás el pin (cocinar la consume)
     radius: 5,                     // m (3D, al centro del cuerpo), con línea libre (no atraviesa paredes)
@@ -884,7 +884,7 @@ const CONFIG = {
   // 1 headshot (300) mata rondas 1-2. 2 headshots (600) mata hasta ronda 5 (pide "hasta ronda 4").
   // Golpe al cuerpo sin apuntar cabeza es más débil: 1 mata solo ronda 1, 2 solo hasta ronda 2.
   KNIFE: {
-    id:'knife', name:'CUCHILLO',
+    id:'knife', name:'KNIFE',
     damage:150, headshotMul:2, range:2, cooldown:800, swingTime:380,
     bladeColor:0xcfd6dc, handleColor:0x3a2a1c
   },
@@ -898,9 +898,9 @@ const CONFIG = {
     spinSpeed: 2.4, bobFreq: 2.0, bobAmp: 0.12,
     poolSize: 8,
     types: {
-      maxammo:      { color: 0xffd23a, label: 'MUNICIÓN MÁXIMA' },
-      instakill:    { color: 0xff3a3a, label: 'UN GOLPE, UN MUERTO', duration: 30 },
-      doublepoints: { color: 0x3aa0ff, label: 'PUNTOS DOBLES',       duration: 30 },
+      maxammo:      { color: 0xffd23a, label: 'MAX AMMO' },
+      instakill:    { color: 0xff3a3a, label: 'INSTA-KILL', duration: 30 },
+      doublepoints: { color: 0x3aa0ff, label: 'DOUBLE POINTS',       duration: 30 },
       // F5.10: al agarrarlo mueren todos los zombies vivos (menos los bosses), sin puntos ni drops; los cuerpos
       // arden `burn` s y mientras tanto no sale nadie nuevo
       // F5.13: y siempre da points(ronda) puntos (fijo: el doble puntos no lo duplica)

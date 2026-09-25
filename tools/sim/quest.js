@@ -107,7 +107,7 @@ check(C.mesh.material.color.getHex() === Q.cocoGold && C.glow.material.opacity >
 swingAt(PP);
 check(QUEST.fallT === Q.fallTime && G.THEMEFX.palms.filter(t => t.rotation.z !== 0).length === 1, 'otro machetazo no la levanta ni voltea otra');
 standAt(C.x + 0.8, C.z);
-check(G.interactState.kind === 'qpiece' && G.promptFor(G.interactState).text === '[F] Recoger COCO DORADO', 'cartel: recoger coco dorado');
+check(G.interactState.kind === 'qpiece' && G.promptFor(G.interactState).text === '[F] Pick up GOLDEN COCONUT', 'cartel: recoger coco dorado');
 check(G.interact() && state.quest.coconut && !C.g.visible, 'F lo recoge');
 G.updateInteract();
 check(G.interactState.kind !== 'qpiece' && !G.pickQuestPiece(C), 'no se recoge dos veces');
@@ -128,7 +128,7 @@ check(QUEST.string.phase === 'ground' && QUEST.string.room === 'R10' && QUEST.st
   'El Sombrerón la suelta donde muere');
 check(!G.dropString({ px: 0, pz: -8, level: 0 }) && QUEST.string.x === 5, 'un segundo boss no suelta otra');
 standAt(5.8, -15);
-check(G.promptFor(G.interactState).text === '[F] Recoger CUERDA DE GUITARRA' && G.interact() && state.quest.string && !QUEST.string.g.visible,
+check(G.promptFor(G.interactState).text === '[F] Pick up GUITAR STRING' && G.interact() && state.quest.string && !QUEST.string.g.visible,
   'F la recoge');
 check(!G.dropString({ px: 0, pz: -8, level: 0 }), 'ya recogida: no vuelve a caer');
 
@@ -190,18 +190,18 @@ update(Q.shellFall + 0.1);
 check(QUEST.shell.phase === 'ground' && Math.hypot(QUEST.shell.g.position.x - Q.shellLand.x, QUEST.shell.g.position.z - Q.shellLand.z) < 0.01,
   'cae enfrente de la boca');
 standAt(Q.shellLand.x + 0.6, Q.shellLand.z);
-check(G.promptFor(G.interactState).text === '[F] Recoger CARACOLA' && G.interact() && state.quest.shell && !QUEST.shell.g.visible, 'F la recoge');
+check(G.promptFor(G.interactState).text === '[F] Pick up CARACOLA' && G.interact() && state.quest.shell && !QUEST.shell.g.visible, 'F la recoge');
 check(!G.shootShell(), 'ya recogida: no se vuelve a caer');
 CONFIG.WEAPONS.m1911.spread = spread0;
 
 // 5) taller: faltan piezas / mantener F 3 s
 fresh(); state.quest.coconut = true; atShop();
-check(G.interactState.kind === 'workshop' && G.promptFor(G.interactState).text === 'Taller de tablas - faltan piezas (1/3)', 'taller: faltan piezas (1/3)');
+check(G.interactState.kind === 'workshop' && G.promptFor(G.interactState).text === 'Board workshop - missing parts (1/3)', 'taller: faltan piezas (1/3)');
 check(!G.workshopPress(), 'F sin piezas: nada');
 hold(Q.craftTime + 0.2);
 check(!state.quest.built, 'mantener F sin piezas no arma');
 allPieces(); G.updateInteract();
-check(G.promptFor(G.interactState).text === '[F] Mantener para armar la OLA ROMPIENTE', 'con las 3: "mantener para armar"');
+check(G.promptFor(G.interactState).text === '[F] Hold to build the BREAKING WAVE', 'con las 3: "mantener para armar"');
 G.giveWeapon('smg'); weaponsState.phase = 'idle';
 G.interact(); hold(1.5); G.updateQuest(dt);
 check(!state.quest.built && QUEST.craftT === 0, 'soltar F a la mitad corta el armado');
@@ -213,8 +213,8 @@ check(state.quest.built && ws === 'm1911,wave' && G.curDef().id === 'wave', 'a l
 check(G.curSlot().mag === 12 && G.curSlot().reserve === 36, '12 cargas y 36 de reserva');
 check(G.UI.quest.innerHTML === '', 'HUD: los íconos se van');
 G.updateInteract();
-check(G.promptFor(G.interactState).text === 'OLA ROMPIENTE - ya la tenés' && !G.workshopPress(), 'taller: ya la tenés');
-check(G.papDef('wave').name === "MARENA'S TSUNAMI" && G.papDef('wave').damage === W.damage * 2, "PaP: MARENA'S TSUNAMI, daño ×2");
+check(G.promptFor(G.interactState).text === 'BREAKING WAVE - already owned' && !G.workshopPress(), 'taller: ya la tenés');
+check(G.papDef('wave').name === "MARENA'S WRATH" && G.papDef('wave').damage === W.damage * 2, "PaP: MARENA'S WRATH, daño ×2");
 
 // 6) el arma: cono (F5.14: 12 m, ±40°), daño, empujón, paredes, boss
 function waveSetup() {
@@ -266,7 +266,7 @@ check(!state.gameOver && !state.weapons.some(w => w.id === 'wave') && !G.haveWav
 G.updateQuest(dt);
 check(QUEST.shopModel.visible, 'queda arriba de la mesa del taller');
 atShop();
-check(G.promptFor(G.interactState).text === '[F] Agarrar OLA ROMPIENTE' && G.interact(), 'taller: F la vuelve a sacar');
+check(G.promptFor(G.interactState).text === '[F] Take BREAKING WAVE' && G.interact(), 'taller: F la vuelve a sacar');
 check(G.curSlot() === slot && slot.mag === magLeft && state.quest.built, 'vuelve como la dejaste (misma munición)');
 G.updateQuest(dt);
 check(!QUEST.shopModel.visible, 'y se va de la mesa');

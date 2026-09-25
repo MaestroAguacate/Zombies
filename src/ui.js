@@ -52,19 +52,19 @@ function initUI() {
 //--- prompt de interacción [F] ---
 let promptText = '', promptPoor = null, promptDenyT = 0;
 function promptFor(it) {
-  if (it.kind === 'door' && it.target.power) return { text: 'Portón - se abre con la energía', cost: 0 };   // F5.7
-  if (it.kind === 'door' && it.target.burning) return { text: 'El cerco se está quemando...', cost: 0 };   // F5.12
-  if (it.kind === 'door' && it.target.burn) return { text: '[F] Quemar el cerco - ' + it.target.cost, cost: it.target.cost };
-  if (it.kind === 'door') return { text: '[F] Abrir puerta - ' + it.target.cost, cost: it.target.cost };
-  if (it.kind === 'gen') return { text: 'Generador apagado - [V] golpealo con el cuchillo', cost: 0 };
+  if (it.kind === 'door' && it.target.power) return { text: 'Gate - opens with the power', cost: 0 };   // F5.7
+  if (it.kind === 'door' && it.target.burning) return { text: 'The vines are burning...', cost: 0 };   // F5.12
+  if (it.kind === 'door' && it.target.burn) return { text: '[F] Burn the vines - ' + it.target.cost, cost: it.target.cost };
+  if (it.kind === 'door') return { text: '[F] Open door - ' + it.target.cost, cost: it.target.cost };
+  if (it.kind === 'gen') return { text: 'Generator off - [V] hit it with the knife', cost: 0 };
   if (it.kind === 'perk') { const st = perkStatus(it.target.key); return { text: st.text, cost: st.cost }; }
   if (it.kind === 'power') {                                        // F5.6: pide los 4 generadores
     const n = powerMissing();
-    return { text: n ? 'Energía - ' + (n === 1 ? 'falta 1 generador' : 'faltan ' + n + ' generadores') : '[F] Encender la energía', cost: 0 };
+    return { text: n ? 'Power - ' + (n === 1 ? '1 generator missing' : n + ' generators missing') : '[F] Turn on the power', cost: 0 };
   }
-  if (it.kind === 'part') return { text: '[F] Recoger ' + CONFIG.SHIELD.parts[it.target.key].name, cost: 0 };
+  if (it.kind === 'part') return { text: '[F] Pick up ' + CONFIG.SHIELD.parts[it.target.key].name, cost: 0 };
   if (it.kind === 'bench') return benchPrompt();
-  if (it.kind === 'qpiece') return { text: '[F] Recoger ' + it.target.name, cost: 0 };   // F5.5
+  if (it.kind === 'qpiece') return { text: '[F] Pick up ' + it.target.name, cost: 0 };   // F5.5
   if (it.kind === 'workshop') return workshopPrompt();
   if (it.kind === 'trap') return trapPrompt(it.target);   // F5.9
   if (it.kind === 'hatch') return hatchPrompt(it.target); // F5.11
@@ -72,17 +72,17 @@ function promptFor(it) {
   if (it.kind === 'fumigator' || it.kind === 'clam') return clamPrompt(it);   // F5.14
   if (it.kind === 'pap') return papPrompt();
   if (it.kind === 'box') {
-    if (BOX.phase === 'ready') return { text: '[F] Agarrar ' + (BOX.result === 'monkey' ? CONFIG.MONKEY.name : CONFIG.WEAPONS[BOX.result].name), cost: 0 };
+    if (BOX.phase === 'ready') return { text: '[F] Take ' + (BOX.result === 'monkey' ? CONFIG.MONKEY.name : CONFIG.WEAPONS[BOX.result].name), cost: 0 };
     return { text: '[F] Mystery Box - ' + CONFIG.BOX.cost, cost: CONFIG.BOX.cost };
   }
   const wb = it.target;
-  if (wb.weapon === 'machete') return state.machete ? { text: 'MACHETE - ya lo tenés', cost: 0 }
-                                                     : { text: '[F] Comprar MACHETE - ' + wb.cost, cost: wb.cost };
+  if (wb.weapon === 'machete') return state.machete ? { text: 'MACHETE - already owned', cost: 0 }
+                                                     : { text: '[F] Buy MACHETE - ' + wb.cost, cost: wb.cost };
   const owned = state.weapons.find(w => w.id === wb.weapon);
-  if (!owned) return { text: '[F] Comprar ' + CONFIG.WEAPONS[wb.weapon].name + ' - ' + wb.cost, cost: wb.cost };
+  if (!owned) return { text: '[F] Buy ' + CONFIG.WEAPONS[wb.weapon].name + ' - ' + wb.cost, cost: wb.cost };
   const def = slotDef(owned), ac = ammoCostOf(owned);            // F2b: mejorada = su nombre y munición a 2500
-  if (owned.reserve >= def.reserveMax) return { text: def.name + ' - munición llena', cost: 0 };
-  return { text: '[F] Munición ' + def.name + ' - ' + ac, cost: ac };
+  if (owned.reserve >= def.reserveMax) return { text: def.name + ' - ammo full', cost: 0 };
+  return { text: '[F] Ammo ' + def.name + ' - ' + ac, cost: ac };
 }
 function updatePromptUI(dt) {
   const it = interactState;
@@ -122,8 +122,8 @@ function showPowerupBanner(type) {
 function updatePowerupUI(dt) {
   if (puT > 0) { puT -= dt; if (puT < 0.6) UI.pu.style.opacity = '0'; }
   const parts = [];
-  if (state.effects.instakill > 0) parts.push('<b style="color:#ff5a4d">UN GOLPE</b> ' + Math.ceil(state.effects.instakill) + 's');
-  if (state.effects.doublePoints > 0) parts.push('<b style="color:#5ab0ff">x2 PUNTOS</b> ' + Math.ceil(state.effects.doublePoints) + 's');
+  if (state.effects.instakill > 0) parts.push('<b style="color:#ff5a4d">INSTA-KILL</b> ' + Math.ceil(state.effects.instakill) + 's');
+  if (state.effects.doublePoints > 0) parts.push('<b style="color:#5ab0ff">DOUBLE POINTS</b> ' + Math.ceil(state.effects.doublePoints) + 's');
   UI.fx.innerHTML = parts.join('<br>');
 }
 
@@ -135,7 +135,7 @@ function resetHUD() {
   UI.banner.style.opacity = '0';
   UI.go.classList.remove('show');
   UI.round.textContent = '';
-  UI.best.textContent = 'Récord: ronda ' + loadHighScore();
+  UI.best.textContent = 'Best: round ' + loadHighScore();
 }
 // F5.12: la ronda en números romanos (12 -> XII)
 function roman(n) {
@@ -163,8 +163,8 @@ const MENU = { started: false };
 function showMenu(mode) {                  // 'main' | 'pause' | null (ocultar)
   if (!mode) { UI.start.classList.add('hidden'); return; }
   UI.start.setAttribute('data-mode', mode);
-  UI.btnPlay.textContent = mode === 'pause' ? 'CONTINUAR' : 'JUGAR';
-  UI.best.textContent = 'Récord: ronda ' + loadHighScore();
+  UI.btnPlay.textContent = mode === 'pause' ? 'RESUME' : 'PLAY';
+  UI.best.textContent = 'Best: round ' + loadHighScore();
   UI.start.classList.remove('hidden');
 }
 function menuPanel(which) {                // abre uno, cierra el otro; clic de nuevo = cerrar
@@ -191,7 +191,7 @@ function showGameOver(isNew, best) {
   UI.goDoors.textContent = STATS.doors + ' / ' + Object.keys(state.doors).length;
   UI.goBox.textContent = STATS.boxUses;
   UI.goBest.textContent = best;
-  UI.record.textContent = isNew ? 'NUEVO RÉCORD' : '';
+  UI.record.textContent = isNew ? 'NEW RECORD' : '';
   UI.go.classList.add('show');
 }
 function updateHUD(dt) {
@@ -318,9 +318,9 @@ function updateDebug(dt) {
     (renderer.info ? '  DRAW ' + renderer.info.render.calls : '') +
     (THEMEFX.quality ? '\nCAL  -' + THEMEFX.quality + ' (' + QUALITY.msg + ')' : '') +
     '\nXZ   ' + player.pos.x.toFixed(1) + ' , ' + player.pos.z.toFixed(1) +
-    '\nSALA ' + (r ? r.id + ' ' + r.name : 'FUERA') +
+    '\nROOM ' + (r ? r.id + ' ' + r.name : 'OUTSIDE') +
     '\nHP   ' + Math.round(state.health) +
-    '\nRND  ' + state.round + '  quedan ' + zombiesLeft() + '  ' + roundState.phase +
+    '\nRND  ' + state.round + '  left ' + zombiesLeft() + '  ' + roundState.phase +
     '\nPREC ' + (state.shotsFired ? Math.round(state.shotsHit / state.shotsFired * 100) : 0) + '%' +
     '\nZOMB ' + zCount() +
     '\nKILL ' + state.kills;

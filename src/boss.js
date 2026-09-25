@@ -291,7 +291,7 @@ function bossDeath(z) {
   const pts = B.reward.points + (perk ? 0 : B.reward.noPerkPoints);
   state.points += pts; STATS.pointsEarned += pts; pendingPts += pts;   // fijo: el doble puntos no lo duplica
   z.act = null;
-  showBanner(bossName(z) + ' CAYÓ', 3);
+  showBanner(bossName(z) + ' IS DOWN', 3);
   sfxBossRoar();
 }
 // perk gratis al azar que no tengas (aunque no haya power). null = ya tenés el máximo o no queda ninguno

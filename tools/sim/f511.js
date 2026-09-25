@@ -47,7 +47,7 @@ const FC = B.entrance.face || 1, HO = B.hatch.out;
 fresh(true); clearZ(); setPlayer(HO[0], HO[1] + FC * 2);
 check(!BUNK.open && !NAV.hatch, 'la escotilla arranca cerrada, sin enlace');
 player.pos.set(B.hatch.x, P.height, B.hatch.z + FC * 0.8); G.updateInteract();
-check(G.interactState.kind === 'hatch' && G.promptFor(G.interactState).text === 'Búnker cerrado' && !G.interact(), 'cartel "Búnker cerrado" y no se usa');
+check(G.interactState.kind === 'hatch' && G.promptFor(G.interactState).text === 'Bunker closed' && !G.interact(), 'cartel "Bunker closed" y no se usa');
 const [s1, s2] = BUNK.statues;
 setPlayer(HO[0], HO[1] + FC * 6);
 // F5.15: despiertan con 5 kills de cualquier tipo (antes, calamares)
@@ -77,7 +77,7 @@ for (let i = 0; i < B.wakeKills; i++) G.damageZombie(zombieAt(s2.x, s2.z + FC * 
 clearZ(); feed(s2, B.eatCrawlers, B.eatDogs);
 check(BUNK.open && NAV.hatch && BUNK.seahorse.visible, 'con las 2: se abre la escotilla, el enlace y el caballito de mar');
 player.pos.set(B.hatch.x, P.height, B.hatch.z + FC * 0.8); G.updateInteract();
-check(G.promptFor(G.interactState).text === '[F] Bajar al búnker' && G.interact(), 'F: bajar');
+check(G.promptFor(G.interactState).text === '[F] Go down to the bunker' && G.interact(), 'F: bajar');
 for (let i = 0; i < 60 * B.fade * 2 + 5; i++) { G.tick(dt); G.updateBunker(dt); }
 check(G.inBunker() && Math.abs(player.pos.y - (B.y + P.height)) < 1e-6 && state.health === 100, 'fundido y aparecés abajo (sin daño)', `(y ${player.pos.y.toFixed(2)})`);
 // zombie de arriba baja por la escotilla, escondido, y llega con los ojos rojos

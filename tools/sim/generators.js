@@ -186,7 +186,7 @@ fresh();
 const pap = CONFIG.PAP.spot, pf = frontOf(pap, CONFIG.PAP.size, 0.8);
 player.pos.set(pf.x, (pap.y || 0) + 1.7, pf.z); G.updateInteract();   // F5.13: arriba del templo
 const t0 = G.interactState.kind === 'pap' && G.promptFor(G.interactState).text;
-check(t0 === 'Pack-a-Punch apagado - faltan 4 generadores y 3 cajas de almas', 'cartel del PaP con lo que falta', `("${t0}")`);
+check(t0 === 'Pack-a-Punch off - faltan 4 generadores y 3 cajas de almas', 'cartel del PaP con lo que falta', `("${t0}")`);
 const pts = state.points;
 check(G.interact() === false && state.points === pts, 'F sobre el PaP no hace nada ni cobra');
 GK.forEach(k => { state.generators[k] = true; }); SK.forEach(k => { state.souls[k] = need; }); G.checkPap();

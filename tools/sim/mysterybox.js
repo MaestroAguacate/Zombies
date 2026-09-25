@@ -56,7 +56,7 @@ run(0.2);
 check(BOX.phase === 'ready' && BOX.shown === res, 'a los 4s se detiene en el resultado');
 check(BOX.light.intensity > 0 && BOX.lidA > 0.5, 'luz dorada prendida y tapa abierta');
 G.updateInteract();
-check(G.promptFor(G.interactState).text === '[F] Agarrar ' + CONFIG.WEAPONS[res].name, 'prompt de agarrar');
+check(G.promptFor(G.interactState).text === '[F] Take ' + CONFIG.WEAPONS[res].name, 'prompt de agarrar');
 run(B.grabTime - 0.2);
 check(BOX.phase === 'ready', 'sigue disponible a los 7.8s');
 G.updateInteract();

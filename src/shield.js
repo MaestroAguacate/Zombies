@@ -81,11 +81,11 @@ function pickPart(k) {
 // banco: qué dice y qué hace F (agarrar es un toque; armar es mantener, en updateShield)
 function benchPrompt() {
   const S = state.shield;
-  if (S.has) return { text: 'ESCUDO - ya lo tenés', cost: 0 };
-  if (S.built) return { text: '[F] Agarrar el escudo', cost: 0 };
+  if (S.has) return { text: 'SHIELD - already owned', cost: 0 };
+  if (S.built) return { text: '[F] Take the shield', cost: 0 };
   const n = partsCount();
-  if (n < SHIELD_PARTS.length) return { text: 'Banco de trabajo - faltan piezas (' + n + '/' + SHIELD_PARTS.length + ')', cost: 0 };
-  return { text: '[F] Mantener para armar el escudo', cost: 0 };
+  if (n < SHIELD_PARTS.length) return { text: 'Workbench - missing parts (' + n + '/' + SHIELD_PARTS.length + ')', cost: 0 };
+  return { text: '[F] Hold to build the shield', cost: 0 };
 }
 function benchPress() {
   const S = state.shield;
@@ -137,7 +137,7 @@ function breakShield() {
   const S = state.shield;
   S.has = false; S.hp = 0;
   unequipShield();
-  sfxShieldBreak(); showBanner('ESCUDO ROTO', 1.4);
+  sfxShieldBreak(); showBanner('SHIELD BROKEN', 1.4);
 }
 
 // clic con el escudo equipado: empujón en cono al frente, con línea libre. Devuelve cuántos pegó
@@ -176,7 +176,7 @@ function updateShield(dt) {
       SHIELDST.craftT = 0; S.built = true;
       for (const k of SHIELD_PARTS) SHIELDST.pieces[k].visible = false;
       takeShield();
-      showBanner('ESCUDO ARMADO', 1.4);
+      showBanner('SHIELD BUILT', 1.4);
     }
   } else SHIELDST.craftT = 0;
   UI.craft.style.opacity = SHIELDST.craftT > 0 ? '1' : '0';

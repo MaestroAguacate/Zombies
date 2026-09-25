@@ -127,7 +127,7 @@ check(Math.abs(vIn - P.speed * GD.wetMul) < 0.1, 'te frena a ' + (P.speed * GD.w
 G.resetGame(); state.running = true;
 const gate = state.doors.D19;
 player.pos.set(-15, P.height, 36); G.updateInteract();
-check(!gate.open && G.interactState.kind === 'door' && G.promptFor(G.interactState).text === 'Portón - se abre con la energía', 'portón del sótano: cerrado, con su cartel');
+check(!gate.open && G.interactState.kind === 'door' && G.promptFor(G.interactState).text === 'Gate - opens with the power', 'portón del sótano: cerrado, con su cartel');
 state.points = 99999;
 check(!G.interact() && !gate.open && state.points === 99999, 'no se compra');
 for (const k of G.GEN_KEYS) state.generators[k] = true;

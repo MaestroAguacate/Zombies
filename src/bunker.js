@@ -126,7 +126,7 @@ function buildBunker() {
   const sign = makeTex((c, s) => {
     c.fillStyle = '#1a0806'; c.fillRect(0, 0, s, s);
     c.fillStyle = '#ff3a2a'; c.textAlign = 'center';
-    c.font = 'bold ' + Math.floor(s * 0.13) + 'px monospace'; c.fillText('FUERA DE', s / 2, s * 0.45); c.fillText('SERVICIO', s / 2, s * 0.65);
+    c.font = 'bold ' + Math.floor(s * 0.13) + 'px monospace'; c.fillText('OUT OF', s / 2, s * 0.45); c.fillText('ORDER', s / 2, s * 0.65);
   }, 1, 128);
   sign.magFilter = THREE.LinearFilter;
   const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.1), new THREE.MeshBasicMaterial({ map: sign }));
@@ -206,7 +206,7 @@ function buildHatch() {
   const sign = makeTex((c, s) => {
     c.fillStyle = '#2a2a28'; c.fillRect(0, 0, s, s);
     c.fillStyle = '#f0c020'; c.textAlign = 'center';
-    c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.fillText('BÚNKER', s / 2, s * 0.45);
+    c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.fillText('BUNKER', s / 2, s * 0.45);
     c.font = 'bold ' + Math.floor(s * 0.12) + 'px monospace'; c.fillText('34B', s / 2, s * 0.7);
   }, 1, 128);
   sign.magFilter = THREE.LinearFilter;
@@ -320,7 +320,7 @@ function openBunker() {
   BUNK.hole.visible = true;
   BUNK.lamp.material.color.setHex(0x3aff5a);
   BUNK.seahorse.visible = true;
-  showBanner('SE ABRIÓ EL BÚNKER', 3);
+  showBanner('THE BUNKER OPENED', 3);
   sfxShellRise();
   return true;
 }
@@ -338,8 +338,8 @@ function hatchNear(room, px, pz, bd) {
   return null;
 }
 function hatchPrompt(t) {
-  if (!BUNK.open) return { text: 'Búnker cerrado', cost: 0 };
-  return { text: t.down ? '[F] Bajar al búnker' : '[F] Subir al jardín', cost: 0 };
+  if (!BUNK.open) return { text: 'Bunker closed', cost: 0 };
+  return { text: t.down ? '[F] Go down to the bunker' : '[F] Climb up', cost: 0 };
 }
 function useHatch(t) {
   if (!BUNK.open || BUNK.fadeT > 0) return false;
@@ -437,7 +437,7 @@ function openPortals() {
   PORTAL.tomb.visible = false;
   const i = WORLD.hitMeshes.indexOf(PORTAL.tombHit); if (i >= 0) WORLD.hitMeshes.splice(i, 1);
   for (const A of PORTAL.arcs) { A.arc.visible = A.ring.visible = A.core.visible = true; }
-  showBanner('SE ABRIÓ UN PORTAL');
+  showBanner('A PORTAL OPENED', 3);
   sfxShieldTake();
 }
 function portalNear(room, px, pz, bd) {
@@ -451,8 +451,8 @@ function portalNear(room, px, pz, bd) {
   return null;
 }
 function portalPrompt(t) {
-  if (PORTAL.cd > 0) return { text: 'El portal se está recargando...', cost: 0 };
-  return { text: t.portal === 'temple' ? '[F] Viajar a la Playa del Calamar' : '[F] Viajar al Templo', cost: 0 };
+  if (PORTAL.cd > 0) return { text: 'The portal is recharging...', cost: 0 };
+  return { text: t.portal === 'temple' ? '[F] Travel to Squid Beach' : '[F] Travel to the Temple', cost: 0 };
 }
 function usePortal(t) {
   if (!PORTAL.open || PORTAL.cd > 0 || BUNK.fadeT > 0) return false;
