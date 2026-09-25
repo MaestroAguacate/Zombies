@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<!-- GENERADO por build.js desde src/. No editar a mano: editá src/ y corré "node build.js". -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Beach House Zombies</title>
+<style>
+  :root{
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --ink:#f2ede4;
+    --dim:rgba(242,237,228,.55);
+    --accent:#ffb347;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:#0b0d12;overflow:hidden;
+    font:13px/1.4 ui-monospace,'SF Mono',Menlo,Consolas,monospace;color:var(--ink)}
+  canvas{display:block;position:relative;z-index:0}   /* F7a: debajo del HUD y los menús aunque tenga filtro */
+
+  #hud{position:fixed;inset:0;pointer-events:none;
+       padding:calc(12px + var(--safe-t)) 14px calc(12px + var(--safe-b));}
+
+  /* ---- crosshair ---- */
+  #cross{position:absolute;left:50%;top:50%;width:26px;height:26px;transform:translate(-50%,-50%);
+         opacity:.9}
+  #cross i{position:absolute;background:var(--ink);box-shadow:0 0 2px #000}
+  #cross i.h{width:7px;height:2px;top:12px}
+  #cross i.v{width:2px;height:7px;left:12px}
+  #cross .l{left:0}  #cross .r{right:0}
+  #cross .t{top:0}   #cross .b{bottom:0}
+  #cross .l{transform:translateX(calc(var(--s,0) * -1px))} #cross .r{transform:translateX(calc(var(--s,0) * 1px))}
+  #cross .t{transform:translateY(calc(var(--s,0) * -1px))} #cross .b{transform:translateY(calc(var(--s,0) * 1px))}
+  #hitmark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+           width:22px;height:22px;opacity:0}
+  #hitmark:before,#hitmark:after{content:'';position:absolute;left:10px;top:0;width:2px;height:22px;
+           background:var(--hm,#fff);box-shadow:0 0 2px #000}
+  .dmgnum{position:absolute;left:0;top:0;font-weight:800;font-size:15px;color:#fff;white-space:nowrap;
+          text-shadow:0 1px 3px #000,0 0 2px #000;pointer-events:none;opacity:0;will-change:transform,opacity}
+  .dmgnum.head{color:#ffd23a;font-size:22px}
+  #hitmark:before{transform:rotate(45deg)} #hitmark:after{transform:rotate(-45deg)}
+
+  /* ---- puntos / ronda / cartel ---- */
+  #points{position:absolute;left:16px;top:calc(12px + var(--safe-t));font-size:26px;font-weight:700;
+          color:#f5e6b8;text-shadow:0 2px 6px #000}
+  #points .pop{position:absolute;left:100%;margin-left:10px;top:4px;font-size:15px;color:#ffe08a;
+          white-space:nowrap;animation:pop .8s ease-out forwards}
+  @keyframes pop{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-22px)}}
+  /* F5.12: arriba a la derecha, encima de todo el HUD, en números romanos */
+  #round{position:absolute;right:calc(18px + var(--safe-r, 0px));top:calc(8px + var(--safe-t));z-index:30;
+         font-family:Georgia,'Times New Roman',serif;
+         font-size:48px;font-weight:800;color:#b3261e;letter-spacing:3px;
+         text-shadow:0 0 12px rgba(179,38,30,.6),0 2px 4px #000}
+  #round.flash{animation:rflash 1s ease-in-out 3}
+  @keyframes rflash{50%{color:#fff;text-shadow:0 0 18px #fff}}
+  #banner{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);white-space:nowrap;
+          font-size:clamp(34px,7vw,64px);font-weight:800;letter-spacing:8px;color:#d33a2c;
+          opacity:0;transition:opacity .6s;text-shadow:0 0 24px rgba(211,58,44,.5),0 3px 6px #000}
+  #banner.long{font-size:clamp(18px,3.6vw,40px);letter-spacing:3px}
+  /* boss (F5): barra de vida arriba al centro con el nombre */
+  #bossbar{position:absolute;left:50%;top:calc(34px + var(--safe-t));transform:translateX(-50%);
+           width:min(520px,80vw);text-align:center;display:none;text-shadow:0 2px 4px #000}
+  #bossbar .name{font-weight:800;letter-spacing:6px;font-size:14px;color:#e8d8b0;margin-bottom:4px}
+  #bossbar .bar{height:10px;background:rgba(0,0,0,.6);border:1px solid rgba(232,216,176,.5)}
+  #bossbar .bar b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#6a0f12,#c0262c);
+                  transition:width .15s}
+  #bossbar .hat{height:3px;margin-top:2px;background:rgba(0,0,0,.5)}
+  #bossbar .hat b{display:block;height:100%;width:0;background:#c9b27a}
+  #lowhp{position:fixed;inset:0;pointer-events:none;opacity:0;
+         background:radial-gradient(ellipse at center,rgba(120,0,0,0) 38%,rgba(120,0,0,.9) 100%)}
+  /* F5.11: fundido a negro de la escotilla del búnker */
+  #fade{position:fixed;inset:0;pointer-events:none;opacity:0;background:#000}
+  /* F5.9: tinta de calamar en la pantalla (manchas moradas y rojas que se desvanecen) */
+  /* F7a: post-proceso sin shaders: viñeta + grano (la textura la pone gfx.js en --grain y la mueve con --gx/--gy) */
+  #post{position:fixed;inset:0;pointer-events:none;
+        background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%);}
+  #post::after{content:'';position:absolute;inset:0;opacity:.06;mix-blend-mode:overlay;
+        background-image:var(--grain);background-position:var(--gx,0) var(--gy,0);}
+  #ink{position:fixed;inset:0;pointer-events:none;opacity:0;
+       background:radial-gradient(circle at 28% 34%,rgba(90,10,90,.92) 0 11%,rgba(90,10,90,0) 17%),
+                  radial-gradient(circle at 64% 58%,rgba(130,8,30,.9) 0 13%,rgba(130,8,30,0) 20%),
+                  radial-gradient(circle at 45% 78%,rgba(70,8,80,.85) 0 8%,rgba(70,8,80,0) 13%),
+                  radial-gradient(circle at 80% 22%,rgba(110,20,110,.85) 0 7%,rgba(110,20,110,0) 12%),
+                  radial-gradient(circle at 16% 72%,rgba(140,10,40,.8) 0 6%,rgba(140,10,40,0) 10%)}
+
+  /* ---- game over ---- */
+  #gameover{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+            gap:16px;background:rgba(12,2,2,.86);text-align:center;padding:24px}
+  #gameover.show{display:flex}
+  #gameover h2{margin:0;font-size:clamp(30px,6vw,54px);color:#d33a2c;letter-spacing:8px}
+  .stats{display:grid;grid-template-columns:auto auto;gap:6px 26px;font-size:16px;text-align:left}
+  .stats span:nth-child(odd){color:var(--dim)}
+  #record{color:var(--accent);letter-spacing:3px;min-height:1.4em}
+  #gameover .stats{font-size:15px}
+
+  /* ---- debug ---- */
+  #debug{position:absolute;left:14px;bottom:calc(14px + var(--safe-b));
+         background:rgba(0,0,0,.42);padding:7px 9px;border-radius:5px;
+         color:var(--dim);white-space:pre;font-size:11px;letter-spacing:.3px}
+  #debug b{color:var(--ink);font-weight:600}
+  /* cartel del modo debug (CONFIG.DEBUG_MODE): arriba al centro, siempre visible mientras esté activo */
+  #debugmode{position:absolute;left:50%;top:calc(8px + var(--safe-t));transform:translateX(-50%);display:none;
+             padding:3px 10px;border:1px solid #ff5a4d;border-radius:4px;background:rgba(40,0,0,.55);
+             color:#ff7a6d;font-weight:800;font-size:12px;letter-spacing:3px;text-shadow:0 1px 2px #000}
+
+  /* ---- ammo ---- */
+  #ammo{position:absolute;right:16px;bottom:calc(14px + var(--safe-b));text-align:right;
+        text-shadow:0 2px 6px rgba(0,0,0,.9)}
+  #wname{font-size:13px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+  #wammo{font-size:30px;font-weight:700;letter-spacing:1px;line-height:1.1}
+  #wammo .res{font-size:16px;font-weight:400;color:var(--dim)}
+  #wammo.low{color:#ff6b5a}
+  #wname.pap{color:#c78cff;text-shadow:0 0 6px rgba(160,90,255,.8),0 2px 6px rgba(0,0,0,.9)}
+  /* granadas (F2.7): íconos junto a la munición + barra de mecha al cocinar */
+  #gren{height:15px;margin-bottom:3px}
+  #gren i{display:inline-block;width:9px;height:13px;margin-left:4px;border-radius:3px 3px 4px 4px;
+          background:#6f7d4c;border:1px solid #1c1f14;box-shadow:inset 0 3px 0 #9aa07e}
+  #gren i.off{opacity:.18}
+  #gren i.mk{background:#e86a4a;border-radius:5px 5px 2px 2px}   /* F5.11: langostinos */
+  #cook{position:absolute;left:50%;top:62%;transform:translateX(-50%);width:120px;height:5px;
+        background:rgba(0,0,0,.55);border:1px solid rgba(242,237,228,.35);opacity:0;transition:opacity .1s}
+  #cook b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff4a2a,#ffb347)}
+  /* perks (F2): abajo a la izquierda · stamina: barra fina abajo al centro */
+  #perks{position:absolute;left:16px;bottom:calc(14px + var(--safe-b));display:flex;gap:6px}
+  #perks i{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+           font:700 11px/1 ui-monospace,Consolas,monospace;font-style:normal;color:#fff;
+           text-shadow:0 1px 2px #000;box-shadow:0 2px 6px rgba(0,0,0,.7),inset 0 0 0 2px rgba(255,255,255,.25)}
+  #stam{position:absolute;left:50%;bottom:calc(22px + var(--safe-b));transform:translateX(-50%);width:160px;height:4px;
+        background:rgba(0,0,0,.5);opacity:0;transition:opacity .25s}
+  #stam b{display:block;height:100%;width:100%;background:#e8e2d0}
+  #stam.empty b{background:#ff6b5a}
+  /* escudo (F3a): 3 piezas o barra de durabilidad, arriba de las granadas · barra de armado */
+  #shieldhud{height:14px;margin-bottom:4px}
+  #shieldhud i{display:inline-block;width:12px;height:12px;margin-left:4px;border:1px solid #1c1f14;border-radius:2px}
+  #shieldhud i.door{background:#7a5a34} #shieldhud i.board{background:#d8c060} #shieldhud i.handle{background:#8a8a88}
+  #shieldhud i.off{opacity:.2}
+  #shieldhud b{display:inline-block;height:6px;background:#c8b27a;border:1px solid #1c1f14;vertical-align:middle}
+  /* Ola Rompiente (F5.5): coco, cuerda, caracola; grises hasta tenerlos */
+  #questhud{height:14px;margin-bottom:4px}
+  #questhud i{display:inline-block;width:12px;height:12px;margin-left:4px;border:1px solid #1c1f14;border-radius:6px}
+  #questhud i.coco{background:#ffc83a} #questhud i.string{background:#e8c050;border-radius:2px} #questhud i.shell{background:#e8b8a0}
+  #questhud i.off{opacity:.2}
+  #craft{position:absolute;left:50%;top:66%;transform:translateX(-50%);width:160px;height:6px;
+         background:rgba(0,0,0,.55);border:1px solid rgba(242,237,228,.35);opacity:0}
+  #craft b{display:block;height:100%;width:0;background:#c8b27a}
+  #dmg{position:fixed;inset:0;pointer-events:none;opacity:0;
+       background:radial-gradient(ellipse at center,rgba(160,0,0,0) 45%,rgba(160,0,0,.75) 100%)}
+  #reloadmsg{position:absolute;left:50%;top:58%;transform:translateX(-50%);
+        color:var(--accent);letter-spacing:3px;font-size:12px;opacity:0;transition:opacity .15s;
+        text-shadow:0 2px 6px #000}
+  #pubanner{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);white-space:nowrap;
+        font-size:clamp(18px,4vw,28px);font-weight:800;letter-spacing:4px;opacity:0;transition:opacity .4s;
+        text-shadow:0 2px 8px #000}
+  #effects{position:absolute;right:16px;top:calc(74px + var(--safe-t));text-align:right;
+        font-size:12px;line-height:1.7;text-shadow:0 1px 4px #000}
+  #effects b{font-weight:700}
+  #points .pop.neg{color:#ff6b5a}
+  #prompt{position:absolute;left:50%;top:66%;transform:translateX(-50%);white-space:nowrap;
+        font-size:15px;letter-spacing:1px;padding:6px 12px;border-radius:5px;background:rgba(0,0,0,.45);
+        opacity:0;transition:opacity .12s;text-shadow:0 1px 3px #000}
+  #prompt.show{opacity:1}
+  #prompt.poor{color:#ff8a7a}
+  #prompt.deny{animation:deny .35s}
+  @keyframes deny{20%,60%{transform:translateX(calc(-50% - 6px))}40%,80%{transform:translateX(calc(-50% + 6px))}}
+
+  /* ---- overlay de inicio ---- */
+  #start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
+         justify-content:center;gap:16px;background:radial-gradient(ellipse at 50% 40%,#1b2030,#07080c);
+         text-align:center;padding:24px;overflow-y:auto}
+  #start[data-mode="pause"]{background:rgba(7,8,12,.78)}
+  #start[data-mode="main"] .pause-only{display:none}
+  #start .sub{margin-top:-10px;letter-spacing:4px;font-size:12px}
+  #start h2{margin:0;letter-spacing:8px;color:var(--ink)}
+  .menu-btns{display:flex;flex-direction:column;gap:10px;min-width:240px}
+  .menu-btns.row{flex-direction:row;justify-content:center}
+  .menu-btns button{cursor:pointer;background:rgba(255,255,255,.06);color:var(--ink);
+           border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:12px 26px;
+           font:600 15px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:3px}
+  .menu-btns button:hover{background:rgba(255,179,71,.16);border-color:var(--accent)}
+  .menu-btns button.primary{background:#d33a2c;border-color:#d33a2c;color:#fff}
+  .menu-btns button.primary:hover{background:#e84a3b}
+  .panel{display:none;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);border-radius:8px;
+         padding:14px 18px;max-width:560px;text-align:left}
+  .panel.open{display:block}
+  .panel label{display:grid;grid-template-columns:110px 1fr 56px;align-items:center;gap:12px;margin:8px 0}
+  .panel input[type=range]{accent-color:#ffb347;width:100%}
+  .ctl{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;align-items:center}
+  .dim{color:var(--dim)}
+  #menuMsg{color:var(--accent);min-height:1.2em}
+  #start h1{margin:0;font-size:clamp(26px,6vw,46px);letter-spacing:6px;font-weight:700;
+            color:var(--accent);text-shadow:0 0 30px rgba(255,179,71,.3)}
+  #start p{margin:0;color:var(--dim);max-width:460px;line-height:1.8}
+  #start kbd{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
+             border-radius:4px;padding:1px 6px;color:var(--ink)}
+  #start.hidden{display:none}
+</style>
+</head>
+<body>
+
+<div id="lowhp"></div>
+<div id="post"></div>
+<div id="ink"></div>
+<div id="fade"></div>
+<div id="dmg"></div>
+<div id="hud">
+  <div id="points">0</div>
+  <div id="round"></div>
+  <div id="banner"></div>
+  <div id="debug"></div>
+  <div id="debugmode">DEBUG MODE</div>
+  <div id="bossbar"><div class="name" id="bossname"></div><div class="bar"><b id="bossfill"></b></div><div class="hat"><b id="bosshat"></b></div></div>
+  <div id="cross"><i class="h l"></i><i class="h r"></i><i class="v t"></i><i class="v b"></i></div>
+  <div id="hitmark"></div>
+  <div id="reloadmsg">RECARGANDO</div>
+  <div id="pubanner"></div>
+  <div id="effects"></div>
+  <div id="prompt"></div>
+  <div id="cook"><b id="cookbar"></b></div>
+  <div id="perks"></div>
+  <div id="stam"><b id="stambar"></b></div>
+  <div id="craft"><b id="craftbar"></b></div>
+  <div id="ammo">
+    <div id="questhud"></div>
+    <div id="shieldhud"></div>
+    <div id="gren"></div>
+    <div id="wname">—</div>
+    <div id="wammo">0 <span class="res">/ 0</span></div>
+  </div>
+</div>
+
+<div id="gameover">
+  <h2>CAÍSTE</h2>
+  <div class="stats">
+    <span>Ronda alcanzada</span><span id="goRound">0</span>
+    <span>Tiempo</span><span id="goTime">0:00</span>
+    <span>Kills</span><span id="goKills">0</span>
+    <span>Headshots</span><span id="goHeads">0</span>
+    <span>Kills con cuchillo</span><span id="goKnife">0</span>
+    <span>Arma favorita</span><span id="goFav">—</span>
+    <span>Precisión</span><span id="goAcc">0%</span>
+    <span>Puntos ganados</span><span id="goPts">0</span>
+    <span>Daño recibido</span><span id="goDmg">0</span>
+    <span>Puertas abiertas</span><span id="goDoors">0</span>
+    <span>Mystery box</span><span id="goBox">0</span>
+    <span>Récord</span><span id="goBest">0</span>
+  </div>
+  <div id="record"></div>
+  <div class="menu-btns row">
+    <button id="restart" class="primary">REINICIAR</button>
+    <button id="btnGoMenu">MENÚ</button>
+  </div>
+</div>
+
+<!-- menú de inicio y pausa: mismo overlay, data-mode="main" | "pause" -->
+<div id="start" data-mode="main">
+  <h1>BEACH HOUSE ZOMBIES</h1>
+  <p class="sub">MARENA · 34B · COSTA SUR, GUATEMALA</p>
+  <h2 class="pause-only">PAUSA</h2>
+  <div class="menu-btns">
+    <button id="btnPlay" class="primary">JUGAR</button>
+    <button id="btnControls">CONTROLES</button>
+    <button id="btnSettings">AJUSTES</button>
+    <button id="btnQuit" class="pause-only">SALIR AL MENÚ</button>
+  </div>
+  <div id="panelControls" class="panel">
+    <div class="ctl">
+      <span><kbd>WASD</kbd></span><span>moverse</span>
+      <span><kbd>Shift</kbd></span><span>correr</span>
+      <span><kbd>Espacio</kbd></span><span>saltar</span>
+      <span><kbd>Click</kbd></span><span>disparar</span>
+      <span><kbd>R</kbd></span><span>recargar</span>
+      <span><kbd>Q</kbd></span><span>cambiar arma</span>
+      <span><kbd>V</kbd> / <kbd>Ruedita</kbd></span><span>cuchillo (munición infinita)</span>
+      <span><kbd>Clic der.</kbd></span><span>apuntar (mantener)</span>
+      <span><kbd>G</kbd></span><span>granada (mantener = cocinar, 3 s)</span>
+      <span><kbd>1</kbd> <kbd>2</kbd> / <kbd>3</kbd></span><span>armas / escudo (clic = empujón)</span>
+      <span><kbd>F</kbd></span><span>abrir puerta · comprar arma de pared · mystery box</span>
+      <span><kbd>Esc</kbd></span><span>pausa</span>
+      <span class="dim"><kbd>O</kbd> <kbd>N</kbd> <kbd>H</kbd></span><span class="dim">debug: abrir puertas · grid · overlay</span>
+    </div>
+  </div>
+  <div id="panelSettings" class="panel">
+    <label>Sensibilidad <input id="sens" type="range" min="20" max="300" step="5" value="100"><span id="sensVal">1.00x</span></label>
+    <label>Volumen <input id="vol" type="range" min="0" max="100" step="1" value="70"><span id="volVal">70%</span></label>
+    <label>Música <input id="musicVol" type="range" min="0" max="100" step="1" value="100"><span id="musicVal">100%</span></label>
+    <label>Efectos <input id="sfxVol" type="range" min="0" max="100" step="1" value="100"><span id="sfxVal">100%</span></label>
+    <label>Números de daño <input id="dmgNums" type="checkbox" checked></label>
+    <label>Calidad <select id="quality"><option value="bajo">Bajo</option><option value="medio" selected>Medio</option><option value="alto">Alto (sombras)</option></select></label>
+    <label>Post-proceso <input id="postFx" type="checkbox" checked></label>
+    <p class="dim">Los ajustes duran esta sesión.</p>
+  </div>
+  <p id="best"></p>
+  <p id="menuMsg"></p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+@@BUNDLE@@</script>
+</body>
+</html>
