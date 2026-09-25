@@ -42,7 +42,7 @@ check(G.bossAlive() && !roundState.bossPending && Math.hypot(b.px - B.spawn.x, b
 check(b.health === B.health(12) && b.maxHealth === Math.round(13600 * 1.3), 'F5.9: vida (4000 + 800 × ronda) × 1.3', `(${b.health})`);
 check(G.UI.banner.textContent === B.name, 'cartel "' + B.name + '"');
 tickAll(90);
-check(G.scene.fog.far < fog0 * 0.5, 'la niebla se cierra', `(${fog0} -> ${G.scene.fog.far.toFixed(0)})`);
+check(G.scene.fog.far < fog0 * 0.7, 'la niebla se cierra', `(${fog0} -> ${G.scene.fog.far.toFixed(0)})`);
 check(G.UI.boss.style.display === 'block' && G.UI.bossName.textContent === B.name, 'barra de vida con el nombre');
 tickAll(60 * 10);
 check(G.scene.fog.far === B.fogFar, 'F5.8: queda cerrada toda la pelea', `(${G.scene.fog.far})`);

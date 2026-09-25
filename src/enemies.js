@@ -648,9 +648,14 @@ function rainDrop(i, top) {
   a[o] = x; a[o + 1] = y; a[o + 2] = z;
   a[o + 3] = x - R.wind * R.len / R.speed; a[o + 4] = y + R.len; a[o + 5] = z;
 }
+// F5.16: áreas donde llueve siempre, sea la ronda que sea (CONFIG.WEATHER.rainRooms)
+function rainZone() {
+  const r = roomAt(player.pos.x, player.pos.z);
+  return !!r && CONFIG.WEATHER.rainRooms.includes(r.id);
+}
 function updateRain(dt) {
   if (!RAIN.lines) return;
-  const on = !!NIGHT.rain && !state.gameOver && !inBunker();   // F5.11: en el búnker no llueve
+  const on = (!!NIGHT.rain || rainZone()) && !state.gameOver && !inBunker();   // F5.11: en el búnker no llueve
   if (on && !RAIN.lines.visible) for (let i = 0; i < RAIN.n; i++) rainDrop(i, false);
   RAIN.lines.visible = on;
   if (!on) return;

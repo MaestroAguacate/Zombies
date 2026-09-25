@@ -1,7 +1,7 @@
 // P6: mystery box (spots, cobro, animación 4s, ventana 8s, pool sin repetidas, teddy + mudanza a cuarto abierto)
 // y armas exclusivas (Ray Gun área, Francotirador x3, Lanzallamas 40/s sin puntos de impacto).
 const G = require('./harness.js');
-const { state, player, CONFIG, BOX, weaponsState, NAV } = G;
+const { state, player, CONFIG, BOX, weaponsState, NAV, STATS } = G;
 let fail = 0;
 const check = (c, msg, extra) => { console.log((c ? '  ok    ' : '  FALLA ') + msg + (extra ? ' ' + extra : '')); if (!c) fail++; };
 const B = CONFIG.BOX, dt = 1 / 60;
@@ -86,9 +86,11 @@ check(Math.abs(teddy / N - B.teddyChance) < 0.01, 'teddy ≈ 15%', `(${(teddy / 
 const wBefore = state.weapons.map(w => w.id).join();
 state.points = 950; at(10, 28.2);
 withRandom(0.01, () => G.interact());
-check(BOX.result === 'teddy' && state.points === 0, 'teddy cobra igual');
+check(BOX.result === 'teddy' && state.points === 0, 'teddy cobra al tirar');
+const earned0 = STATS.pointsEarned;
 run(B.rollTime + 0.05);
 check(BOX.phase === 'teddy' && BOX.shown === 'teddy', 'muestra el oso');
+check(state.points === 950 && STATS.pointsEarned === earned0, 'F5.16: el oso devuelve los 950 (sin contar como ganancia)', `(${state.points})`);
 run(B.teddyTime + B.moveTime + 0.1);
 check(BOX.phase === 'idle' && BOX.room !== 'R5', 'se mudó', `(a ${BOX.room})`);
 check(G.openRooms().includes(BOX.room), 'a un cuarto abierto');

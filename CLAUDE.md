@@ -35,7 +35,7 @@ sol y luna, desmembramiento, animaciones y poses de muerte, agua animada, playa 
 **Repo (2026-09-25):** GitHub `MaestroAguacate/Zombies` arrancó de cero con subidas web: sin historial ni tags
 viejos (`v1-final`…`v2-f5.5` solo existen en la copia local de Diego). F5.6–F7 + F5.15 están en `main`, con los
 43 tests en verde (7 tests desactualizados por F5.15 se arreglaron: f510, f511, f512, f513, quest, roof, audio2).
-Falta el playtest de Diego (sobre todo FPS con sombras). **Sigue F5.16 (5 áreas, ver ROADMAP-V2)** y después F8.
+Falta el playtest de Diego (sobre todo FPS con sombras). **F5.16 (5 áreas, ver ROADMAP-V2): tanda A hecha**, siguen B–E y después F8.
 
 ## Reglas no negociables
 - **Se edita `src/`, nunca `index.html`.** `node build.js` concatena `src/*.js` (en `build.js` ORDER) dentro
@@ -1081,6 +1081,30 @@ Si agregás estado o funciones que un test necesita, exponelas en la línea `glo
 - Test: `f515.js` (las 4 tandas). Se adaptaron `map.js`, `f511.js`, `f513.js`, `garden.js`, `weapons2.js`,
   `quest.js`, `pap.js` y `generators.js`.
 
+## 5 áreas, tanda A (V2 F5.16) — manda sobre todo lo de arriba donde se contradice
+- **Niebla permanente** (`CONFIG.FOG` near 5 · far 30 · clip 34): `camera.far` = `clip`, así el frustum descarta lo
+  lejano. El domo del cielo queda oculto y `scene.background` **es el mismo objeto** que `scene.fog.color` (la noche
+  y el ciclo de luz lo cambian en el lugar: nunca reemplazar `fog.color` por otro Color). Boss 18 m, neblina morada
+  22 m. `GFX.shadowBox` 40. El sol, la luna y las estrellas quedan más allá de `camera.far`: no se ven.
+- **Lluvia por zona** (`CONFIG.WEATHER.rainRooms` = R20 templo, R17 claro del búnker; `rainZone()`): llueve siempre
+  ahí, sea la ronda que sea. Adentro del búnker no. El resto sigue con la lluvia por ronda.
+- **Oso de la caja:** devuelve lo pagado al aparecer (`refundBox`, `BOX.paid`). No pasa por `addPoints`: sin doble
+  puntos ni `STATS.pointsEarned`.
+- **Sombras (bug del piso del rancho):** la cámara de sombra se mueve de a un texel en el plano de la luz
+  (`shadowSnap`) y `normalBias` 0.03. Cámara con near 0.1 (más precisión de profundidad). No se pudo ver sin GPU:
+  confirmar en el playtest.
+- **Techo solo techo:** sin escaleras 1 y 2, `UP.walk` vacío, sin barandas en la casa, sin `OPEN_LINKS` R13–R12.
+  `UP` (grid de arriba, `UP.flights`, `walkMask`) queda **solo para la cima del templo** y sus rampas de piedra.
+  - Plantas carnívoras en los jardines (`GARDEN.plants`: 2 en R12, 2 en R13), maceta sólida en el piso. Avisan y
+    escupen con el jugador en el piso y con línea libre (`plantSees`, desde el borde de la maceta); comen
+    arrastrados del piso (nivel 0). La quest de la caracola sigue pidiendo las 4.
+  - Banco del escudo en el garaje, pared sur (-10, 18.45). Doble cañón en el cerco norte del rancho (-54.5, 39.8).
+- **Muelle de un solo acceso:** sin segundo tronco, pasarela, entrante ni D18. 5 zonas de pirañas (antes 6). Jugg
+  al final de la plataforma (0, -49.4).
+- **Generador `caseta` en el rancho** (-49.5, 39.45), contra el cerco norte. La clave no cambia (nombre fijo).
+- Test: `f516.js`. Se adaptaron `roof.js` (reescrito), `garden.js`, `quest.js`, `f510.js`, `f511.js`, `f513.js`,
+  `shield.js`, `weapons2.js`, `map.js`, `mysterybox.js` y `gfx.js`.
+
 ## Audio (V2 F6) — `src/audio.js`, `CONFIG.AUDIO`
 - **Buses:** `sfx → compresor → master`, `amb → master`, `music → master` (F6), más 2 loops nuevos
   (viento y bichos) directo al master. Todo sigue saliendo sin hacer nada si no hay contexto.
@@ -1177,7 +1201,7 @@ Si agregás estado o funciones que un test necesita, exponelas en la línea `glo
 ## Mystery box (P6) — `CONFIG.BOX`
 - **`BOX` no vive en `state`** (mismo criterio que `PICKUPS`). Fases: `idle → rolling (4s) → ready (8s) → idle`,
   o `rolling → teddy → moving → idle`. El resultado se decide **al pagar** (`rollBoxResult`).
-- **Nunca ofrece un arma que ya tenés.** Teddy 15%, **cobra igual** (spec; en CoD real devuelve los 950).
+- **Nunca ofrece un arma que ya tenés.** Teddy 15%. **F5.16 (Diego): al salir el oso devuelve los 950** (`refundBox`, `BOX.paid`; sin doble puntos ni STATS).
 - Mudanza: a un cuarto de `openRooms()` (BFS sobre `DOOR_LINKS` desde R1), distinto del actual y con el
   jugador a >2 m del spot. Sin destino posible no sale teddy.
 - **Spots** (`BOX.spots`, uno por cuarto) contra una pared, profundidad 0.7 → la caja queda dentro del anillo

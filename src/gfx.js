@@ -66,6 +66,7 @@ function applyQuality(name) {
 function setShadows(on, size) {
   const S = WORLD.sun;
   GFX.shadows = !!on;
+  if (size) GFX.shadowSize = size;
   if (!renderer.shadowMap || !S) return;
   if (renderer.shadowMap.enabled === GFX.shadows && S.castShadow === GFX.shadows) return;
   if (GFX.shadows) gfxMarkShadows();
@@ -78,6 +79,7 @@ function setShadows(on, size) {
     cam.left = -B; cam.right = B; cam.top = B; cam.bottom = -B; cam.near = 1; cam.far = CONFIG.GFX.shadowFar;
     cam.updateProjectionMatrix();
     S.shadow.bias = -0.0008;
+    S.shadow.normalBias = 0.03;                  // F5.16: menos acné en pisos grandes
   }
   // prender o apagar el shadow map cambia los shaders: una sola recompilación, al tocar el ajuste
   scene.traverse(o => { if (o.isMesh && o.material && !Array.isArray(o.material)) o.material.needsUpdate = true; });
@@ -102,12 +104,22 @@ function gfxApplyFilter() {
   const f = gfxFilter();
   if (f !== GFX.filter && typeof renderer !== 'undefined' && renderer) { GFX.filter = f; renderer.domElement.style.filter = f; }
 }
+const SNAP = { r: new THREE.Vector3(), u: new THREE.Vector3(), f: new THREE.Vector3(), out: new THREE.Vector3() };
+function shadowSnap(p) {
+  const G = CONFIG.GFX, tex = G.shadowBox / (GFX.shadowSize || 1024);
+  SNAP.f.copy(GFX.sunBase).normalize();
+  SNAP.r.set(0, 1, 0).cross(SNAP.f).normalize(); SNAP.u.copy(SNAP.f).cross(SNAP.r);
+  SNAP.out.set(p.x, 0, p.z);
+  const a = Math.round(SNAP.out.dot(SNAP.r) / tex) * tex, b = Math.round(SNAP.out.dot(SNAP.u) / tex) * tex, c = SNAP.out.dot(SNAP.f);
+  return SNAP.out.copy(SNAP.r).multiplyScalar(a).addScaledVector(SNAP.u, b).addScaledVector(SNAP.f, c);
+}
 function updateGfx(dt) {
   // sombras: el sol (y su cámara de sombra) sigue al jugador, en la dirección de siempre
   const S = WORLD.sun;
   if (GFX.shadows && S) {
-    const P = player.pos;
-    S.target.position.set(P.x, 0, P.z);
+    // F5.16 (bug del piso del rancho): la cámara de sombra salta de a un texel en el plano de la luz. Siguiendo al
+    // jugador de forma continua, el borde de cada sombra titilaba al caminar (bajo la palapa se veía el piso "vivo")
+    S.target.position.copy(shadowSnap(player.pos));
     S.position.copy(GFX.sunBase).multiplyScalar(CONFIG.GFX.shadowFar * 0.5).add(S.target.position);
     S.target.updateMatrixWorld();
   }

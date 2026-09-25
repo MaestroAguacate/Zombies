@@ -32,16 +32,14 @@ check(CONFIG.MACHETE.damage === 500 && CONFIG.MACHETE.cost === 3000, 'machete: 5
 check(['revolver', 'doublebarrel', 'crossbow'].every(id => /^[A-Z ]+$/.test(W[id].papName)), 'papName en inglés', ['revolver', 'doublebarrel', 'crossbow'].map(id => W[id].papName).join(' · '));
 
 // 2) paredes nuevas: cartel, precio, en su cuarto
-for (const [id, cost, room] of [['revolver', 900, 'la torre de la playa oeste (F5.15)'], ['doublebarrel', 1500, 'el techo (F5.6)']]) {
+for (const [id, cost, room] of [['revolver', 900, 'la torre de la playa oeste (F5.15)'], ['doublebarrel', 1500, 'el rancho (F5.16)']]) {
   fresh(); const wb = wbOf(id); atWall(wb);
   const txt = G.interactState.kind === 'wall' ? G.promptFor(G.interactState).text : '(sin cartel)';
   check(txt === '[F] Comprar ' + W[id].name + ' - ' + cost, `${id}: cartel en ${room}`, `("${txt}")`);
   const pts = state.points;
   check(G.interact() && state.points === pts - cost && G.curDef().id === id, `${id}: cobra ${cost} y la da`);
 }
-check(!!wbOf('doublebarrel').post && wbOf('doublebarrel').post.position.y > G.UP.y, 'doble cañón: tiene su tablón, arriba del techo');
-fresh(); atWall(wbOf('doublebarrel'), true);
-check(G.interactState.kind !== 'wall', 'desde el dormitorio, justo abajo, no se compra');
+check(!CONFIG.WALLBUYS.find(w => w.weapon === 'doublebarrel').level && G.roomAt(-54.5, 39).id === 'R14', 'F5.16: doble cañón en el piso, en el cerco del rancho');
 
 // 3) machete: reemplaza al cuchillo, una vez, 500 parejo; resetGame vuelve al cuchillo
 fresh(); const wm = wbOf('machete'); atWall(wm);

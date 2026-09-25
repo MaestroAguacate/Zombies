@@ -11,45 +11,45 @@ function fresh() {
   G.resetGame(); state.running = true; G.debugOpenAllDoors();
   state.round = 1; state.health = 100; state.lastDamageTime = -99; state.gameOver = false;
 }
-function onRoof(x, z) { player.pos.set(x, UP.y + P.height, z); player.vel.set(0, 0, 0); player.grounded = true; }
+function onGround(x, z) { player.pos.set(x, P.height, z); player.vel.set(0, 0, 0); player.grounded = true; }
 function tickGarden(secs) { for (let i = 0; i < Math.round(secs * 60); i++) { G.tick(dt); G.updateGarden(dt); } }
 function clearZombies() {
   for (const q of state.zombies.slice()) { q.active = false; q.alive = false; q.root.visible = false; }
   state.zombies.length = 0;
 }
 
-// 1) plantas (F5.7: 4, en las esquinas, cabeza ×2): sobre la pasarela, con maceta sólida arriba y nada abajo
+// 1) plantas (F5.7: 4, cabeza ×2). F5.16: en el piso de los jardines de la casa, con maceta sólida
 fresh();
-check(PLANTS.length === 4 && GD.plants.every(([x, z]) => G.walkAt(x, z)), '4 plantas, todas sobre la pasarela');
+check(PLANTS.length === 4 && GD.plants.every(([x, z]) => ['R12', 'R13'].includes(G.roomAt(x, z).id) && !G.roofAt(x, z)), 'F5.16: 4 plantas en los jardines de la casa (al aire libre)');
 check(PLANTS.every(p => p.head.scale.x === GD.headScale), 'cabeza ×' + GD.headScale);
 const pots = WORLD.colliders.filter(c => c.tag === 'plant');
-check(pots.length === GD.plants.length && pots.every(c => c.overhead && c.minY >= UP.y - 1e-6 && !G.standable(c)), 'maceta sólida arriba (no se pisa, el piso de abajo no la ve)');
-const [px, pz] = GD.plants[0], pl = PLANTS[0];            // esquina NE, sobre la caseta: te acercás desde el oeste
-const cell = G.upIdx(Math.floor(px), Math.floor(pz)) - G.NAV.base;
-check(UP.cells[cell] === 0, 'los zombies de arriba rodean la maceta (celda bloqueada)');
+check(pots.length === GD.plants.length && pots.every(c => !c.overhead && c.minY < 0.01 && c.solid), 'F5.16: maceta sólida en el piso');
+const [px, pz] = GD.plants[0], pl = PLANTS[0];            // contra la pared oeste de la sala: te acercás desde el oeste
+check(G.NAV.cells[G.navIdx(Math.floor(px), Math.floor(pz))] === 0, 'los zombies rodean la maceta (celda bloqueada)');
+check(G.SPAWN_POINTS.filter(s => ['R12', 'R13'].includes(s.room)).every(s => s.valid && G.flowAt(s.cx, s.cz) >= 0), 'los spawns de los jardines siguen alcanzables');
 
-// 2) aviso y mordida de 30 (F5.7: antes mataba)
-fresh(); onRoof(px - (GD.plantWarn - 0.3), pz);
+// 2) aviso; no muerde (F5.10)
+fresh(); onGround(px - (GD.plantWarn - 0.3), pz);
 tickGarden(0.5);
 check(pl.open > 0.6 && state.health === 100, 'a ' + (GD.plantWarn - 0.3).toFixed(1) + ' m se abre y avisa (no muerde)', `(boca ${pl.open.toFixed(2)})`);
-onRoof(px - (GD.plantKill - 0.1), pz);
-tickGarden(0.05);
 state.lastDamageTime = G.clock.elapsedTime + 100;           // sin regenerar: cualquier daño se vería
-onRoof(px - 1, pz); tickGarden(5);                            // (el primer escupitajo tarda 12 s o más)
+onGround(px - 1, pz); pl.spitT = 99; tickGarden(5);
 check(!state.gameOver && state.health === 100, 'F5.10: ya no muerde (5 s a 1 m, pedido de Diego)', `(vida ${state.health})`);
-// abajo, justo debajo: nada
-fresh(); player.pos.set(px, P.height, pz); tickGarden(1);
-check(state.health === 100 && pl.open < 0.4, 'desde abajo (en la caseta) la planta no te ve');
+// del otro lado de la pared (adentro de la sala) no escupe
+fresh(); player.pos.set(px + 2.5, P.height, pz); pl.spitT = 0; tickGarden(0.5);
+check(!G.ACID.shots.some(s => s.active), 'F5.16: sin línea libre (adentro de la sala) no escupe');
+fresh(); onGround(px - 3, pz); pl.spitT = 0; tickGarden(0.1);
+check(G.ACID.shots.some(s => s.active && s.level === 0), 'F5.16: con línea libre escupe, en el piso');
 // a los zombies no les hace nada
 fresh(); clearZombies();
-const q = G.spawnZombie(); q.state = 'walk'; q.level = 1; q.px = px - 0.9; q.pz = pz; q.health = 500;
-onRoof(-7.5, 11); tickGarden(2);
+const q = G.spawnZombie(); q.state = 'walk'; q.level = 0; q.px = px - 0.9; q.pz = pz; q.health = 500;
+onGround(-15, 5); tickGarden(2);
 check(q.alive && q.health === 500, 'a los zombies no les hace nada');
 
 // 2b) F5.7: pirañas en la primera mitad de cada tronco del muelle y en el puente
 const PZ = GD.piranhas;
 // F5.13: +3 zonas en el río del templo (sus 3 puentes)
-check(G.PIRANHAS.zones.length === 6 && G.PIRANHAS.zones.every(z => z.fish.length === 3), '6 zonas (2 troncos del muelle, el puente y los 3 del río del templo), 3 carriles cada una', `(${G.PIRANHAS.zones.length})`);
+check(G.PIRANHAS.zones.length === 5 && G.PIRANHAS.zones.every(z => z.fish.length === 3), 'F5.16: 5 zonas (el muelle, el puente y los 3 del río del templo), 3 carriles cada una', `(${G.PIRANHAS.zones.length})`);
 function standIn(x, z, secs) {
   fresh(); player.pos.set(x, P.height, z); state.lastDamageTime = -99;
   let hits = 0, prev = 100;
@@ -63,14 +63,13 @@ function standIn(x, z, secs) {
 const zmain = PZ.zones[0];
 let h = standIn(0, zmain.lanes[1], 9);
 check(h >= 1 && h <= 6, 'parado en un carril del muelle: te tocan las de ese carril (orden al azar)', `(${h} en 9 s)`);
-check(standIn(-17, PZ.zones[1].lanes[0], 18) >= 1, 'también en el segundo tronco');   // (carril al azar: 18 s)
-check(standIn(19, PZ.zones[2].lanes[2], 18) >= 1, 'y en el medio del puente C13');
+check(standIn(19, PZ.zones[1].lanes[2], 18) >= 1, 'y en el medio del puente C13');
 // F5.13: en los puentes del río del templo (el oeste va a lo largo de z: carriles en x)
-{ const zw = PZ.zones[3], zs = PZ.zones[5];                          // (F5.15: el templo se mudó al anexo NE)
+{ const zw = PZ.zones[2], zs = PZ.zones[4];                          // (F5.15: el templo se mudó al anexo NE)
   check(standIn(zw.lanes[1], (zw.x1 + zw.x2) / 2, 18) >= 1 && standIn((zs.x1 + zs.x2) / 2, zs.lanes[1], 18) >= 1, 'F5.13: y en los puentes del río del templo'); }
 // F5.8: orden al azar (nunca el mismo carril dos veces seguidas) y en el puente pasan por encima de la baranda
 fresh();
-const seq = [], zb = G.PIRANHAS.zones[2], PB = PZ.zones[2];
+const seq = [], zb = G.PIRANHAS.zones[1], PB = PZ.zones[1];
 let overRail = true;
 for (let i = 0; i < 60 * 30; i++) {
   const before = zb.last; G.tick(dt); G.updateGarden(dt);
@@ -173,7 +172,7 @@ keys.KeyW = false;
 check(player.pos.x >= -24 + 0.2 + P.radius - 0.02, 'el cerco oeste del jardín frena');
 
 // 5) reset
-fresh(); onRoof(px + 1.5, pz); tickGarden(0.5);
+fresh(); onGround(px - 1.5, pz); tickGarden(0.5);
 G.resetGame();
 check(PLANTS.every(p => p.open === 0 && p.cd === 0), 'resetGame: plantas cerradas');
 

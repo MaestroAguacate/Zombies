@@ -1,7 +1,7 @@
 //=== 9. LOOP =============================================================
 function init() {
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(CONFIG.ADS.baseFov, window.innerWidth / window.innerHeight, 0.05, 400);
+  camera = new THREE.PerspectiveCamera(CONFIG.ADS.baseFov, window.innerWidth / window.innerHeight, 0.1, CONFIG.FOG.clip);   // F5.16: la niebla tapa el resto
   camera.rotation.order = 'YXZ';
 
   renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });

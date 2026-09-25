@@ -132,24 +132,24 @@ check(G.promptFor(G.interactState).text === '[F] Recoger CUERDA DE GUITARRA' && 
   'F la recoge');
 check(!G.dropString({ px: 0, pz: -8, level: 0 }), 'ya recogida: no vuelve a caer');
 
-// 4) F5.9: caracola. Las plantas comen arrastrados del techo; con 3 plantas llenas brilla; un tiro la tira
+// 4) F5.9: caracola. Las plantas comen arrastrados (F5.16: en el jardín); con 3 plantas llenas brilla; un tiro la tira
 fresh(); clearZombies();
 const spread0 = CONFIG.WEAPONS.m1911.spread; CONFIG.WEAPONS.m1911.spread = 0;   // tiro exacto a 19 m
 const PL = G.PLANTS, GD = CONFIG.GARDEN;
 function crawlerAt(x, z, level) { const q = zombieAt(x, z, 500); q.level = level; q.crawl = true; return q; }
-function feed(p, n) { for (let i = 0; i < n; i++) { const q = crawlerAt(p.x + 1.5, p.z, 1); for (let k = 0; k < Q.plantEatEvery * 60 + 2 && q.alive; k++) { G.tick(dt); G.updateGarden(dt); } } }
-player.pos.set(-7, G.UP.y + 1.7, 12);                           // en el techo de la sala, lejos de las plantas
+function feed(p, n) { for (let i = 0; i < n; i++) { const q = crawlerAt(p.x, p.z + 1.5, 0); for (let k = 0; k < Q.plantEatEvery * 60 + 2 && q.alive; k++) { G.tick(dt); G.updateGarden(dt); } } }
+player.pos.set(0, 1.7, -10);                                     // en la playa, lejos de las plantas
 const p0 = PL[1];
-const walker = zombieAt(p0.x + 1.5, p0.z, 500); walker.level = 1;
-const below = crawlerAt(p0.x + 1.5, p0.z, 0);
-const farC = crawlerAt(p0.x + GD.plantKill + 0.5, p0.z, 1);
+const walker = zombieAt(p0.x, p0.z + 1.5, 500); walker.level = 0;
+const above = crawlerAt(p0.x, p0.z + 1.5, 1);                    // F5.16: las plantas están en el piso
+const farC = crawlerAt(p0.x, p0.z + GD.plantKill + 0.5, 0);
 for (let i = 0; i < 120; i++) { G.tick(dt); G.updateGarden(dt); }
-check(walker.alive && below.alive && farC.alive && p0.fed === 0, 'no come zombies normales, ni arrastrados abajo o fuera del radio');
+check(walker.alive && above.alive && farC.alive && p0.fed === 0, 'no come zombies normales, ni arrastrados en otro nivel o fuera del radio');
 clearZombies();
 const pts4 = state.points;
-const c1 = crawlerAt(p0.x + 1.5, p0.z, 1), c2 = crawlerAt(p0.x - 1.5, p0.z, 1);
+const c1 = crawlerAt(p0.x, p0.z + 1.5, 0), c2 = crawlerAt(p0.x, p0.z - 1.5, 0);
 G.tick(dt); G.updateGarden(dt);
-check(!c1.alive && c2.alive && p0.fed === 1 && state.points === pts4, 'se come un arrastrado del techo (sin puntos)');
+check(!c1.alive && c2.alive && p0.fed === 1 && state.points === pts4, 'se come un arrastrado del jardín (sin puntos)');
 for (let i = 0; i < Math.round(Q.plantEatEvery * 60) - 5; i++) { G.tick(dt); G.updateGarden(dt); }
 check(c2.alive, 'espera ' + Q.plantEatEvery + ' s para el siguiente');
 for (let i = 0; i < 10; i++) { G.tick(dt); G.updateGarden(dt); }
@@ -157,7 +157,7 @@ check(!c2.alive && p0.fed === 2, 'y se come el otro');
 clearZombies();
 feed(p0, Q.plantEat - 2);
 check(p0.fed === Q.plantEat && p0.looks.every(L => L.a.visible && !L.n.visible), 'con ' + Q.plantEat + ': se vuelve alienígena');
-const extra = crawlerAt(p0.x + 1.5, p0.z, 1);
+const extra = crawlerAt(p0.x, p0.z + 1.5, 0);
 for (let i = 0; i < 200; i++) { G.tick(dt); G.updateGarden(dt); }
 check(extra.alive && p0.fed === Q.plantEat, 'llena: ya no come');
 clearZombies();

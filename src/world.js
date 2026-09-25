@@ -28,21 +28,18 @@ const UP = { y: 4.3, x1: -16, z1: 4, w: 108, h: 94,
   // F5.8: escalera 1 en el cuadrado del jardín trasero, contra la pared este de la caseta (pasa por (25.6, 25.7)):
   // sube hacia el oeste hasta el techo de la caseta (x 24)
   // F5.11: ×3 de ancho (1.6 -> 4.8 m), creciendo hacia el sur (donde estaba Stamin-Up)
-  stairs: { x1: 24.2, x2: 29.0, z1: 21.7, z2: 26.5, steps: 15, dir: -1,
-            bottom: [29, 24], top: [23, 24] },          // celdas que enlaza (piso <-> techo)
-  // F5.6: escalera 2, en el jardín oeste contra la pared oeste de la sala: sube hacia el este hasta el techo
-  stairs2: { x1: -13.0, x2: -8.2, z1: 9.0, z2: 13.0, steps: 15, dir: 1, bottom: [-14, 11], top: [-8, 11] },   // F5.7: 4 m de ancho
+  // F5.16 (Diego): el techo de la casa es solo techo: sin escaleras 1 y 2 ni pasarela. El grid de arriba queda
+  // para la cima del templo (el PaP) y sus rampas
   // F5.6: lo único caminable del techo (pedido de Diego: un tercio): una pasarela en S de ~6 m, de la escalera
   // de la piscina a la escalera 2. Sobre la caseta y el dormitorio, bajando por la cocina, y sobre la sala.
   // El resto del techo sigue sólido (UP.mask, levelAt, granadas) pero lo cierran barandas de madera
   // F5.7 (Diego): toda la cocina caminable (hasta (17, 5); su borde este da al patio de la piscina: te tirás)
   // y la sala ensanchada hasta su borde sur
-  walk: [[8, 24, 21, 28], [8, 14, 14, 28], [8, 18, 4, 14], [-8, 8, 4, 14]],   // F5.11: z 21 (escalera ancha)
+  walk: [],
   // F5.8: todo el borde de la pasarela lleva baranda salvo estos huecos [eje, línea, desde, hasta]: la llegada de
   // las dos escaleras y un hueco de 2 m para tirarse al patio de la piscina (borde este de la cocina)
-  gaps: [['x', 24, 21, 27], ['x', -8, 9, 13], ['x', 18, 8, 10]] };   // F5.11: la llegada de la escalera 1 es más ancha
-UP.bottom = UP.stairs.bottom; UP.top = UP.stairs.top;   // (nombres de F2.8)
-UP.flights = [UP.stairs, UP.stairs2];
+  gaps: [] };
+UP.flights = [];
 // F5.13: el templo (CONFIG.TEMPLE): su cima entra al techo (máscara y pasarela), con sus dos rampas de piedra
 (T => {
   UP.walk.push([T.top.x1, T.top.x2, T.top.z1, T.top.z2]);
@@ -121,11 +118,7 @@ const ROOMS = [
   // D18) que se une a la plataforma por el oeste: queda un circuito. Todo R11 (4 cajas)
   { id:'R11', name:'MUELLE',     x1: -2, x2:  2, z1:-44, z2:-24, floor:'pier', outdoor:true },
   { id:'R11', name:'MUELLE',     x1: -4, x2:  4, z1:-50, z2:-44, floor:'pier', outdoor:true, part:true },
-  { id:'R11', name:'MUELLE',     x1:-19, x2:-15, z1:-48, z2:-24, floor:'pier', outdoor:true, part:true },
-  { id:'R11', name:'MUELLE',     x1:-15, x2: -4, z1:-48, z2:-44, floor:'pier', outdoor:true, part:true },
-  // F5.8: entrante de 7x2 al sur de la pasarela con el Pack-a-Punch a la orilla (reemplaza la plazoleta de F5.7,
-  // que se superponía con la pasarela: los dos pisos a la misma altura parpadeaban)
-  { id:'R11', name:'MUELLE',     x1:-13, x2: -6, z1:-50, z2:-48, floor:'pier', outdoor:true, part:true },
+  // F5.16 (Diego): un solo acceso, como el original: sin segundo tronco, pasarela ni entrante (ni D18). Jugg al final
   // V2 F1.1: puente playa -> piscina. 6 m de ancho: es la única franja que toca la playa (x<=20) y la
   // piscina (x>=18) con 4 m o más. D13 (reja) del lado de la playa; hacia la piscina queda abierto
   { id:'C13', name:'PUENTE',     x1: 16, x2: 22, z1: -4, z2:  4, floor:'pier', outdoor:true, hidden:true },
@@ -175,7 +168,6 @@ const DOOR_LINKS = {
   D1:['R1','R2'], D2:['R2','R3'], D3:['R2','R4'], D4:['R3','R5'], D6:['R4','R6'], D7:['R6','R7'],   // F5.15: sin D5, D9, D10
   D8:['R3','R8'], D11:['R1','R10'], D12:['R10','R11'],
   D13:['R10','R8'],
-  D18:['R10','R11'],                           // F5.6: segundo acceso al muelle (x -17)
   D14:['R10','R12'],                           // F5.6: reja de la playa al jardín oeste
   D15:['R8','R13'], D16:['R7','R13'], D17:['R4','R13'],  // F5.6: jardín trasero
   D19:['R7','R12'],                            // F5.7: portón sótano -> jardín oeste (se abre solo con la energía)
@@ -212,8 +204,7 @@ function addBoundary(minX, maxX, minZ, maxZ, tag, minY, maxY) {
 }
 // cuartos alcanzables desde el porche por puertas abiertas
 // F5.6: pasos siempre abiertos que no son puertas: el techo une dos lugares por sus dos escaleras
-const OPEN_LINKS = [['R13', 'R12'],             // F5.8: la escalera 1 ahora sale del jardín trasero
-                    ['R12', 'R15'], ['R13', 'R15'],    // F5.11: el jardín norte, abierto a los dos jardines
+const OPEN_LINKS = [['R12', 'R15'], ['R13', 'R15'],    // F5.16: sin el paso por el techo (R13 ↔ R12)    // F5.11: el jardín norte, abierto a los dos jardines
                     // F5.15: los arcos de la casa (sin D5, D9, D10). La jungla ya no da la vuelta: son áreas con entradas
                     ['R4', 'R5'], ['R8', 'R9'], ['R5', 'R9']];
 function openRooms() {
@@ -368,7 +359,6 @@ const SPAWN_POINTS = [
   { room:'R9', x:17.5, z:23.5 }, { room:'R9', x:22.5, z:28.5 },
   { room:'R10', x:-16.5,z:-21.5 }, { room:'R10', x:16.5,z:-21.5 }, { room:'R10', x:-16.5,z:-7.5 }, { room:'R10', x:16.5,z:-7.5 },
   { room:'R11', x:-0.5, z:-33.5 }, { room:'R11', x: 0.5, z:-30.5 },  // F1.1: ninguno en la plataforma del PaP
-  { room:'R11', x:-16.5, z:-36.5 },                                  // F5.6: segundo tronco
   // F5.6: jardines
   { room:'R12', x:-20.5, z: 1.5 }, { room:'R12', x:-12.5, z:14.5 }, { room:'R12', x:-20.5, z:34.5 },
   { room:'R13', x:  0.5, z:37.5 }, { room:'R13', x: 12.5, z:37.5 }, { room:'R13', x: 27.5, z:37.5 },
@@ -1020,8 +1010,7 @@ function buildMap() {
   addWall(-10, -4, -6, -4, R, MAT.deck, 'rail');
   addWall(  6, -4, 16, -4, R, MAT.deck, 'rail');   // F1.1: la reja D13 va en x[16,20]
   // (F5.11: el límite oeste de la playa es la cerca del rancho; F5.12: los dos costados son cercos que se queman)
-  addBoundary(-20.2, -19,   -24.2, -23.8, 'bound:mar');   // F5.6: hueco x[-19,-15] para el segundo muelle
-  addBoundary(-15,    -2,   -24.2, -23.8, 'bound:mar');
+  addBoundary(-20.2,  -2,   -24.2, -23.8, 'bound:mar');   // F5.16: sin el hueco del segundo muelle
   addBoundary(  2,    20.2, -24.2, -23.8, 'bound:mar');
   addBoundary( 20.2,  55.2, -24.2, -23.8, 'bound:mar');   // F5.12: la orilla de la jungla este
   // F5.12: borde de afuera del mapa (la jungla tupida lo tapa) y la laguna del puente, que no se pisa
@@ -1043,22 +1032,14 @@ function buildMap() {
   addWall(20, -4, 22, -4, R, MAT.deck, 'rail');  // sur, fuera de la playa (la playa termina en x=20)
 
   // --- R11 MUELLE: sin barandal, límite invisible en todo el borde ---
-  // F5.6: tronco hasta z -44, plataforma z -50..-44, segundo tronco x -19..-15 (z -48..-24) y pasarela que lo
-  // une a la plataforma por el oeste (z -48..-44)
+  // F5.6: tronco hasta z -44 y plataforma z -50..-44. F5.16: un solo acceso (sin segundo tronco ni pasarela)
   addBoundary(-2.2, -1.8, -44, -24, 'bound:muelle');          // tronco
   addBoundary( 1.8,  2.2, -44, -24, 'bound:muelle');
-  addBoundary(-15.2, -1.8, -44.2, -43.8, 'bound:muelle');     // norte de la pasarela + hombro oeste
+  addBoundary(-4.2, -1.8, -44.2, -43.8, 'bound:muelle');      // hombro oeste
   addBoundary( 1.8,  4.2, -44.2, -43.8, 'bound:muelle');      // hombro este
   addBoundary( 3.8,  4.2, -50, -44, 'bound:muelle');          // plataforma: este
-  addBoundary(-4.2, -3.8, -50, -48, 'bound:muelle');          //   oeste (al norte se abre a la pasarela)
+  addBoundary(-4.2, -3.8, -50, -44, 'bound:muelle');          //   oeste
   addBoundary(-4.2,  4.2, -50.2, -49.8, 'bound:muelle');      //   fondo
-  addBoundary(-19.2, -13, -48.2, -47.8, 'bound:muelle');      // sur de la pasarela y del segundo tronco
-  addBoundary(-6,    -3.8, -48.2, -47.8, 'bound:muelle');     //   (F5.8: cortado por el entrante del PaP)
-  addBoundary(-13.2, -12.8, -50, -48, 'bound:muelle');        // entrante del PaP (x -13..-6, z -50..-48)
-  addBoundary(-6.2, -5.8, -50, -48, 'bound:muelle');
-  addBoundary(-13.2, -5.8, -50.2, -49.8, 'bound:muelle');
-  addBoundary(-19.2, -18.8, -48, -24, 'bound:muelle');        // segundo tronco: oeste
-  addBoundary(-15.2, -14.8, -44, -24, 'bound:muelle');        //   este
 
   // --- F5.6 JARDINES: cerco de arbustos (frena todo, como una pared; no es 'wall': el tema no le pone piel) ---
   const HG = CONFIG.GARDEN.hedgeH, hedge = (x1, z1, x2, z2) => addWall(x1, z1, x2, z2, HG, MAT.hedge, 'hedge');
@@ -1098,7 +1079,6 @@ function buildMap() {
   makeDoor('D11', -1, 1, -4, -4, R);           // reja de madera del porche (alto de barandal)
   makeDoor('D12', -2, 2, -24, -24, R);         // reja del muelle
   makeDoor('D13', 16, 20, -4, -4, R);          // F1.1: reja del puente a la piscina
-  makeDoor('D18', -19, -15, -24, -24, R);      // F5.6: reja del segundo muelle
   makeDoor('D14', -14, -10, -4, -4, R);        // F5.6: reja de la playa al jardín oeste
   makeDoor('D15', 30.1, 32.1, 20, 20);         // F5.6: piscina -> jardín trasero (F5.8: en la pared norte, (31.1, 20))
   makeDoor('D16', -4, -4, 36, 38);             //       sótano  -> jardín trasero
@@ -1278,13 +1258,14 @@ function buildRoofEdges(mb) {
   }
 }
 let ROOF_RAIL_MAT = null;
-// F5.6: macetas de las plantas carnívoras. Collider de arriba (overhead: el piso no lo ve), sin mesh: frena al
-// jugador y bloquea el grid de arriba (los zombies las rodean). La planta y la mordida viven en garden.js
+// F5.6: macetas de las plantas carnívoras, sin mesh: frenan al jugador y bloquean el grid (los zombies las
+// rodean). La planta vive en garden.js. F5.16: en el piso de los jardines (antes, colliders de arriba en el techo)
 function buildPlantPots(mb) {
-  const G = CONFIG.GARDEN, y = UP.y;
+  const G = CONFIG.GARDEN;
   for (const [x, z] of G.plants) {
+    const y = groundY(x, z);
     const r = G.potR, c = { minX: x - r, maxX: x + r, minY: y, maxY: y + G.potH, minZ: z - r, maxZ: z + r,
-                            tag: 'plant', mesh: null, solid: true, overhead: true };
+                            tag: 'plant', mesh: null, solid: true };
     WORLD.colliders.push(c);
     if (mb) {
       mb.box(x, y + G.potH * 0.45, z, r * 2, G.potH * 0.9, r * 2, 0xa0522d);                  // maceta de barro
@@ -1676,7 +1657,11 @@ function buildSky() {
   );
   scene.add(sky);
   WORLD.sky = sky;                                   // F4: la noche de la ronda de perros lo tiñe
-  scene.fog = new THREE.Fog(0xb4693f, 24, 130);
+  // F5.16: niebla permanente. El domo queda oculto (más allá de camera.far) y el fondo ES el color de la niebla
+  // (mismo objeto Color: la noche y el ciclo de luz lo cambian en el lugar)
+  sky.visible = false;
+  scene.fog = new THREE.Fog(0xb4693f, CONFIG.FOG.near, CONFIG.FOG.far);
+  scene.background = scene.fog.color;
 }
 
 function buildLights() {

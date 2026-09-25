@@ -549,12 +549,9 @@ function buildTheme() {
   // F5.6: tronco hasta z -44, plataforma z -50..-44, segundo tronco x -19..-15 y pasarela z -48..-44
   for (let z = -25; z >= -44; z -= 3) [-2.15, 2.15].forEach(x => pile(x, z));                   // pilotes del tronco
   for (let z = -44.15; z >= -50; z -= 2.9) pile(4.15, z);                                      // ...de la plataforma
-  pile(-4.15, -49); [-3, 0, 3].forEach(x => pile(x, -50.15));
-  for (let z = -25; z >= -47; z -= 3) [-19.15, -14.85].forEach(x => { if (x < -15 || z > -44) pile(x, z); });   // segundo tronco
-  for (let x = -14; x <= -5; x += 3) pile(x, -43.85);                                         // pasarela
-  [-14.5, -4.5].forEach(x => pile(x, -48.15));
-  [-13.15, -5.85].forEach(x => pile(x, -50.15));                                               // F5.8: entrante del PaP
-  [[-1.85, -31], [3.85, -44.3], [-18.85, -33], [-9.5, -43.85]].forEach(([x, z]) => {           // faroles
+  [-3, 0, 3].forEach(x => pile(x, -50.15));
+  for (let z = -44.15; z >= -50; z -= 2.9) pile(-4.15, z);                                     // F5.16: plataforma oeste
+  [[-1.85, -31], [3.85, -44.3], [-3.85, -44.3], [1.85, -38]].forEach(([x, z]) => {             // faroles
     b.box(x, 1.3, z, 0.1, 2.6, 0.1, 0x2e2e2c);
     b.box(x, 2.72, z, 0.28, 0.06, 0.28, 0x2e2e2c); b.box(x, 2.98, z, 0.3, 0.06, 0.3, 0x2e2e2c);
     glow.box(x, 2.85, z, 0.22, 0.2, 0.22, 0xffd38a);

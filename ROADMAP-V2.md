@@ -657,8 +657,9 @@ Decisiones de Diego (2026-09-25):
 - El Campamento (R18, lianas H4 y H7) se elimina y queda como espesura. Su almeja y sus spawns se reubican.
 - Portal de ida y vuelta, gratis. Se activa al abrir el templo. Los zombies no lo usan: el flow field no cruza
   portales.
-- En el Búnker, el corredor de la estación lleva al búnker actual, más chico. Se van la escotilla y las estatuas
-  de plantas; Mule Kick y la bazooka se quedan abajo.
+- ~~El corredor de la estación lleva al búnker actual~~ **Cambio de Diego (2026-09-25): el búnker actual se queda
+  como está** (escotilla, estatuas, Mule Kick, bazooka), un poco alejado de la estación. El corredor oscuro de la
+  estación lleva a un búnker nuevo, más chico.
 - Niebla permanente de ~30 m. Con eso se recorta el dibujo lejano (camera.far / ocultar lo que está lejos) para
   ganar FPS.
 
@@ -670,7 +671,7 @@ garaje).
 (+ machete, que es cuerpo a cuerpo) · Rancho: doble cañón, rifle · Calamar: LMG · Búnker: bazooka (abajo) + Uzi
 (estación) · Templo: ballesta o francotirador.
 
-### Tanda A — ajustes sin tocar la topología
+### Tanda A — ajustes sin tocar la topología — HECHO (falta playtest)
 - La caja devuelve los 950 cuando sale el oso.
 - Niebla fija de ~30 m, más el recorte de dibujo lejano. Medir draw calls antes y después.
 - Lluvia siempre en el templo y en el búnker, en cualquier ronda (clima por zona, no por ronda).
@@ -698,8 +699,8 @@ garaje).
 - Mini estación de policía destrozada en el Claro del Búnker, con cadáveres de policías.
 - Puerta comprable. Al asomarte, 3 zombies comiéndose a un policía muerto. Al comprar la puerta se dan cuenta y
   van por vos.
-- Adentro, un corredor muy oscuro que baja al búnker actual (más chico). Reemplaza la escotilla y las estatuas.
-  El caballito de mar necesita un nuevo disparador (propuesta: aparece al llegar al búnker por primera vez).
+- Adentro, un corredor muy oscuro que baja a un búnker nuevo y chico. El búnker actual (escotilla, estatuas,
+  caballito de mar) no cambia y queda algo alejado de la estación.
 - Generador en la estación, Stamin-Up y Uzi. Lluvia siempre.
 
 ### Tanda E — Calamar y embarcadero

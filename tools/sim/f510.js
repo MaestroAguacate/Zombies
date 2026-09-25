@@ -184,12 +184,12 @@ check(vmax > 1.9, 'la arena mojada ya no frena a los zombies', `(${vmax.toFixed(
 // 8) planta: animación de comer
 fresh(true); clearZ();
 const pl = PLANTS[1];
-player.pos.set(-7, G.UP.y + 1.7, 12);
-const cr = zombieAt(pl.x + 1.5, pl.z, 500); cr.level = 1; cr.crawl = true;
+player.pos.set(0, 1.7, -10);                                      // F5.16: las plantas están en el jardín
+const cr = zombieAt(pl.x, pl.z + 1.5, 500); cr.level = 0; cr.crawl = true;
 let lifted = 0, minY = Infinity;
 for (let i = 0; i < 60 * (CONFIG.GARDEN.eat.total + 0.3); i++) {
   G.tick(dt); G.updateGarden(dt); G.updateZombies(dt);
-  if (cr.active) lifted = Math.max(lifted, cr.root.position.y - G.UP.y);
+  if (cr.active) lifted = Math.max(lifted, cr.root.position.y);
   if (pl.prey) minY = Math.min(minY, pl.head.position.y);
 }
 check(pl.fed === 1 && !cr.alive, 'se lo come');

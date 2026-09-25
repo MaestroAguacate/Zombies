@@ -25,7 +25,14 @@ check(WORLD.lamps.every(L => !L.castShadow), 'las lámparas de adentro no proyec
 const lights = []; G.scene.traverse(o => { if (o.isLight) lights.push(o); });
 player.pos.set(30, 1.7, -12); settle(dt);
 const tg = WORLD.sun.target.position;
-check(Math.abs(tg.x - 30) < 1e-6 && Math.abs(tg.z + 12) < 1e-6 && WORLD.sun.target.parent === G.scene, 'la sombra sigue al jugador');
+{ // F5.16: sigue al jugador de a un texel en el plano de la luz (sin titilar al caminar)
+  const f = G.GFX.sunBase.clone().normalize(), d = tg.clone().sub({ x: 30, y: 0, z: -12 }), perp = d.clone().addScaledVector(f, -d.dot(f));
+  const tex = CONFIG.GFX.shadowBox / (G.GFX.shadowSize || 1024);
+  check(perp.length() < tex && WORLD.sun.target.parent === G.scene, 'la sombra sigue al jugador (a menos de un texel)', `(${perp.length().toFixed(3)} de ${tex.toFixed(3)})`);
+  const t0 = tg.clone(); player.pos.x += tex * 0.1; settle(dt);
+  const mv = tg.clone().sub(t0), mp = mv.addScaledVector(f, -mv.dot(f)).length();   // lo que se mueve en el plano de la luz
+  check(mp < 1e-6 || Math.abs(mp - tex) < 1e-3, 'la sombra se mueve de a texels enteros', `(${mp.toFixed(4)})`);
+  player.pos.x -= tex * 0.1; settle(dt); }
 G.applyQuality('bajo');
 check(!GFX.shadows && !G.renderer.shadowMap.enabled && !GFX.post && G.renderer.pixelRatio === 1, 'Bajo: sin sombras, sin post, pixel ratio 1');
 check(G.THEMEFX.dust && !G.THEMEFX.dust.visible && !G.THEMEFX.shafts.visible, 'Bajo: sin polvo ni haces');

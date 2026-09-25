@@ -456,7 +456,7 @@ const CONFIG = {
     attacks: [['swipe', 0.5], ['lunge', 0.3], ['bite', 0.2]]
   },
   // F7a: calidad (Ajustes: Bajo / Medio / Alto; dura la sesión). Sombras solo en Alto: el sol proyecta con un
-  // mapa de `shadowMap` px que sigue al jugador (`shadowBox` m de lado a lado); las luces de adentro, sin sombra.
+  // mapa de `shadowMap` px que sigue al jugador (`shadowBox` m de lado a lado; F5.16: 40, la niebla tapa a 30); las luces de adentro, sin sombra.
   // particles: fracción de la lluvia; dust/shafts: polvo y haces de luz del tema; pixelRatio: tope.
   // post (CSS sobre el canvas, sin shaders): viñeta, color según la hora (cálido de día, frío de noche) y grano
   GFX: {
@@ -466,12 +466,15 @@ const CONFIG = {
       medio: { shadows: false, post: true,  particles: 1,   dust: true,  shafts: true,  pixelRatio: 1.5 },
       alto:  { shadows: true,  post: true,  particles: 1,   dust: true,  shafts: true,  pixelRatio: 2, shadowMap: 1024 }
     },
-    shadowBox: 60, shadowFar: 140,
+    shadowBox: 40, shadowFar: 140,
     post: { vignette: 0.55, grain: 0.06, warm: 0.14, cold: 14, contrast: 1.06 },
     // el disco del sol (atardecer, bajo al oeste) y la luna (se ve de noche, sobre el mar)
     sunDisk: { dir: [-0.85, 0.1, -0.52], size: 34, color: 0xff9a4a },
     moon: { dir: [0.35, 0.42, -0.84], size: 22, color: 0xe8ecff, from: 0.55 }
   },
+  // F5.16: niebla permanente (Diego): no se ve de un área a la otra. `clip` = camera.far: lo que queda más lejos
+  // ni se dibuja (el frustum lo descarta). El cielo no se ve: el fondo es el color de la niebla
+  FOG: { near: 5, far: 30, clip: 34 },
   WEATHER: {
     darkBy: n => Math.max(0, Math.min(1, (n - 1) / 14)),
     // F7a: ciclo de luz por ronda. La oscuridad k (darkBy) recorre 4 paradas de color: atardecer dorado (R1, el
@@ -484,9 +487,10 @@ const CONFIG = {
       { k: 1,    sky: null,     fog: null,     hemiSky: null,     sun: null }
     ],
     thunder: [[15, 20], [25, Infinity]], purpleFrom: 21, rainFrom: 25,
+    rainRooms: ['R20', 'R17'],       // F5.16: en el templo y en el claro del búnker llueve siempre (adentro del búnker no)
     thunderEvery: [8, 16], mobThunderEvery: [3, 7],     // s entre truenos (tormenta / ronda de mobs)
     // F5.10: más cerrada y más morada (Diego no la notaba con 60 m)
-    purple: { fog: 0x5a2680, sky: 0x5a2a7c, hemiSky: 0x9a62d0, fogFar: 30, fade: 4 },
+    purple: { fog: 0x5a2680, sky: 0x5a2a7c, hemiSky: 0x9a62d0, fogFar: 22, fade: 4 },
     // F5.10: estrellas. Empiezan a verse con la oscuridad por encima de `from`
     stars: { count: 700, radius: 300, minElev: 0.12, size: 2, from: 0.25 },
     rain: { count: 500, area: 26, top: 14, speed: 20, len: 0.55, wind: 2.0, color: 0xa8b8d8, opacity: 0.45 }
@@ -515,7 +519,7 @@ const CONFIG = {
     chargeDamage: 40, chargeHitRange: 1.4,   // la embestida: atropello al pasar a menos de chargeHitRange
     push: 7, pushTime: 0.3,          // empujón del golpe al piso y la embestida (m/s, s): respeta paredes
     spawn: { x: 0, z: -21 },         // playa, cerca del agua
-    fogTime: 6, fogFar: 26,          // la niebla se cierra al aparecer (F5.8: y queda cerrada hasta que muere)
+    fogTime: 6, fogFar: 18,          // la niebla se cierra al aparecer (F5.8: y queda cerrada hasta que muere)
     spawnSlow: 2,                    // mientras vive, los zombies normales salen a la mitad de ritmo
     deathTime: 1.4,
     reward: { points: 1000, noPerkPoints: 1000 },
@@ -777,7 +781,7 @@ const CONFIG = {
     list: {
       revive: { name: 'QUICK REVIVE', abbr: 'QR', cost: 500,  room: 'R1',  x: -5.45, z: 0,     rot:  Math.PI / 2, color: 0x4aa8ff },
       // F5.8: en el techo (level 1), sobre la sala, contra la baranda norte
-      jugg:   { name: 'JUGGERNOG',    abbr: 'JG', cost: 2500, room: 'R11', x: -9.5, z: -49.4, rot: 0,     color: 0xd8322a },   // F5.13: en el muelle, donde estaba el PaP
+      jugg:   { name: 'JUGGERNOG',    abbr: 'JG', cost: 2500, room: 'R11', x: 0, z: -49.4, rot: 0,     color: 0xd8322a },   // F5.16: al final del muelle (un solo acceso)
       speed:  { name: 'SPEED COLA',   abbr: 'SC', cost: 3000, room: 'R14', x: -52, z: 39.45, rot: Math.PI,     color: 0x3ac85a },   // F5.13: rancho, contra el cerco norte
       dtap:   { name: 'DOUBLE TAP',   abbr: 'DT', cost: 2000, room: 'R8',  x: 34.45, z: 10,    rot: -Math.PI / 2, color: 0xe8a22a },   // F5.8: pared este nueva
       stamin: { name: 'STAMIN-UP',    abbr: 'SU', cost: 2000, room: 'R13', x: 20,    z: 30.45, rot: 0,           color: 0xe8d24a },  // F5.11: pared norte de la caseta (la escalera ancha ocupa su lugar)
@@ -799,7 +803,8 @@ const CONFIG = {
   SHIELD: {
     // F5.13: el banco de armado subió al techo (pasarela sobre la sala, donde estaba Juggernog). Antes era el
     // prop 'banco' del garaje (que queda como mueble)
-    bench: { room: 'R2', level: 1, x: 0, z: 13.5, rot: Math.PI, y: 4.3, w: 1.8, h: 0.95, d: 0.75 },
+    // F5.16: el techo ya no se camina: el banco vuelve al garaje, contra la pared sur (el prop 'banco' queda de mueble)
+    bench: { room: 'R6', level: 0, x: -10, z: 18.45, rot: 0, y: 0, w: 1.8, h: 0.95, d: 0.75 },
     durability: 500,      // daño que absorbe (20 golpes de 25)
     blockAngle: 60,       // grados a cada lado: de frente equipado, de espaldas en la espalda
     craftTime: 3,         // s manteniendo F en el banco
@@ -1027,7 +1032,8 @@ const CONFIG = {
     // zombies no les hacen nada. cooldown = s entre mordidas de la misma planta
     // F5.7 (Diego): solo 4, una en cada esquina de la pasarela, con la cabeza ×headScale; muerden plantDamage
     // (antes mataban). Respeta el i-frame
-    plants: [[23, 27], [9, 27], [17, 5], [-7, 5]],
+    // F5.16 (Diego): el techo ya no se camina; las 4 plantas bajan a los jardines de la casa, contra los bordes
+    plants: [[-9.2, 10], [-22.9, 12], [8, 38.6], [24, 38.6]],
     // F5.8: muerden desde 4 m (el radio de las cajas de almas, pedido de Diego); avisan a 5.5
     // F5.10: ya no muerden al jugador. plantKill queda como el radio en el que comen arrastrados
     plantWarn: 5.5, plantKill: 4, potR: 0.35, potH: 0.7, headScale: 2,
@@ -1070,7 +1076,6 @@ const CONFIG = {
       near: 12,                    // F5.15: una zona salta solo con el jugador a menos de `near` m
       zones: [
         { x1: -2,  x2:  2,  lanes: [-26.5, -29.5, -32.5] },    // tronco principal (z -24..-44)
-        { x1: -19, x2: -15, lanes: [-27, -30.5, -34] },        // segundo tronco (z -24..-48)
         // puente C13 (F5.8): salen de más lejos y en un arco más largo, así pasan por encima de la baranda (1.2 m)
         // y en el medio siguen a la altura del cuerpo
         { x1: 16,  x2: 22,  lanes: [-2.5, 0, 2.5], out: 6, height: 1.85, flight: 1.0 },
@@ -1122,7 +1127,7 @@ const CONFIG = {
     size: { w: 1.2, h: 1.1, d: 0.7 },
     spots: {
       muelle:  { room: 'R11', x: 3.45,  z: -47,   rot: -Math.PI / 2 },   // F5.6: lado este (al oeste entra la pasarela)
-      caseta:  { room: 'R9',  x: 23.45, z: 24,    rot: -Math.PI / 2 },   // entre el locker y el escritorio
+      caseta:  { room: 'R14', x: -49.5, z: 39.45, rot:  Math.PI },       // F5.16: en el rancho, contra el cerco norte (la clave no cambia: state.generators es nombre fijo)
       garaje:  { room: 'R6',  x: -14,   z: 29.45, rot:  Math.PI },       // pared norte, a 3 m de D7
       piscina: { room: 'R8',  x: 25,    z: 4.55,  rot:  0 }              // pared sur, frente a la rampa
     },
@@ -1152,7 +1157,7 @@ const CONFIG = {
     // F5.13: en el tablón de la torre de salvavidas (CONFIG.LIFEGUARD), mirando a la casa
     { weapon:'revolver',     room:'R10', cost:900,  x: -27,  z:-17.9, face: 1, axis:'z', post:true },   // F5.15: torre en la playa oeste
     // F5.6: en el techo (level 1), en un tablón contra la baranda norte de la pasarela, sobre el dormitorio
-    { weapon:'doublebarrel', room:'R5', level:1, cost:1500, x: 13, z:27.6, face:-1, axis:'z', post:true },
+    { weapon:'doublebarrel', room:'R14', cost:1500, x: -54.5, z:39.8, face:-1, axis:'z' },   // F5.16: baja del techo al cerco norte del rancho
     // F5.11: la bazooka en la pared este del búnker (floorY = su piso). Las demás armas nuevas, solo en la caja
     { weapon:'bazooka', room:'R16', floorY: -8, cost:3000, x:-10, z:-78, face:-1 },
     { weapon:'machete',      room:'R3',  cost:3000, x: 10.5, z: 4,  face: 1, axis:'z' }            // pared sur de la cocina
@@ -1285,7 +1290,6 @@ const CONFIG = {
     D1:750, D2:1000, D3:1000, D4:1250, D6:1250, D7:1500,
     D8:1500, D11:1250, D12:2000,                          // V2 F1
     D13:2000,                 // F1.1: D11+D13 = D1+D2+D8 = 3250, la playa no es atajo a la piscina
-    D18:2000,                 // F5.6: segundo acceso al muelle (igual que D12)
     // F5.6: jardines. D14 no menos de 2000: el techo une el jardín oeste con la piscina, y D11+D14 = 3250 =
     // D1+D2+D8 (map.js lo verifica con Dijkstra, contando el techo como un paso gratis)
     D14:2000, D15:2000, D16:2000, D17:1500,
@@ -1361,21 +1365,18 @@ const UP = { y: 4.3, x1: -16, z1: 4, w: 108, h: 94,
   // F5.8: escalera 1 en el cuadrado del jardín trasero, contra la pared este de la caseta (pasa por (25.6, 25.7)):
   // sube hacia el oeste hasta el techo de la caseta (x 24)
   // F5.11: ×3 de ancho (1.6 -> 4.8 m), creciendo hacia el sur (donde estaba Stamin-Up)
-  stairs: { x1: 24.2, x2: 29.0, z1: 21.7, z2: 26.5, steps: 15, dir: -1,
-            bottom: [29, 24], top: [23, 24] },          // celdas que enlaza (piso <-> techo)
-  // F5.6: escalera 2, en el jardín oeste contra la pared oeste de la sala: sube hacia el este hasta el techo
-  stairs2: { x1: -13.0, x2: -8.2, z1: 9.0, z2: 13.0, steps: 15, dir: 1, bottom: [-14, 11], top: [-8, 11] },   // F5.7: 4 m de ancho
+  // F5.16 (Diego): el techo de la casa es solo techo: sin escaleras 1 y 2 ni pasarela. El grid de arriba queda
+  // para la cima del templo (el PaP) y sus rampas
   // F5.6: lo único caminable del techo (pedido de Diego: un tercio): una pasarela en S de ~6 m, de la escalera
   // de la piscina a la escalera 2. Sobre la caseta y el dormitorio, bajando por la cocina, y sobre la sala.
   // El resto del techo sigue sólido (UP.mask, levelAt, granadas) pero lo cierran barandas de madera
   // F5.7 (Diego): toda la cocina caminable (hasta (17, 5); su borde este da al patio de la piscina: te tirás)
   // y la sala ensanchada hasta su borde sur
-  walk: [[8, 24, 21, 28], [8, 14, 14, 28], [8, 18, 4, 14], [-8, 8, 4, 14]],   // F5.11: z 21 (escalera ancha)
+  walk: [],
   // F5.8: todo el borde de la pasarela lleva baranda salvo estos huecos [eje, línea, desde, hasta]: la llegada de
   // las dos escaleras y un hueco de 2 m para tirarse al patio de la piscina (borde este de la cocina)
-  gaps: [['x', 24, 21, 27], ['x', -8, 9, 13], ['x', 18, 8, 10]] };   // F5.11: la llegada de la escalera 1 es más ancha
-UP.bottom = UP.stairs.bottom; UP.top = UP.stairs.top;   // (nombres de F2.8)
-UP.flights = [UP.stairs, UP.stairs2];
+  gaps: [] };
+UP.flights = [];
 // F5.13: el templo (CONFIG.TEMPLE): su cima entra al techo (máscara y pasarela), con sus dos rampas de piedra
 (T => {
   UP.walk.push([T.top.x1, T.top.x2, T.top.z1, T.top.z2]);
@@ -1454,11 +1455,7 @@ const ROOMS = [
   // D18) que se une a la plataforma por el oeste: queda un circuito. Todo R11 (4 cajas)
   { id:'R11', name:'MUELLE',     x1: -2, x2:  2, z1:-44, z2:-24, floor:'pier', outdoor:true },
   { id:'R11', name:'MUELLE',     x1: -4, x2:  4, z1:-50, z2:-44, floor:'pier', outdoor:true, part:true },
-  { id:'R11', name:'MUELLE',     x1:-19, x2:-15, z1:-48, z2:-24, floor:'pier', outdoor:true, part:true },
-  { id:'R11', name:'MUELLE',     x1:-15, x2: -4, z1:-48, z2:-44, floor:'pier', outdoor:true, part:true },
-  // F5.8: entrante de 7x2 al sur de la pasarela con el Pack-a-Punch a la orilla (reemplaza la plazoleta de F5.7,
-  // que se superponía con la pasarela: los dos pisos a la misma altura parpadeaban)
-  { id:'R11', name:'MUELLE',     x1:-13, x2: -6, z1:-50, z2:-48, floor:'pier', outdoor:true, part:true },
+  // F5.16 (Diego): un solo acceso, como el original: sin segundo tronco, pasarela ni entrante (ni D18). Jugg al final
   // V2 F1.1: puente playa -> piscina. 6 m de ancho: es la única franja que toca la playa (x<=20) y la
   // piscina (x>=18) con 4 m o más. D13 (reja) del lado de la playa; hacia la piscina queda abierto
   { id:'C13', name:'PUENTE',     x1: 16, x2: 22, z1: -4, z2:  4, floor:'pier', outdoor:true, hidden:true },
@@ -1508,7 +1505,6 @@ const DOOR_LINKS = {
   D1:['R1','R2'], D2:['R2','R3'], D3:['R2','R4'], D4:['R3','R5'], D6:['R4','R6'], D7:['R6','R7'],   // F5.15: sin D5, D9, D10
   D8:['R3','R8'], D11:['R1','R10'], D12:['R10','R11'],
   D13:['R10','R8'],
-  D18:['R10','R11'],                           // F5.6: segundo acceso al muelle (x -17)
   D14:['R10','R12'],                           // F5.6: reja de la playa al jardín oeste
   D15:['R8','R13'], D16:['R7','R13'], D17:['R4','R13'],  // F5.6: jardín trasero
   D19:['R7','R12'],                            // F5.7: portón sótano -> jardín oeste (se abre solo con la energía)
@@ -1545,8 +1541,7 @@ function addBoundary(minX, maxX, minZ, maxZ, tag, minY, maxY) {
 }
 // cuartos alcanzables desde el porche por puertas abiertas
 // F5.6: pasos siempre abiertos que no son puertas: el techo une dos lugares por sus dos escaleras
-const OPEN_LINKS = [['R13', 'R12'],             // F5.8: la escalera 1 ahora sale del jardín trasero
-                    ['R12', 'R15'], ['R13', 'R15'],    // F5.11: el jardín norte, abierto a los dos jardines
+const OPEN_LINKS = [['R12', 'R15'], ['R13', 'R15'],    // F5.16: sin el paso por el techo (R13 ↔ R12)    // F5.11: el jardín norte, abierto a los dos jardines
                     // F5.15: los arcos de la casa (sin D5, D9, D10). La jungla ya no da la vuelta: son áreas con entradas
                     ['R4', 'R5'], ['R8', 'R9'], ['R5', 'R9']];
 function openRooms() {
@@ -1701,7 +1696,6 @@ const SPAWN_POINTS = [
   { room:'R9', x:17.5, z:23.5 }, { room:'R9', x:22.5, z:28.5 },
   { room:'R10', x:-16.5,z:-21.5 }, { room:'R10', x:16.5,z:-21.5 }, { room:'R10', x:-16.5,z:-7.5 }, { room:'R10', x:16.5,z:-7.5 },
   { room:'R11', x:-0.5, z:-33.5 }, { room:'R11', x: 0.5, z:-30.5 },  // F1.1: ninguno en la plataforma del PaP
-  { room:'R11', x:-16.5, z:-36.5 },                                  // F5.6: segundo tronco
   // F5.6: jardines
   { room:'R12', x:-20.5, z: 1.5 }, { room:'R12', x:-12.5, z:14.5 }, { room:'R12', x:-20.5, z:34.5 },
   { room:'R13', x:  0.5, z:37.5 }, { room:'R13', x: 12.5, z:37.5 }, { room:'R13', x: 27.5, z:37.5 },
@@ -2353,8 +2347,7 @@ function buildMap() {
   addWall(-10, -4, -6, -4, R, MAT.deck, 'rail');
   addWall(  6, -4, 16, -4, R, MAT.deck, 'rail');   // F1.1: la reja D13 va en x[16,20]
   // (F5.11: el límite oeste de la playa es la cerca del rancho; F5.12: los dos costados son cercos que se queman)
-  addBoundary(-20.2, -19,   -24.2, -23.8, 'bound:mar');   // F5.6: hueco x[-19,-15] para el segundo muelle
-  addBoundary(-15,    -2,   -24.2, -23.8, 'bound:mar');
+  addBoundary(-20.2,  -2,   -24.2, -23.8, 'bound:mar');   // F5.16: sin el hueco del segundo muelle
   addBoundary(  2,    20.2, -24.2, -23.8, 'bound:mar');
   addBoundary( 20.2,  55.2, -24.2, -23.8, 'bound:mar');   // F5.12: la orilla de la jungla este
   // F5.12: borde de afuera del mapa (la jungla tupida lo tapa) y la laguna del puente, que no se pisa
@@ -2376,22 +2369,14 @@ function buildMap() {
   addWall(20, -4, 22, -4, R, MAT.deck, 'rail');  // sur, fuera de la playa (la playa termina en x=20)
 
   // --- R11 MUELLE: sin barandal, límite invisible en todo el borde ---
-  // F5.6: tronco hasta z -44, plataforma z -50..-44, segundo tronco x -19..-15 (z -48..-24) y pasarela que lo
-  // une a la plataforma por el oeste (z -48..-44)
+  // F5.6: tronco hasta z -44 y plataforma z -50..-44. F5.16: un solo acceso (sin segundo tronco ni pasarela)
   addBoundary(-2.2, -1.8, -44, -24, 'bound:muelle');          // tronco
   addBoundary( 1.8,  2.2, -44, -24, 'bound:muelle');
-  addBoundary(-15.2, -1.8, -44.2, -43.8, 'bound:muelle');     // norte de la pasarela + hombro oeste
+  addBoundary(-4.2, -1.8, -44.2, -43.8, 'bound:muelle');      // hombro oeste
   addBoundary( 1.8,  4.2, -44.2, -43.8, 'bound:muelle');      // hombro este
   addBoundary( 3.8,  4.2, -50, -44, 'bound:muelle');          // plataforma: este
-  addBoundary(-4.2, -3.8, -50, -48, 'bound:muelle');          //   oeste (al norte se abre a la pasarela)
+  addBoundary(-4.2, -3.8, -50, -44, 'bound:muelle');          //   oeste
   addBoundary(-4.2,  4.2, -50.2, -49.8, 'bound:muelle');      //   fondo
-  addBoundary(-19.2, -13, -48.2, -47.8, 'bound:muelle');      // sur de la pasarela y del segundo tronco
-  addBoundary(-6,    -3.8, -48.2, -47.8, 'bound:muelle');     //   (F5.8: cortado por el entrante del PaP)
-  addBoundary(-13.2, -12.8, -50, -48, 'bound:muelle');        // entrante del PaP (x -13..-6, z -50..-48)
-  addBoundary(-6.2, -5.8, -50, -48, 'bound:muelle');
-  addBoundary(-13.2, -5.8, -50.2, -49.8, 'bound:muelle');
-  addBoundary(-19.2, -18.8, -48, -24, 'bound:muelle');        // segundo tronco: oeste
-  addBoundary(-15.2, -14.8, -44, -24, 'bound:muelle');        //   este
 
   // --- F5.6 JARDINES: cerco de arbustos (frena todo, como una pared; no es 'wall': el tema no le pone piel) ---
   const HG = CONFIG.GARDEN.hedgeH, hedge = (x1, z1, x2, z2) => addWall(x1, z1, x2, z2, HG, MAT.hedge, 'hedge');
@@ -2431,7 +2416,6 @@ function buildMap() {
   makeDoor('D11', -1, 1, -4, -4, R);           // reja de madera del porche (alto de barandal)
   makeDoor('D12', -2, 2, -24, -24, R);         // reja del muelle
   makeDoor('D13', 16, 20, -4, -4, R);          // F1.1: reja del puente a la piscina
-  makeDoor('D18', -19, -15, -24, -24, R);      // F5.6: reja del segundo muelle
   makeDoor('D14', -14, -10, -4, -4, R);        // F5.6: reja de la playa al jardín oeste
   makeDoor('D15', 30.1, 32.1, 20, 20);         // F5.6: piscina -> jardín trasero (F5.8: en la pared norte, (31.1, 20))
   makeDoor('D16', -4, -4, 36, 38);             //       sótano  -> jardín trasero
@@ -2611,13 +2595,14 @@ function buildRoofEdges(mb) {
   }
 }
 let ROOF_RAIL_MAT = null;
-// F5.6: macetas de las plantas carnívoras. Collider de arriba (overhead: el piso no lo ve), sin mesh: frena al
-// jugador y bloquea el grid de arriba (los zombies las rodean). La planta y la mordida viven en garden.js
+// F5.6: macetas de las plantas carnívoras, sin mesh: frenan al jugador y bloquean el grid (los zombies las
+// rodean). La planta vive en garden.js. F5.16: en el piso de los jardines (antes, colliders de arriba en el techo)
 function buildPlantPots(mb) {
-  const G = CONFIG.GARDEN, y = UP.y;
+  const G = CONFIG.GARDEN;
   for (const [x, z] of G.plants) {
+    const y = groundY(x, z);
     const r = G.potR, c = { minX: x - r, maxX: x + r, minY: y, maxY: y + G.potH, minZ: z - r, maxZ: z + r,
-                            tag: 'plant', mesh: null, solid: true, overhead: true };
+                            tag: 'plant', mesh: null, solid: true };
     WORLD.colliders.push(c);
     if (mb) {
       mb.box(x, y + G.potH * 0.45, z, r * 2, G.potH * 0.9, r * 2, 0xa0522d);                  // maceta de barro
@@ -3009,7 +2994,11 @@ function buildSky() {
   );
   scene.add(sky);
   WORLD.sky = sky;                                   // F4: la noche de la ronda de perros lo tiñe
-  scene.fog = new THREE.Fog(0xb4693f, 24, 130);
+  // F5.16: niebla permanente. El domo queda oculto (más allá de camera.far) y el fondo ES el color de la niebla
+  // (mismo objeto Color: la noche y el ciclo de luz lo cambian en el lugar)
+  sky.visible = false;
+  scene.fog = new THREE.Fog(0xb4693f, CONFIG.FOG.near, CONFIG.FOG.far);
+  scene.background = scene.fog.color;
 }
 
 function buildLights() {
@@ -3583,12 +3572,9 @@ function buildTheme() {
   // F5.6: tronco hasta z -44, plataforma z -50..-44, segundo tronco x -19..-15 y pasarela z -48..-44
   for (let z = -25; z >= -44; z -= 3) [-2.15, 2.15].forEach(x => pile(x, z));                   // pilotes del tronco
   for (let z = -44.15; z >= -50; z -= 2.9) pile(4.15, z);                                      // ...de la plataforma
-  pile(-4.15, -49); [-3, 0, 3].forEach(x => pile(x, -50.15));
-  for (let z = -25; z >= -47; z -= 3) [-19.15, -14.85].forEach(x => { if (x < -15 || z > -44) pile(x, z); });   // segundo tronco
-  for (let x = -14; x <= -5; x += 3) pile(x, -43.85);                                         // pasarela
-  [-14.5, -4.5].forEach(x => pile(x, -48.15));
-  [-13.15, -5.85].forEach(x => pile(x, -50.15));                                               // F5.8: entrante del PaP
-  [[-1.85, -31], [3.85, -44.3], [-18.85, -33], [-9.5, -43.85]].forEach(([x, z]) => {           // faroles
+  [-3, 0, 3].forEach(x => pile(x, -50.15));
+  for (let z = -44.15; z >= -50; z -= 2.9) pile(-4.15, z);                                     // F5.16: plataforma oeste
+  [[-1.85, -31], [3.85, -44.3], [-3.85, -44.3], [1.85, -38]].forEach(([x, z]) => {             // faroles
     b.box(x, 1.3, z, 0.1, 2.6, 0.1, 0x2e2e2c);
     b.box(x, 2.72, z, 0.28, 0.06, 0.28, 0x2e2e2c); b.box(x, 2.98, z, 0.3, 0.06, 0.3, 0x2e2e2c);
     glow.box(x, 2.85, z, 0.22, 0.2, 0.22, 0xffd38a);
@@ -7045,9 +7031,14 @@ function rainDrop(i, top) {
   a[o] = x; a[o + 1] = y; a[o + 2] = z;
   a[o + 3] = x - R.wind * R.len / R.speed; a[o + 4] = y + R.len; a[o + 5] = z;
 }
+// F5.16: áreas donde llueve siempre, sea la ronda que sea (CONFIG.WEATHER.rainRooms)
+function rainZone() {
+  const r = roomAt(player.pos.x, player.pos.z);
+  return !!r && CONFIG.WEATHER.rainRooms.includes(r.id);
+}
 function updateRain(dt) {
   if (!RAIN.lines) return;
-  const on = !!NIGHT.rain && !state.gameOver && !inBunker();   // F5.11: en el búnker no llueve
+  const on = (!!NIGHT.rain || rainZone()) && !state.gameOver && !inBunker();   // F5.11: en el búnker no llueve
   if (on && !RAIN.lines.visible) for (let i = 0; i < RAIN.n; i++) rainDrop(i, false);
   RAIN.lines.visible = on;
   if (!on) return;
@@ -8181,6 +8172,14 @@ function updateKaboom(dt) {
 }
 
 // único punto de gasto (el doble puntos NO afecta gastos)
+// F5.16: devolución (el oso de la caja). No es ganancia: el doble puntos no la toca y no suma a STATS
+function refundBox() {
+  const n = BOX.paid || 0;
+  BOX.paid = 0;
+  if (!n) return;
+  state.points += n;
+  pendingPts += n;
+}
 function spendPoints(cost) {
   if (state.points < cost) return false;
   state.points -= cost;
@@ -8411,6 +8410,7 @@ function useBox() {
     STATS.boxUses++;
     BOX.phase = 'rolling'; BOX.t = 0; BOX.nextCycle = 0;
     BOX.result = rollBoxResult();
+    BOX.paid = CONFIG.BOX.cost;                                  // F5.16: el oso devuelve lo pagado
     return true;
   }
   if (BOX.phase === 'ready') {
@@ -8435,7 +8435,7 @@ function updateBox(dt) {
       boxShow(BOX.result);
       BOX.phase = BOX.result === 'teddy' ? 'teddy' : 'ready';
       BOX.t = 0;
-      if (BOX.result === 'teddy') sfxTeddy(); else sfxBoxTick();
+      if (BOX.result === 'teddy') { sfxTeddy(); refundBox(); } else sfxBoxTick();
     } else if (t >= BOX.nextCycle) {
       sfxBoxTick();
       // armas rotando: intervalo crece con el tiempo (frena)
@@ -10795,9 +10795,10 @@ function buildGarden() {
   buildPiranhas();
   buildWetSand();                                                  // F5.8
   buildAcid();
-  const G = CONFIG.GARDEN, y = UP.y + G.potH, S = G.headScale;
+  const G = CONFIG.GARDEN, S = G.headScale;
   const stems = new MeshBuilder();
   for (const [x, z] of G.plants) {
+    const y = groundY(x, z) + G.potH;                              // F5.16: en el piso del jardín
     plantStem(stems, x, y, z, S, false);
     const h = makePlantHead(x, y + 0.7 * S + 0.05, z, S, false);
     PLANTS.push(Object.assign(h, { x, z, open: 0, cd: 0, warned: false, spitT: randIn(G.acid.plantEvery), fed: 0, eatT: 0 }));
@@ -10854,33 +10855,38 @@ function makePlantHead(x, y, z, S, withStone) {
            prey: null, eatK: 0, base: head.position.clone(), mouth: new THREE.Vector3() };   // F5.10: comer
 }
 
+// F5.16: línea libre desde el borde de la maceta (desde el centro la propia maceta la tapa)
+function plantSees(p, P, d) {
+  const k = Math.min(1, (CONFIG.GARDEN.potR + 0.1) / Math.max(d, 1e-3));
+  return segmentClear(p.x + (P.x - p.x) * k, p.z + (P.z - p.z) * k, P.x, P.z, 0, true);
+}
 function updateGarden(dt) {
   updateBurns(dt);                                                 // F5.12: cercos quemándose
   updatePiranhas(dt);                                              // F5.7
   updateAcid(dt);                                                  // F5.8
-  const G = CONFIG.GARDEN, P = player.pos, onRoof = playerLevel() === 1, t = clock.elapsedTime;
+  const G = CONFIG.GARDEN, P = player.pos, onGround = playerLevel() === 0, t = clock.elapsedTime;   // F5.16: las plantas están en el piso
   updateTemple(t);                                                 // F5.13: antorchas
   updateBeach(dt, t);                                              // F7c: agua que se mueve y cangrejos
   if (RANCHO.bulbs) RANCHO.bulbs.material.color.setRGB(1, 0.8 + 0.08 * Math.sin(t * 3), 0.5 + 0.08 * Math.sin(t * 3));   // F5.10
   for (const p of PLANTS) {
     p.cd = Math.max(0, p.cd - dt);
     const d = Math.hypot(P.x - p.x, P.z - p.z);
-    const near = onRoof && d < G.plantWarn;
+    const near = onGround && d < G.plantWarn;
     if (near && !p.warned) { p.warned = true; sfxPlantWarn(d); }
     else if (!near) p.warned = false;
     // (F5.10: sin mordida al jugador; pedido de Diego, no dejaba ni recargar)
-    // F5.8: escupe de vez en cuando si estás en el techo a menos de plantRange
-    if (onRoof && d < G.acid.plantRange && (p.spitT -= dt) <= 0) {
+    // F5.8: escupe de vez en cuando si estás a menos de plantRange (F5.16: en el piso, con línea libre)
+    if (onGround && d < G.acid.plantRange && (p.spitT -= dt) <= 0 && plantSees(p, P, d)) {
       p.spitT = randIn(G.acid.plantEvery);
-      spitAcid(p.x, p.head.position.y, p.z, 1);
+      spitAcid(p.x, p.head.position.y, p.z, 0);
       p.open = 1;
     }
-    // F5.9: se come a un arrastrado del techo a menos de plantKill (uno cada plantEatEvery), hasta plantEat
+    // F5.9: se come a un arrastrado a menos de plantKill (uno cada plantEatEvery), hasta plantEat. F5.16: del piso
     p.eatT = Math.max(0, p.eatT - dt);
     let prey = null;
     if (p.fed < CONFIG.QUEST.plantEat && !state.quest.built) {
       for (const z of state.zombies) {
-        if (z.alive && z.crawl && (z.level || 0) === 1 && Math.hypot(z.px - p.x, z.pz - p.z) < G.plantKill) { prey = z; break; }
+        if (z.alive && z.crawl && (z.level || 0) === 0 && Math.hypot(z.px - p.x, z.pz - p.z) < G.plantKill) { prey = z; break; }
       }
       if (prey && p.eatT <= 0 && !p.prey) plantEat(p, prey);
     }
@@ -10904,7 +10910,7 @@ const _plantTgt = new THREE.Vector3();
 function plantEatAnim(p, dt) {
   const E = CONFIG.GARDEN.eat, z = p.prey, B = p.base;
   p.eatK += dt;
-  const gy = p.ground ? groundY(z.eaten.x0, z.eaten.z0) : UP.y;   // F5.11: las estatuas comen en el piso
+  const gy = groundY(z.eaten.x0, z.eaten.z0);                     // F5.16: todas comen en el piso
   const k = p.eatK, tgt = _plantTgt.set(z.eaten.x0, gy + 0.55, z.eaten.z0);
   let pos = 0, open = 0.12;
   if (k < E.lunge) { pos = easeOut(k / E.lunge); open = 1; }
@@ -13057,6 +13063,7 @@ function applyQuality(name) {
 function setShadows(on, size) {
   const S = WORLD.sun;
   GFX.shadows = !!on;
+  if (size) GFX.shadowSize = size;
   if (!renderer.shadowMap || !S) return;
   if (renderer.shadowMap.enabled === GFX.shadows && S.castShadow === GFX.shadows) return;
   if (GFX.shadows) gfxMarkShadows();
@@ -13069,6 +13076,7 @@ function setShadows(on, size) {
     cam.left = -B; cam.right = B; cam.top = B; cam.bottom = -B; cam.near = 1; cam.far = CONFIG.GFX.shadowFar;
     cam.updateProjectionMatrix();
     S.shadow.bias = -0.0008;
+    S.shadow.normalBias = 0.03;                  // F5.16: menos acné en pisos grandes
   }
   // prender o apagar el shadow map cambia los shaders: una sola recompilación, al tocar el ajuste
   scene.traverse(o => { if (o.isMesh && o.material && !Array.isArray(o.material)) o.material.needsUpdate = true; });
@@ -13093,12 +13101,22 @@ function gfxApplyFilter() {
   const f = gfxFilter();
   if (f !== GFX.filter && typeof renderer !== 'undefined' && renderer) { GFX.filter = f; renderer.domElement.style.filter = f; }
 }
+const SNAP = { r: new THREE.Vector3(), u: new THREE.Vector3(), f: new THREE.Vector3(), out: new THREE.Vector3() };
+function shadowSnap(p) {
+  const G = CONFIG.GFX, tex = G.shadowBox / (GFX.shadowSize || 1024);
+  SNAP.f.copy(GFX.sunBase).normalize();
+  SNAP.r.set(0, 1, 0).cross(SNAP.f).normalize(); SNAP.u.copy(SNAP.f).cross(SNAP.r);
+  SNAP.out.set(p.x, 0, p.z);
+  const a = Math.round(SNAP.out.dot(SNAP.r) / tex) * tex, b = Math.round(SNAP.out.dot(SNAP.u) / tex) * tex, c = SNAP.out.dot(SNAP.f);
+  return SNAP.out.copy(SNAP.r).multiplyScalar(a).addScaledVector(SNAP.u, b).addScaledVector(SNAP.f, c);
+}
 function updateGfx(dt) {
   // sombras: el sol (y su cámara de sombra) sigue al jugador, en la dirección de siempre
   const S = WORLD.sun;
   if (GFX.shadows && S) {
-    const P = player.pos;
-    S.target.position.set(P.x, 0, P.z);
+    // F5.16 (bug del piso del rancho): la cámara de sombra salta de a un texel en el plano de la luz. Siguiendo al
+    // jugador de forma continua, el borde de cada sombra titilaba al caminar (bajo la palapa se veía el piso "vivo")
+    S.target.position.copy(shadowSnap(player.pos));
     S.position.copy(GFX.sunBase).multiplyScalar(CONFIG.GFX.shadowFar * 0.5).add(S.target.position);
     S.target.updateMatrixWorld();
   }
@@ -13204,7 +13222,7 @@ function resetDebug() {
 //=== 9. LOOP =============================================================
 function init() {
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(CONFIG.ADS.baseFov, window.innerWidth / window.innerHeight, 0.05, 400);
+  camera = new THREE.PerspectiveCamera(CONFIG.ADS.baseFov, window.innerWidth / window.innerHeight, 0.1, CONFIG.FOG.clip);   // F5.16: la niebla tapa el resto
   camera.rotation.order = 'YXZ';
 
   renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });

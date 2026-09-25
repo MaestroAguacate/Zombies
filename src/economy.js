@@ -163,6 +163,14 @@ function updateKaboom(dt) {
 }
 
 // único punto de gasto (el doble puntos NO afecta gastos)
+// F5.16: devolución (el oso de la caja). No es ganancia: el doble puntos no la toca y no suma a STATS
+function refundBox() {
+  const n = BOX.paid || 0;
+  BOX.paid = 0;
+  if (!n) return;
+  state.points += n;
+  pendingPts += n;
+}
 function spendPoints(cost) {
   if (state.points < cost) return false;
   state.points -= cost;
@@ -393,6 +401,7 @@ function useBox() {
     STATS.boxUses++;
     BOX.phase = 'rolling'; BOX.t = 0; BOX.nextCycle = 0;
     BOX.result = rollBoxResult();
+    BOX.paid = CONFIG.BOX.cost;                                  // F5.16: el oso devuelve lo pagado
     return true;
   }
   if (BOX.phase === 'ready') {
@@ -417,7 +426,7 @@ function updateBox(dt) {
       boxShow(BOX.result);
       BOX.phase = BOX.result === 'teddy' ? 'teddy' : 'ready';
       BOX.t = 0;
-      if (BOX.result === 'teddy') sfxTeddy(); else sfxBoxTick();
+      if (BOX.result === 'teddy') { sfxTeddy(); refundBox(); } else sfxBoxTick();
     } else if (t >= BOX.nextCycle) {
       sfxBoxTick();
       // armas rotando: intervalo crece con el tiempo (frena)

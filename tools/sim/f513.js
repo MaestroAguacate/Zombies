@@ -72,7 +72,7 @@ setPlayer(outX, b1[1] - 3.5); walk(-Math.PI / 2, 2);
 check(player.pos.x < R.w[0] + 0.2, 'caminando al río fuera de un puente te frena la orilla', `(x ${player.pos.x.toFixed(2)})`);
 setPlayer(outX, bz); walk(-Math.PI / 2, 3);
 check(player.pos.x > R.w[1], 'por el puente se cruza', `(x ${player.pos.x.toFixed(2)})`);
-check(G.PIRANHAS.zones.length === 6, 'pirañas en los 3 puentes');
+check(G.PIRANHAS.zones.length === 5, 'pirañas en los 3 puentes (F5.16: el muelle con un solo tronco)');
 check(G.TEMPLEFX.flames.length >= 8, 'antorchas prendidas', `(${G.TEMPLEFX.flames.length})`);
 
 // 4) mudanzas: Juggernog, banco del escudo, taller, torre de salvavidas y revólver
@@ -80,7 +80,7 @@ fresh(); G.debugOpenAllDoors();
 const J = CONFIG.PERKS.list.jugg;
 check(G.roomAt(J.x, J.z).id === 'R11' && !J.level, 'Juggernog en el muelle');
 const SB = CONFIG.SHIELD.bench;
-check(SB.level === 1 && G.walkAt(SB.x, SB.z), 'banco del escudo en la pasarela del techo');
+check(!SB.level && G.roomAt(SB.x, SB.z).id === 'R6', 'F5.16: banco del escudo de vuelta en el garaje');
 const W = CONFIG.QUEST.workshop;
 check(G.roomAt(W.x, W.z).id === 'R10', 'taller de la Ola en la playa');
 const L = CONFIG.LIFEGUARD;

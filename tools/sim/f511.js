@@ -35,8 +35,7 @@ check(G.roomAt(0, 48).id === 'R15' && nearNav(-20, 48) && nearNav(30, 48), 'jard
 fresh(false); Object.keys(state.doors).filter(id => id !== 'D20' && !/^H\d$/.test(id)).forEach(G.openDoor); setPlayer(0, -10);
 { const d = G.flowAt(-60, 60);   // F5.15: el Claro del Búnker está detrás de las lianas H2/H3
   check(d < 0, 'con el lazo y las lianas cerradas, desde la playa no se llega al Claro del Búnker', `(${d})`); }
-const S1 = G.UP.stairs;
-check(Math.abs((S1.z2 - S1.z1) - 4.8) < 1e-9, 'la escalera del jardín trasero mide 4.8 m (×3)');
+check(!G.UP.stairs, 'F5.16: sin escalera en el jardín trasero');
 const st = CONFIG.PERKS.list.stamin;
 check(st.room === 'R13' && Math.abs(st.z - 30.45) < 1e-9, 'Stamin-Up en la pared norte de la caseta');
 check(CONFIG.RANCHO.palapa.h > 4, 'techo de la palapa más alto (' + CONFIG.RANCHO.palapa.h + ' m)');

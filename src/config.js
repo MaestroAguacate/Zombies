@@ -159,7 +159,7 @@ const CONFIG = {
     attacks: [['swipe', 0.5], ['lunge', 0.3], ['bite', 0.2]]
   },
   // F7a: calidad (Ajustes: Bajo / Medio / Alto; dura la sesión). Sombras solo en Alto: el sol proyecta con un
-  // mapa de `shadowMap` px que sigue al jugador (`shadowBox` m de lado a lado); las luces de adentro, sin sombra.
+  // mapa de `shadowMap` px que sigue al jugador (`shadowBox` m de lado a lado; F5.16: 40, la niebla tapa a 30); las luces de adentro, sin sombra.
   // particles: fracción de la lluvia; dust/shafts: polvo y haces de luz del tema; pixelRatio: tope.
   // post (CSS sobre el canvas, sin shaders): viñeta, color según la hora (cálido de día, frío de noche) y grano
   GFX: {
@@ -169,12 +169,15 @@ const CONFIG = {
       medio: { shadows: false, post: true,  particles: 1,   dust: true,  shafts: true,  pixelRatio: 1.5 },
       alto:  { shadows: true,  post: true,  particles: 1,   dust: true,  shafts: true,  pixelRatio: 2, shadowMap: 1024 }
     },
-    shadowBox: 60, shadowFar: 140,
+    shadowBox: 40, shadowFar: 140,
     post: { vignette: 0.55, grain: 0.06, warm: 0.14, cold: 14, contrast: 1.06 },
     // el disco del sol (atardecer, bajo al oeste) y la luna (se ve de noche, sobre el mar)
     sunDisk: { dir: [-0.85, 0.1, -0.52], size: 34, color: 0xff9a4a },
     moon: { dir: [0.35, 0.42, -0.84], size: 22, color: 0xe8ecff, from: 0.55 }
   },
+  // F5.16: niebla permanente (Diego): no se ve de un área a la otra. `clip` = camera.far: lo que queda más lejos
+  // ni se dibuja (el frustum lo descarta). El cielo no se ve: el fondo es el color de la niebla
+  FOG: { near: 5, far: 30, clip: 34 },
   WEATHER: {
     darkBy: n => Math.max(0, Math.min(1, (n - 1) / 14)),
     // F7a: ciclo de luz por ronda. La oscuridad k (darkBy) recorre 4 paradas de color: atardecer dorado (R1, el
@@ -187,9 +190,10 @@ const CONFIG = {
       { k: 1,    sky: null,     fog: null,     hemiSky: null,     sun: null }
     ],
     thunder: [[15, 20], [25, Infinity]], purpleFrom: 21, rainFrom: 25,
+    rainRooms: ['R20', 'R17'],       // F5.16: en el templo y en el claro del búnker llueve siempre (adentro del búnker no)
     thunderEvery: [8, 16], mobThunderEvery: [3, 7],     // s entre truenos (tormenta / ronda de mobs)
     // F5.10: más cerrada y más morada (Diego no la notaba con 60 m)
-    purple: { fog: 0x5a2680, sky: 0x5a2a7c, hemiSky: 0x9a62d0, fogFar: 30, fade: 4 },
+    purple: { fog: 0x5a2680, sky: 0x5a2a7c, hemiSky: 0x9a62d0, fogFar: 22, fade: 4 },
     // F5.10: estrellas. Empiezan a verse con la oscuridad por encima de `from`
     stars: { count: 700, radius: 300, minElev: 0.12, size: 2, from: 0.25 },
     rain: { count: 500, area: 26, top: 14, speed: 20, len: 0.55, wind: 2.0, color: 0xa8b8d8, opacity: 0.45 }
@@ -218,7 +222,7 @@ const CONFIG = {
     chargeDamage: 40, chargeHitRange: 1.4,   // la embestida: atropello al pasar a menos de chargeHitRange
     push: 7, pushTime: 0.3,          // empujón del golpe al piso y la embestida (m/s, s): respeta paredes
     spawn: { x: 0, z: -21 },         // playa, cerca del agua
-    fogTime: 6, fogFar: 26,          // la niebla se cierra al aparecer (F5.8: y queda cerrada hasta que muere)
+    fogTime: 6, fogFar: 18,          // la niebla se cierra al aparecer (F5.8: y queda cerrada hasta que muere)
     spawnSlow: 2,                    // mientras vive, los zombies normales salen a la mitad de ritmo
     deathTime: 1.4,
     reward: { points: 1000, noPerkPoints: 1000 },
@@ -480,7 +484,7 @@ const CONFIG = {
     list: {
       revive: { name: 'QUICK REVIVE', abbr: 'QR', cost: 500,  room: 'R1',  x: -5.45, z: 0,     rot:  Math.PI / 2, color: 0x4aa8ff },
       // F5.8: en el techo (level 1), sobre la sala, contra la baranda norte
-      jugg:   { name: 'JUGGERNOG',    abbr: 'JG', cost: 2500, room: 'R11', x: -9.5, z: -49.4, rot: 0,     color: 0xd8322a },   // F5.13: en el muelle, donde estaba el PaP
+      jugg:   { name: 'JUGGERNOG',    abbr: 'JG', cost: 2500, room: 'R11', x: 0, z: -49.4, rot: 0,     color: 0xd8322a },   // F5.16: al final del muelle (un solo acceso)
       speed:  { name: 'SPEED COLA',   abbr: 'SC', cost: 3000, room: 'R14', x: -52, z: 39.45, rot: Math.PI,     color: 0x3ac85a },   // F5.13: rancho, contra el cerco norte
       dtap:   { name: 'DOUBLE TAP',   abbr: 'DT', cost: 2000, room: 'R8',  x: 34.45, z: 10,    rot: -Math.PI / 2, color: 0xe8a22a },   // F5.8: pared este nueva
       stamin: { name: 'STAMIN-UP',    abbr: 'SU', cost: 2000, room: 'R13', x: 20,    z: 30.45, rot: 0,           color: 0xe8d24a },  // F5.11: pared norte de la caseta (la escalera ancha ocupa su lugar)
@@ -502,7 +506,8 @@ const CONFIG = {
   SHIELD: {
     // F5.13: el banco de armado subió al techo (pasarela sobre la sala, donde estaba Juggernog). Antes era el
     // prop 'banco' del garaje (que queda como mueble)
-    bench: { room: 'R2', level: 1, x: 0, z: 13.5, rot: Math.PI, y: 4.3, w: 1.8, h: 0.95, d: 0.75 },
+    // F5.16: el techo ya no se camina: el banco vuelve al garaje, contra la pared sur (el prop 'banco' queda de mueble)
+    bench: { room: 'R6', level: 0, x: -10, z: 18.45, rot: 0, y: 0, w: 1.8, h: 0.95, d: 0.75 },
     durability: 500,      // daño que absorbe (20 golpes de 25)
     blockAngle: 60,       // grados a cada lado: de frente equipado, de espaldas en la espalda
     craftTime: 3,         // s manteniendo F en el banco
@@ -730,7 +735,8 @@ const CONFIG = {
     // zombies no les hacen nada. cooldown = s entre mordidas de la misma planta
     // F5.7 (Diego): solo 4, una en cada esquina de la pasarela, con la cabeza ×headScale; muerden plantDamage
     // (antes mataban). Respeta el i-frame
-    plants: [[23, 27], [9, 27], [17, 5], [-7, 5]],
+    // F5.16 (Diego): el techo ya no se camina; las 4 plantas bajan a los jardines de la casa, contra los bordes
+    plants: [[-9.2, 10], [-22.9, 12], [8, 38.6], [24, 38.6]],
     // F5.8: muerden desde 4 m (el radio de las cajas de almas, pedido de Diego); avisan a 5.5
     // F5.10: ya no muerden al jugador. plantKill queda como el radio en el que comen arrastrados
     plantWarn: 5.5, plantKill: 4, potR: 0.35, potH: 0.7, headScale: 2,
@@ -773,7 +779,6 @@ const CONFIG = {
       near: 12,                    // F5.15: una zona salta solo con el jugador a menos de `near` m
       zones: [
         { x1: -2,  x2:  2,  lanes: [-26.5, -29.5, -32.5] },    // tronco principal (z -24..-44)
-        { x1: -19, x2: -15, lanes: [-27, -30.5, -34] },        // segundo tronco (z -24..-48)
         // puente C13 (F5.8): salen de más lejos y en un arco más largo, así pasan por encima de la baranda (1.2 m)
         // y en el medio siguen a la altura del cuerpo
         { x1: 16,  x2: 22,  lanes: [-2.5, 0, 2.5], out: 6, height: 1.85, flight: 1.0 },
@@ -825,7 +830,7 @@ const CONFIG = {
     size: { w: 1.2, h: 1.1, d: 0.7 },
     spots: {
       muelle:  { room: 'R11', x: 3.45,  z: -47,   rot: -Math.PI / 2 },   // F5.6: lado este (al oeste entra la pasarela)
-      caseta:  { room: 'R9',  x: 23.45, z: 24,    rot: -Math.PI / 2 },   // entre el locker y el escritorio
+      caseta:  { room: 'R14', x: -49.5, z: 39.45, rot:  Math.PI },       // F5.16: en el rancho, contra el cerco norte (la clave no cambia: state.generators es nombre fijo)
       garaje:  { room: 'R6',  x: -14,   z: 29.45, rot:  Math.PI },       // pared norte, a 3 m de D7
       piscina: { room: 'R8',  x: 25,    z: 4.55,  rot:  0 }              // pared sur, frente a la rampa
     },
@@ -855,7 +860,7 @@ const CONFIG = {
     // F5.13: en el tablón de la torre de salvavidas (CONFIG.LIFEGUARD), mirando a la casa
     { weapon:'revolver',     room:'R10', cost:900,  x: -27,  z:-17.9, face: 1, axis:'z', post:true },   // F5.15: torre en la playa oeste
     // F5.6: en el techo (level 1), en un tablón contra la baranda norte de la pasarela, sobre el dormitorio
-    { weapon:'doublebarrel', room:'R5', level:1, cost:1500, x: 13, z:27.6, face:-1, axis:'z', post:true },
+    { weapon:'doublebarrel', room:'R14', cost:1500, x: -54.5, z:39.8, face:-1, axis:'z' },   // F5.16: baja del techo al cerco norte del rancho
     // F5.11: la bazooka en la pared este del búnker (floorY = su piso). Las demás armas nuevas, solo en la caja
     { weapon:'bazooka', room:'R16', floorY: -8, cost:3000, x:-10, z:-78, face:-1 },
     { weapon:'machete',      room:'R3',  cost:3000, x: 10.5, z: 4,  face: 1, axis:'z' }            // pared sur de la cocina
@@ -988,7 +993,6 @@ const CONFIG = {
     D1:750, D2:1000, D3:1000, D4:1250, D6:1250, D7:1500,
     D8:1500, D11:1250, D12:2000,                          // V2 F1
     D13:2000,                 // F1.1: D11+D13 = D1+D2+D8 = 3250, la playa no es atajo a la piscina
-    D18:2000,                 // F5.6: segundo acceso al muelle (igual que D12)
     // F5.6: jardines. D14 no menos de 2000: el techo une el jardín oeste con la piscina, y D11+D14 = 3250 =
     // D1+D2+D8 (map.js lo verifica con Dijkstra, contando el techo como un paso gratis)
     D14:2000, D15:2000, D16:2000, D17:1500,

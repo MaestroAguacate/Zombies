@@ -15,9 +15,9 @@ function clearZombies() {
   state.zombies.length = 0;
 }
 function giveAllParts() { for (const k of G.SHIELD_PARTS) state.shield.parts[k] = true; }
-function atBench() {                               // F5.13: el banco está en el techo (pasarela de la sala)
+function atBench() {                               // F5.16: el banco volvió al garaje; te parás adelante (hacia donde mira)
   const B = CONFIG.SHIELD.bench;
-  player.pos.set(B.x, B.y + 1.7, B.z - 1.1); G.updateInteract();
+  player.pos.set(B.x + Math.sin(B.rot) * 1.1, B.y + 1.7, B.z + Math.cos(B.rot) * 1.1); G.updateInteract();
 }
 function hold(secs) { keys.KeyF = true; for (let i = 0; i < Math.round(secs * 60); i++) { G.tick(dt); G.updateInteract(); G.updateShield(dt); } keys.KeyF = false; }
 function buildShieldNow() { fresh(); giveAllParts(); atBench(); G.interact(); hold(S.craftTime + 0.1); }

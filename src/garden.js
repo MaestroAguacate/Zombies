@@ -816,9 +816,10 @@ function buildGarden() {
   buildPiranhas();
   buildWetSand();                                                  // F5.8
   buildAcid();
-  const G = CONFIG.GARDEN, y = UP.y + G.potH, S = G.headScale;
+  const G = CONFIG.GARDEN, S = G.headScale;
   const stems = new MeshBuilder();
   for (const [x, z] of G.plants) {
+    const y = groundY(x, z) + G.potH;                              // F5.16: en el piso del jardín
     plantStem(stems, x, y, z, S, false);
     const h = makePlantHead(x, y + 0.7 * S + 0.05, z, S, false);
     PLANTS.push(Object.assign(h, { x, z, open: 0, cd: 0, warned: false, spitT: randIn(G.acid.plantEvery), fed: 0, eatT: 0 }));
@@ -875,33 +876,38 @@ function makePlantHead(x, y, z, S, withStone) {
            prey: null, eatK: 0, base: head.position.clone(), mouth: new THREE.Vector3() };   // F5.10: comer
 }
 
+// F5.16: línea libre desde el borde de la maceta (desde el centro la propia maceta la tapa)
+function plantSees(p, P, d) {
+  const k = Math.min(1, (CONFIG.GARDEN.potR + 0.1) / Math.max(d, 1e-3));
+  return segmentClear(p.x + (P.x - p.x) * k, p.z + (P.z - p.z) * k, P.x, P.z, 0, true);
+}
 function updateGarden(dt) {
   updateBurns(dt);                                                 // F5.12: cercos quemándose
   updatePiranhas(dt);                                              // F5.7
   updateAcid(dt);                                                  // F5.8
-  const G = CONFIG.GARDEN, P = player.pos, onRoof = playerLevel() === 1, t = clock.elapsedTime;
+  const G = CONFIG.GARDEN, P = player.pos, onGround = playerLevel() === 0, t = clock.elapsedTime;   // F5.16: las plantas están en el piso
   updateTemple(t);                                                 // F5.13: antorchas
   updateBeach(dt, t);                                              // F7c: agua que se mueve y cangrejos
   if (RANCHO.bulbs) RANCHO.bulbs.material.color.setRGB(1, 0.8 + 0.08 * Math.sin(t * 3), 0.5 + 0.08 * Math.sin(t * 3));   // F5.10
   for (const p of PLANTS) {
     p.cd = Math.max(0, p.cd - dt);
     const d = Math.hypot(P.x - p.x, P.z - p.z);
-    const near = onRoof && d < G.plantWarn;
+    const near = onGround && d < G.plantWarn;
     if (near && !p.warned) { p.warned = true; sfxPlantWarn(d); }
     else if (!near) p.warned = false;
     // (F5.10: sin mordida al jugador; pedido de Diego, no dejaba ni recargar)
-    // F5.8: escupe de vez en cuando si estás en el techo a menos de plantRange
-    if (onRoof && d < G.acid.plantRange && (p.spitT -= dt) <= 0) {
+    // F5.8: escupe de vez en cuando si estás a menos de plantRange (F5.16: en el piso, con línea libre)
+    if (onGround && d < G.acid.plantRange && (p.spitT -= dt) <= 0 && plantSees(p, P, d)) {
       p.spitT = randIn(G.acid.plantEvery);
-      spitAcid(p.x, p.head.position.y, p.z, 1);
+      spitAcid(p.x, p.head.position.y, p.z, 0);
       p.open = 1;
     }
-    // F5.9: se come a un arrastrado del techo a menos de plantKill (uno cada plantEatEvery), hasta plantEat
+    // F5.9: se come a un arrastrado a menos de plantKill (uno cada plantEatEvery), hasta plantEat. F5.16: del piso
     p.eatT = Math.max(0, p.eatT - dt);
     let prey = null;
     if (p.fed < CONFIG.QUEST.plantEat && !state.quest.built) {
       for (const z of state.zombies) {
-        if (z.alive && z.crawl && (z.level || 0) === 1 && Math.hypot(z.px - p.x, z.pz - p.z) < G.plantKill) { prey = z; break; }
+        if (z.alive && z.crawl && (z.level || 0) === 0 && Math.hypot(z.px - p.x, z.pz - p.z) < G.plantKill) { prey = z; break; }
       }
       if (prey && p.eatT <= 0 && !p.prey) plantEat(p, prey);
     }
@@ -925,7 +931,7 @@ const _plantTgt = new THREE.Vector3();
 function plantEatAnim(p, dt) {
   const E = CONFIG.GARDEN.eat, z = p.prey, B = p.base;
   p.eatK += dt;
-  const gy = p.ground ? groundY(z.eaten.x0, z.eaten.z0) : UP.y;   // F5.11: las estatuas comen en el piso
+  const gy = groundY(z.eaten.x0, z.eaten.z0);                     // F5.16: todas comen en el piso
   const k = p.eatK, tgt = _plantTgt.set(z.eaten.x0, gy + 0.55, z.eaten.z0);
   let pos = 0, open = 0.12;
   if (k < E.lunge) { pos = easeOut(k / E.lunge); open = 1; }

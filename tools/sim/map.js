@@ -14,9 +14,9 @@ G.resetGame(); state.running = true;
 check(['R8', 'R9', 'R10', 'R11'].every(room), '4 cuartos nuevos');
 check(room('R9').x1 === 16 && room('R9').x2 === 24, 'R9 en x 16–24 (comparte pared con R5 y R8)');
 // (F5.15: sin D9 ni D10: la caseta queda unida a la piscina y al dormitorio por arcos)
-const cost = { D8: 1500, D11: 1250, D12: 2000, D13: 2000, D18: 2000 };
-check(Object.keys(cost).every(id => state.doors[id] && state.doors[id].cost === cost[id]) && !state.doors.D9 && !state.doors.D10, 'puertas nuevas con su precio');
-const links = { D8: 'R3,R8', D11: 'R1,R10', D12: 'R10,R11', D13: 'R10,R8', D18: 'R10,R11' };
+const cost = { D8: 1500, D11: 1250, D12: 2000, D13: 2000 };   // F5.16: sin D18 (un solo acceso al muelle)
+check(Object.keys(cost).every(id => state.doors[id] && state.doors[id].cost === cost[id]) && !state.doors.D9 && !state.doors.D10 && !state.doors.D18, 'puertas nuevas con su precio (sin D18)');
+const links = { D8: 'R3,R8', D11: 'R1,R10', D12: 'R10,R11', D13: 'R10,R8' };
 check(Object.keys(links).every(id => G.DOOR_LINKS[id].join() === links[id]), 'DOOR_LINKS del roadmap');
 
 // 2) cada puerta abre exactamente lo que tiene detrás
@@ -44,8 +44,7 @@ const noBeach = reachable(but('D11', 'D13', 'D14', 'H4', 'H5'));
 check(!noBeach.includes('R10') && !noBeach.includes('R11'), 'sin D11, D13, D14, H4 ni H5 no hay playa ni muelle');
 check(reachable(but('D11', 'D13')).includes('R10'), 'F5.6: sin D11 ni D13, a la playa por el techo y el jardín oeste (D14)');
 check(reachable(but('D11')).includes('R10'), 'sin D11 la playa se llega desde la piscina (D13)');
-check(reachable(but('D12', 'D18')).includes('R10') && !reachable(but('D12', 'D18')).includes('R11'), 'sin D12 ni D18 hay playa pero no muelle');
-check(reachable(but('D12')).includes('R11') && reachable(but('D18')).includes('R11'), 'F5.6: con cualquiera de las dos rejas se llega al muelle');
+check(reachable(but('D12')).includes('R10') && !reachable(but('D12')).includes('R11'), 'F5.16: sin D12 hay playa pero no muelle (un solo acceso)');
 check(reachable(but('D8')).includes('R8'), 'sin D8 la piscina se llega por la caseta (arcos)');
 let rr = reachable(['D1', 'D3']);
 check(rr === 'R1,R2,R4,R5,R8,R9', 'F5.15: con D1 + D3 se abren pasillo, dormitorio, caseta y piscina (arcos D5, D9, D10)', rr);
@@ -142,17 +141,9 @@ for (let x = -2; x < 2; x++) if (G.isNav(x, -32)) cols++;
 check(cols === 2, 'muelle: 2 celdas de ancho para zombies', `(${cols})`);
 check(walk(0, -49, Math.PI / 2, 2).x >= -3.8 + r - E && walk(0, -47, -Math.PI / 2, 2).x <= 3.8 - r + E, 'plataforma: no se cae por los costados');
 check(walk(2.5, -45.5, Math.PI, 3).z <= -44.2 - r + E, 'plataforma: los hombros frenan (no se vuelve por fuera del tronco)');
-// F5.6: segundo tronco (x -19..-15) y pasarela hasta la plataforma
-check(walk(-17, -35, Math.PI / 2, 2).x >= -18.8 + r - E && walk(-17, -35, -Math.PI / 2, 2).x <= -15.2 - r + E, 'segundo muelle: no se cae por los costados');
-let cols2 = 0, rows2 = 0;
-for (let x = -19; x < -15; x++) if (G.isNav(x, -35)) cols2++;
-for (let z = -48; z < -44; z++) if (G.isNav(-5, z)) rows2++;
-check(cols2 === 2 && rows2 === 2, 'segundo muelle y pasarela: 2 celdas de ancho', `(${cols2} / ${rows2})`);
-check(walk(-5, -46, Math.PI, 2).z <= -44.2 - r + E && walk(-5, -46, 0, 2).z >= -47.8 + r - E, 'pasarela: no se cae por los costados');
-check(walk(-11, -46, 0, 3).z >= -49.8 + r - E && walk(-11, -46, Math.PI, 3).z <= -44.2 - r + E, 'F5.8: entrante del PaP: no se cae por los costados');
-G.resetGame(); state.running = true; G.openDoor('D11'); G.openDoor('D18');
-player.pos.set(0, 1.7, -2); G.updateFlowField(true);
-check(G.flowAt(0, -48) >= 0 && G.flowAt(0, -30) >= 0, 'solo con D18: por la pasarela se llega a la plataforma y al tronco');
+// F5.16: un solo acceso: donde estaban el segundo tronco y la pasarela es mar
+check(!G.roomAt(-17, -35) && !G.roomAt(-10, -46) && !G.isNav(-17, -35) && !G.isNav(-10, -46), 'F5.16: sin segundo tronco ni pasarela');
+check(walk(-3, -46, Math.PI / 2, 2).x >= -3.8 + r - E, 'F5.16: la plataforma frena al oeste (ya no se abre a la pasarela)');
 
 // F1.1: la plataforma del muelle y el puente
 G.resetGame(); G.debugOpenAllDoors();
@@ -162,12 +153,12 @@ check(free >= 20, 'plataforma: al menos 5x4 celdas libres para esquivar', `(${fr
 let minW = 9;
 for (let z = -4; z < 4; z++) { let w = 0; for (let x = 16; x < 22; x++) if (G.isNav(x, z)) w++; minW = Math.min(minW, w); }
 check(minW >= 2, 'puente C13: 2 celdas de ancho o más en todo el largo', `(mínimo ${minW})`);
-check(G.roomAt(19, 0).id === 'C13' && G.roomAt(0, -48).id === 'R11' && G.roomAt(-17, -35).id === 'R11' && G.roomAt(-10, -46).id === 'R11' && G.roomAt(0, -30).id === 'R11', 'roomAt: puente C13, plataforma y tronco = R11');
-// F5.13: en el entrante del muelle (donde estaba el Pack-a-Punch) ahora está Juggernog; el PaP, arriba del templo
+check(G.roomAt(19, 0).id === 'C13' && G.roomAt(0, -48).id === 'R11' && G.roomAt(0, -30).id === 'R11', 'roomAt: puente C13, plataforma y tronco = R11');
+// F5.16: Juggernog al final del muelle; el PaP, arriba del templo
 const JS = CONFIG.PERKS.list.jugg;
-check(G.roomAt(JS.x, JS.z).id === 'R11' && G.roomAt(JS.x, JS.z - 0.45).id === 'R11', 'Juggernog en el entrante del muelle', `(${JS.x}, ${JS.z})`);
+check(G.roomAt(JS.x, JS.z).id === 'R11' && JS.z < -49 && Math.abs(JS.x) < 1, 'F5.16: Juggernog al final del muelle', `(${JS.x}, ${JS.z})`);
 player.pos.set(0, 1.7, -30); G.updateFlowField(true);
-check(G.flowAt(-17, -40) >= 0 && G.flowAt(0, -48) >= 0 && G.flowAt(-10, -46) >= 0, 'por la pasarela se pasa de un tronco al otro');
+check(G.flowAt(0, -48) >= 0 && G.flowAt(-3, -46) >= 0 && G.flowAt(2, -46) >= 0, 'del tronco se llega a toda la plataforma');
 const fl = G.ROOMS.filter(r => r.id === 'R11'), ov = [];
 for (let i = 0; i < fl.length; i++) for (let j = i + 1; j < fl.length; j++) {
   const a = fl[i], b = fl[j];
