@@ -52,7 +52,7 @@ check(!useMachine('jugg') && state.points === pts && !G.hasPerk('jugg'), 'sin po
 check(G.perkStatus('jugg').text === 'JUGGERNOG - needs power', 'cartel "necesita energía"');
 const gen = G.PROPS.find(p => p.id === 'generador');
 player.pos.set(gen.box[1] + 1.2, 1.7, (gen.box[2] + gen.box[3]) / 2); G.updateInteract();
-check(G.interactState.kind === 'power' && G.promptFor(G.interactState).text === 'Energía - faltan 4 generadores', 'sin generadores: la palanca dice que faltan 4');
+check(G.interactState.kind === 'power' && G.promptFor(G.interactState).text === 'Power - 4 generators missing', 'sin generadores: la palanca dice que faltan 4');
 check(!G.interact() && !state.power, 'sin generadores: F no la prende (bug del playtest)');
 state.generators.muelle = state.generators.caseta = state.generators.garaje = true; G.updateInteract();
 check(G.promptFor(G.interactState).text === 'Power - 1 generator missing' && !G.interact() && !state.power, 'con 3 de 4: tampoco');
@@ -73,7 +73,7 @@ for (const k of ['jugg', 'speed', 'dtap', 'stamin']) { pts = state.points; useMa
 check(Object.keys(costs).every(k => costs[k] === L[k].cost), 'cobra el precio de cada una', JSON.stringify(costs));
 pts = state.points;
 check(!useMachine('jugg') && state.points === pts, 'no se compra dos veces');
-check(!useMachine('revive') && state.perks.length === PK.max && G.perkStatus('revive').text === 'Máximo 4 perks', 'tope de 4');
+check(!useMachine('revive') && state.perks.length === PK.max && G.perkStatus('revive').text === 'Max 4 perks', 'tope de 4');
 fresh(); powerOn(); state.points = 100;
 check(!useMachine('jugg') && !G.hasPerk('jugg'), 'sin puntos no compra');
 
