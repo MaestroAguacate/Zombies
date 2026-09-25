@@ -177,7 +177,7 @@ const CONFIG = {
   },
   // F5.16: niebla permanente (Diego): no se ve de un área a la otra. `clip` = camera.far: lo que queda más lejos
   // ni se dibuja (el frustum lo descarta). El cielo no se ve: el fondo es el color de la niebla
-  FOG: { near: 6, far: 40, clip: 44 },          // F5.16: 30 -> 40 (pedido de Diego)
+  FOG: { near: 6, far: 40, clip: 44, min: 20, max: 90 },   // F5.16: 30 -> 40 (pedido de Diego); Ajustes: min..max
   WEATHER: {
     darkBy: n => Math.max(0, Math.min(1, (n - 1) / 14)),
     // F7a: ciclo de luz por ronda. La oscuridad k (darkBy) recorre 4 paradas de color: atardecer dorado (R1, el
@@ -595,7 +595,7 @@ const CONFIG = {
     spots: [
       { room: 'R10', x: -3, z: -13 }, { room: 'R13', x: 16, z: 35 },  { room: 'R12', x: -21, z: 30 },
       { room: 'R17', x: -58, z: 64 }, { room: 'R15', x: 15, z: 50 },  { room: 'R20', x: 45, z: 64.5 },   // F5.15: áreas (F5.16: la del campamento, al sendero del templo)
-      { room: 'R20', x: 66, z: 60 },  { room: 'R19', x: -48, z: -40 }, { room: 'R14', x: -45, z: 31 }
+      { room: 'R20', x: 80, z: 60 },  { room: 'R19', x: -48, z: -40 }, { room: 'R14', x: -45, z: 31 }
     ],
     every: [3, 4], openTime: 1.5, range: 1.8,
     colors: [0x8a8478, 0x4ad86a, 0xf0d040, 0xa04ae8],               // vacía, verde, amarilla, morada
@@ -621,17 +621,19 @@ const CONFIG = {
   // 14 × 14, anillo de escalones de 3 m y un SANTUARIO en la cima (cuarto de 10 × 10 con 2 puertas, techo a `h` m y
   // crestería de `comb` m) con el Pack-a-Punch adentro. Las rampas, 4 m de ancho
   TEMPLE: {
-    top: { x1: 74, x2: 88, z1: 80, z2: 94 },
-    tiers: [[71, 74, 77, 85], [71, 74, 89, 97], [88, 91, 77, 97], [74, 79, 77, 80], [83, 88, 77, 80], [74, 88, 94, 97]], tierH: 1.6,
+    // F5.16 (Diego): pegado a la esquina NE del anexo (+4 en x, +3 en z): los escalones tocan x 95 y z 100, no se
+    // camina por detrás
+    top: { x1: 78, x2: 92, z1: 83, z2: 97 },
+    tiers: [[75, 78, 80, 88], [75, 78, 92, 100], [92, 95, 80, 100], [78, 83, 80, 83], [87, 92, 80, 83], [78, 92, 97, 100]], tierH: 1.6,
     ramps: [
-      { x1: 65, x2: 74, z1: 85, z2: 89, steps: 16, dir: 1, bottom: [64, 87], top: [74, 87], stone: true, gap: ['x', 74, 85, 89] },
-      { axis: 'z', x1: 79, x2: 83, z1: 71, z2: 80, steps: 16, dir: 1, bottom: [81, 70], top: [81, 80], stone: true, gap: ['z', 80, 79, 83] }
+      { x1: 69, x2: 78, z1: 88, z2: 92, steps: 16, dir: 1, bottom: [68, 90], top: [78, 90], stone: true, gap: ['x', 78, 88, 92] },
+      { axis: 'z', x1: 83, x2: 87, z1: 74, z2: 83, steps: 16, dir: 1, bottom: [85, 73], top: [85, 83], stone: true, gap: ['z', 83, 83, 87] }
     ],
     // santuario [x1, x2, z1, z2], paredes de `t` m; puertas [eje de la pared, línea, desde, hasta]
-    sanctum: { x1: 78, x2: 88, z1: 84, z2: 94, t: 0.5, h: 5, comb: 8,
-               doors: [['z', 84, 81.5, 84], ['x', 78, 86, 88.5]] },
+    sanctum: { x1: 82, x2: 92, z1: 87, z2: 97, t: 0.5, h: 5, comb: 8,
+               doors: [['z', 87, 85.5, 88], ['x', 82, 89, 91.5]] },
     river: { w: [60, 63, 66, 100], s: [60, 95, 66, 69],            // brazo oeste y brazo sur [x1, x2, z1, z2]
-             bridges: [['w', 76, 80], ['w', 90, 94], ['s', 79, 83]] },
+             bridges: [['w', 76, 80], ['w', 90, 94], ['s', 83, 87]] },   // F5.16: el del sur, con la rampa
     clear: [58, 95, 64, 100]                                        // sin árboles de jungla adentro
   },
   // F5.12: cercos que se compran y se queman (son puertas: CONFIG.DOORS, DOOR_LINKS). Al comprarlo arde `time` s
@@ -675,10 +677,12 @@ const CONFIG = {
   // piso en y = `y`) a la que se baja por la escotilla del jardín norte. Para el jugador, fundido y
   // teletransporte; para los zombies, un enlace del grid (NAV.link) que cruzan escondidos (ojos rojos al bajar).
   // Cerrada hasta que las 2 estatuas de plantas (al lado de la escotilla) despiertan y comen
-  // F5.16: portal Templo ↔ Calamar, ida y vuelta, gratis. Se prende al abrir el templo (door H6). Solo el jugador:
+  // F5.16: portal Templo ↔ Calamar, ida y vuelta, gratis. Solo el jugador:
   // F cerca del arco, fundido a negro (el de la escotilla) y aparece en `out` del otro. Los zombies no lo cruzan
   // (el flow field no lo ve: si no llegan, el watchdog los respawnea cerca). Sin collider: no toca el grid
-  PORTAL: { door: 'H6', use: 2.3,
+  // F5.16b: sin portal al principio: una tumba en el lugar del arco del templo. Un tiro la hace sangrar `bleed` s y
+  // aparecen los dos arcos. `cooldown` s entre usos. Los que te persiguen a menos de `carry` m cruzan con vos
+  PORTAL: { use: 2.3, bleed: 1.5, cooldown: 2, carry: 20,
     temple: { room: 'R20', x: 65, z: 59.2, rot: 0,       out: [65, 61.2] },
     squid:  { room: 'R19', x: -45, z: -25, rot: Math.PI, out: [-45, -27] } },
   BUNKER: {
@@ -789,7 +793,7 @@ const CONFIG = {
         // F5.15: los 3 puentes del río del templo, en el anexo NE
         { axis: 'z', x1: 76, x2: 80, lanes: [60.6, 61.5, 62.4], out: 1.2 },
         { axis: 'z', x1: 90, x2: 94, lanes: [60.6, 61.5, 62.4], out: 1.2 },
-        { x1: 79, x2: 83, lanes: [66.6, 67.5, 68.4], out: 1.2 }
+        { x1: 83, x2: 87, lanes: [66.6, 67.5, 68.4], out: 1.2 }
       ]
     }
   },
@@ -819,7 +823,7 @@ const CONFIG = {
   // mirando a la pasarela. Dentro del anillo no navegable: no cambia el grid
   // F5.13: arriba del templo (y = UP.y, nivel 1), contra el santuario, mirando a -z
   // F5.15: adentro del santuario del templo, contra la pared norte
-  PAP: { spot: { x: 83, z: 92.8, rot: Math.PI, y: 4.3, room: 'R20', level: 1 }, size: { w: 1.4, h: 1.8, d: 1.0 },
+  PAP: { spot: { x: 87, z: 95.8, rot: Math.PI, y: 4.3, room: 'R20', level: 1 }, size: { w: 1.4, h: 1.8, d: 1.0 },
     // V2 F2b: la mejora. El arma entra, tarda `time` s y sale; tenés grabTime s para agarrarla o se pierde.
     // Mejorada: todo el daño ×dmgMul, cargador y reserva ×ammoMul, nombre papName, camo. Sin re-PaP.
     cost: 5000, time: 4, grabTime: 10, dmgMul: 2, ammoMul: 1.5,
@@ -857,10 +861,11 @@ const CONFIG = {
     { weapon:'smg',     room:'R3', cost:1500, x: 18, z: 9, face:-1 },
     // F5.16 (Diego): la casa queda con 3 (escopeta, subfusil, revólver; el machete es cuerpo a cuerpo) y cada área
     // con 1-2: rancho doble cañón + rifle · calamar LMG · búnker bazooka + Uzi · templo ballesta
-    { weapon:'rifle',   room:'R14', cost:2000, x:-56, z:34, face: 1 },                // F5.16: espesura oeste del rancho
-    { weapon:'lmg',     room:'R19', cost:2500, x:-60, z:-4, face:-1, axis:'z' },      // F5.16: espesura norte del calamar
-    { weapon:'uzi',     room:'R17', cost:1200, x:-60, z:53, face: 1, axis:'z' },      // F5.16: espesura sur del claro del búnker
-    { weapon:'crossbow',room:'R20', cost:2000, x: 58, z:56, face: 1, axis:'z', post:true },   // F5.16: tablón en la entrada del templo
+    // (en tablón propio y a ~2.3 m de la espesura: los arbustos del borde tapaban la tiza pegada a la pared)
+    { weapon:'rifle',   room:'R14', cost:2000, x:-53.6, z:37.5, face: 1, post:true },            // F5.16: rancho, oeste
+    { weapon:'lmg',     room:'R19', cost:2500, x:-60, z:-6.3, face:-1, axis:'z', post:true },    // F5.16: calamar, norte
+    { weapon:'uzi',     room:'R17', cost:1200, x:-60, z:55.3, face: 1, axis:'z', post:true },    // F5.16: claro del búnker, sur
+    { weapon:'crossbow',room:'R20', cost:2000, x: 58, z:57.5, face: 1, axis:'z', post:true },    // F5.16: entrada del templo
     // V2 F3b. axis 'z' = pared a lo largo de x (face ±1 = hacia ±z). y = altura de la tiza (cerca de 1.2 m).
     // post = tablón propio (el muelle no tiene paredes). 'machete' no es arma de inventario: ver CONFIG.MACHETE
     // F5.13: en el tablón de la torre de salvavidas (CONFIG.LIFEGUARD), mirando a la casa

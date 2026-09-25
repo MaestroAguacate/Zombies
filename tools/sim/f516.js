@@ -7,6 +7,7 @@ let fail = 0;
 const check = (c, msg, extra) => { console.log((c ? '  ok    ' : '  FALLA ') + msg + (extra ? ' ' + extra : '')); if (!c) fail++; };
 const dt = 1 / 60, F = CONFIG.FOG;
 function fresh() { G.resetGame(); state.running = true; roundState.phase = 'active'; player.pos.set(0, 1.7, -10); }
+function clearAll() { for (const q of state.zombies.slice()) { q.active = false; q.alive = false; q.root.visible = false; } state.zombies.length = 0; }
 function rain(s) { for (let i = 0; i < Math.round(s * 60); i++) { G.tick(dt); G.updateNight(dt); G.updateRain(dt); } }
 
 // 1) niebla
@@ -16,6 +17,14 @@ check(G.camera.far === F.clip && F.clip > F.far && F.clip < F.far + 10, 'no se d
 check(G.scene.background === G.scene.fog.color && !WORLD.sky.visible, 'el fondo es el color de la niebla (mismo objeto) y el domo no se ve');
 check(CONFIG.BOSS.fogFar < F.far && CONFIG.WEATHER.purple.fogFar < F.far, 'el boss y la neblina morada la cierran más');
 check(CONFIG.GFX.shadowBox <= 2 * F.clip, 'la caja de sombras no pasa de lo que se ve');
+
+// 1b) niebla configurable en Ajustes (menos niebla = más lejos se dibuja)
+fresh(); for (let i = 0; i < 10; i++) { G.tick(dt); G.updateBoss(dt); }
+G.setFog(60); for (let i = 0; i < 10; i++) { G.tick(dt); G.updateBoss(dt); }
+check(Math.abs(G.scene.fog.far - 60) < 1e-6 && G.camera.far === 64 && G.SETTINGS.fog === 60, 'Ajustes: niebla a 60 m (camera.far 64)', `(${G.scene.fog.far}, ${G.camera.far})`);
+check(G.setFog(5) === F.min && G.setFog(500) === F.max, 'con tope (' + F.min + '..' + F.max + ' m)');
+G.setFog(F.far);
+check(G.scene.fog.far === F.far && G.camera.far === F.clip, 'vuelve a la normal');
 
 // 2) lluvia por zona (ronda 1, sin lluvia de ronda)
 fresh(); state.round = 1; G.setSky(1, false);
@@ -67,21 +76,48 @@ reachWith(casa.concat(['H6']));
 check(nav(70, 60) && !nav(-60, -10), 'desde la casa: templo (H6); el calamar a pie no');
 check(!nav(-30, -15) || G.WORLD.colliders.some(c => c.tag === 'hedge' && c.minX < -40.5 && c.maxX > -41.5 && c.minZ <= -14 && c.maxZ >= -9), 'la playa oeste y el calamar: cerco fijo entero en x -41');
 
-// 6) portal Templo ↔ Calamar
-const PT = CONFIG.PORTAL;
-fresh(); G.debugOpenAllDoors(); state.doors.H6.open = false;
-player.pos.set(PT.temple.x, 1.7, PT.temple.z + 1.2); G.updateInteract();
-check(G.interactState.kind === 'portal' && !G.portalOn() && /apagado/.test(G.promptFor(G.interactState).text) && !G.interact(), 'con el templo cerrado el portal está apagado');
-G.openDoor('H6'); G.updateInteract();
-check(G.portalOn() && /Calamar/.test(G.promptFor(G.interactState).text), 'al abrir el templo se prende', `("${G.promptFor(G.interactState).text}")`);
-check(G.interact(), 'F lo usa');
-for (let i = 0; i < 90; i++) { G.tick(dt); G.updateBunker(dt); }
-check(Math.hypot(player.pos.x - PT.squid.out[0], player.pos.z - PT.squid.out[1]) < 0.01 && G.roomAt(player.pos.x, player.pos.z).id === 'R19', 'aparece en la playa del calamar');
+// 6) portal Templo ↔ Calamar: al principio una tumba; un tiro la hace sangrar y aparecen los arcos
+const PT = CONFIG.PORTAL, THREE = require('three'), _o = new THREE.Vector3(0, 0, -1);
+function aimAt(x, y, z) { G.feel.eye.copy(player.pos); G.feel.aimQuat.setFromUnitVectors(_o, new THREE.Vector3(x, y, z).sub(G.feel.eye).normalize()); }
+function shoot() { G.weaponsState.phase = 'idle'; G.weaponsState.lastShot = -1e9; G.tick(1); G.fireWeapon(); }
+function bunkerTicks(n) { for (let i = 0; i < n; i++) { G.tick(dt); G.updateBunker(dt); } }
+fresh(); G.debugOpenAllDoors(); G.scene.updateMatrixWorld(true);
+player.pos.set(PT.temple.x, 1.7, PT.temple.z + 2); G.updateInteract();
+check(!G.portalOn() && G.PORTAL.tomb.visible && !G.PORTAL.arcs.some(A => A.arc.visible) && G.interactState.kind !== 'portal', 'al principio no hay portal: hay una tumba');
+aimAt(PT.temple.x, 1, PT.temple.z); shoot();
+check(G.PORTAL.bleedT > 0 && !G.portalOn(), 'un tiro a la tumba: sangra (todavía no hay portal)');
+bunkerTicks(Math.ceil(PT.bleed * 60) + 2);
+check(G.portalOn() && !G.PORTAL.tomb.visible && G.PORTAL.arcs.every(A => A.arc.visible) && !G.WORLD.hitMeshes.includes(G.PORTAL.tombHit), 'después se abre: los dos arcos, sin tumba');
 G.updateInteract();
-check(G.interactState.kind === 'portal' && /Templo/.test(G.promptFor(G.interactState).text) && G.interact(), 'y de vuelta');
-for (let i = 0; i < 90; i++) { G.tick(dt); G.updateBunker(dt); }
+check(G.interactState.kind === 'portal' && /Calamar/.test(G.promptFor(G.interactState).text), 'cartel del portal', `("${G.promptFor(G.interactState).text}")`);
+clearAll();
+const chaser = G.spawnZombie(); chaser.state = 'walk'; chaser.px = PT.temple.x + 3; chaser.pz = PT.temple.z + 4; chaser.level = 0;
+const far = G.spawnZombie(); far.state = 'walk'; far.px = 0; far.pz = -10; far.level = 0;
+check(G.interact(), 'F lo usa');
+bunkerTicks(90);
+check(Math.hypot(player.pos.x - PT.squid.out[0], player.pos.z - PT.squid.out[1]) < 0.01 && G.roomAt(player.pos.x, player.pos.z).id === 'R19', 'aparece en la playa del calamar');
+const dc = Math.hypot(chaser.px - PT.squid.out[0], chaser.pz - PT.squid.out[1]);
+check(dc < 9 && G.roomAt(chaser.px, chaser.pz).id === 'R19' && chaser.alive, 'el zombie que me seguía sale cerca del otro portal', `(${dc.toFixed(1)} m)`);
+check(Math.hypot(far.px, far.pz + 10) < 1, 'el que estaba lejos se queda');
+G.updateInteract();
+check(G.interactState.kind === 'portal' && !G.interact() && /recargando/.test(G.promptFor(G.interactState).text), 'recién llegado: el portal se recarga (no te devuelve)');
+bunkerTicks(Math.ceil(PT.cooldown * 60) + 5); G.updateInteract();
+check(G.interact(), 'a los ' + PT.cooldown + ' s se puede volver');
+bunkerTicks(90);
 check(Math.hypot(player.pos.x - PT.temple.out[0], player.pos.z - PT.temple.out[1]) < 0.01, 'vuelve al templo');
 check(G.openRooms().includes('R19') && G.openRooms().includes('R20'), 'la caja puede mudarse por el portal (openRooms)');
 check(nav(PT.temple.out[0], PT.temple.out[1]) && nav(PT.squid.out[0], PT.squid.out[1]), 'las salidas del portal son caminables');
+G.resetGame();
+check(!G.portalOn() && G.PORTAL.tomb.visible && G.WORLD.hitMeshes.includes(G.PORTAL.tombHit), 'resetGame: vuelve la tumba');
+
+// 7) templo pegado a la esquina y rampas que los zombies no cruzan de costado
+fresh(); G.debugOpenAllDoors(); player.pos.set(70, 1.7, 60); G.updateFlowField(true);
+let behind = 0;
+for (let x = 75; x < 95; x++) for (let z = 97; z < 100; z++) if (G.flowAt(x, z) >= 0) behind++;
+for (let x = 92; x < 95; x++) for (let z = 55; z < 100; z++) if (z > 80 && G.flowAt(x, z) >= 0) behind++;
+check(behind === 0, 'no se camina por detrás del templo (norte y este)', `(${behind} celdas)`);
+check(CONFIG.TEMPLE.ramps.every(R => !G.isNav(Math.floor((R.x1 + R.x2) / 2), Math.floor((R.z1 + R.z2) / 2))) &&
+  G.WORLD.colliders.filter(c => c.tag === 'bound:rampa').every(c => c.zombieOnly), 'la huella de las rampas bloquea a los zombies del piso (solo a ellos)');
+check(CONFIG.TEMPLE.ramps.every(R => G.flowAt(R.bottom[0], R.bottom[1]) >= 0), 'y el pie de cada rampa sigue enlazado');
 
 console.log(fail ? `FALLA (${fail})` : 'PASA'); process.exit(fail ? 1 : 0);

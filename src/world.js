@@ -1374,6 +1374,10 @@ function buildTempleShell() {
     if (over) r.col.overhead = true;
     return r;
   };
+  // F5.16 (bug del playtest): los zombies del piso cruzaban las rampas de costado (el grid de abajo no las ve).
+  // Su huella es un límite SOLO para zombies (el jugador sube por la rampa; los de la escalera van por el enlace,
+  // sin colisión). tag bound:*: no frena balas
+  for (const R of T.ramps) addBoundary(R.x1, R.x2, R.z1, R.z2, 'bound:rampa', 0, UP.y).zombieOnly = true;
   solid(T.top.x1, T.top.x2, 0, y, T.top.z1, T.top.z2, 'temple');       // la base: arriba se pisa (y = UP.y)
   for (const t of T.tiers) solid(t[0], t[1], 0, T.tierH, t[2], t[3], 'temple');
   // F5.15: el santuario es un cuarto (paredes con 2 puertas) y adentro está el Pack-a-Punch. Colliders de arriba:

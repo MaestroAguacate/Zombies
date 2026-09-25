@@ -647,6 +647,7 @@ function traceShot(origin, dir, def) {
   }
 
   if (t === 'questShell' && shootShell()) return null;   // F5.9: la caracola brillante se cae de la tortuga
+  if (t === 'tomb') shootTomb();                          // F5.16: la tumba del templo sangra y se abre el portal
   addImpactDecal(h);
   return null;                           // impacto en mundo no cuenta como "hit" de precisión
 }
@@ -659,6 +660,7 @@ function tracePierce(hits, dir, def) {
   for (const h of hits) {
     const t = h.object.userData.type;
     if (t !== 'zombieHead' && t !== 'zombieBody') {
+      if (t === 'tomb') shootTomb();                    // F5.16
       if (!(t === 'questShell' && shootShell())) addImpactDecal(h);
       shotImpact.point.copy(h.point); break;
     }

@@ -49,6 +49,19 @@ function gfxMarkShadows() {
     o.castShadow = lit && o.visible;
   });
 }
+// F5.16: distancia de la niebla elegida en Ajustes (dura la sesión). camera.far la sigue (lo de más allá no se
+// dibuja), y el boss y la neblina morada la cierran desde ahí
+function setFog(far) {
+  const F = CONFIG.FOG;
+  far = Math.max(F.min, Math.min(F.max, far || F.far));
+  SETTINGS.fog = far;
+  if (typeof scene !== 'undefined' && scene && scene.fog) {
+    if (typeof BOSS !== 'undefined' && BOSS.fogBase) BOSS.fogBase.far = far;
+    if (!(typeof bossAlive === 'function' && bossAlive())) scene.fog.far = typeof weatherFogFar === 'function' ? weatherFogFar(far) : far;
+  }
+  if (typeof camera !== 'undefined' && camera) { camera.far = far + (F.clip - F.far); camera.updateProjectionMatrix(); }
+  return far;
+}
 function applyQuality(name) {
   const C = CONFIG.GFX, Q = C.presets[name] || C.presets.medio;
   GFX.quality = name in C.presets ? name : 'medio';

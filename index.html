@@ -287,6 +287,8 @@
     <label>Números de daño <input id="dmgNums" type="checkbox" checked></label>
     <label>Calidad <select id="quality"><option value="bajo">Bajo</option><option value="medio" selected>Medio</option><option value="alto">Alto (sombras)</option></select></label>
     <label>Post-proceso <input id="postFx" type="checkbox" checked></label>
+    <label>Niebla <select id="fogSel"><option value="25">Muy espesa (25 m)</option><option value="40" selected>Normal (40 m)</option><option value="60">Liviana (60 m)</option><option value="90">Casi nada (90 m)</option></select></label>
+    <p class="dim">⚠ Menos niebla = se dibuja más lejos = menos FPS.</p>
     <p class="dim">Los ajustes duran esta sesión.</p>
   </div>
   <p id="best"></p>
@@ -474,7 +476,7 @@ const CONFIG = {
   },
   // F5.16: niebla permanente (Diego): no se ve de un área a la otra. `clip` = camera.far: lo que queda más lejos
   // ni se dibuja (el frustum lo descarta). El cielo no se ve: el fondo es el color de la niebla
-  FOG: { near: 6, far: 40, clip: 44 },          // F5.16: 30 -> 40 (pedido de Diego)
+  FOG: { near: 6, far: 40, clip: 44, min: 20, max: 90 },   // F5.16: 30 -> 40 (pedido de Diego); Ajustes: min..max
   WEATHER: {
     darkBy: n => Math.max(0, Math.min(1, (n - 1) / 14)),
     // F7a: ciclo de luz por ronda. La oscuridad k (darkBy) recorre 4 paradas de color: atardecer dorado (R1, el
@@ -892,7 +894,7 @@ const CONFIG = {
     spots: [
       { room: 'R10', x: -3, z: -13 }, { room: 'R13', x: 16, z: 35 },  { room: 'R12', x: -21, z: 30 },
       { room: 'R17', x: -58, z: 64 }, { room: 'R15', x: 15, z: 50 },  { room: 'R20', x: 45, z: 64.5 },   // F5.15: áreas (F5.16: la del campamento, al sendero del templo)
-      { room: 'R20', x: 66, z: 60 },  { room: 'R19', x: -48, z: -40 }, { room: 'R14', x: -45, z: 31 }
+      { room: 'R20', x: 80, z: 60 },  { room: 'R19', x: -48, z: -40 }, { room: 'R14', x: -45, z: 31 }
     ],
     every: [3, 4], openTime: 1.5, range: 1.8,
     colors: [0x8a8478, 0x4ad86a, 0xf0d040, 0xa04ae8],               // vacía, verde, amarilla, morada
@@ -918,17 +920,19 @@ const CONFIG = {
   // 14 × 14, anillo de escalones de 3 m y un SANTUARIO en la cima (cuarto de 10 × 10 con 2 puertas, techo a `h` m y
   // crestería de `comb` m) con el Pack-a-Punch adentro. Las rampas, 4 m de ancho
   TEMPLE: {
-    top: { x1: 74, x2: 88, z1: 80, z2: 94 },
-    tiers: [[71, 74, 77, 85], [71, 74, 89, 97], [88, 91, 77, 97], [74, 79, 77, 80], [83, 88, 77, 80], [74, 88, 94, 97]], tierH: 1.6,
+    // F5.16 (Diego): pegado a la esquina NE del anexo (+4 en x, +3 en z): los escalones tocan x 95 y z 100, no se
+    // camina por detrás
+    top: { x1: 78, x2: 92, z1: 83, z2: 97 },
+    tiers: [[75, 78, 80, 88], [75, 78, 92, 100], [92, 95, 80, 100], [78, 83, 80, 83], [87, 92, 80, 83], [78, 92, 97, 100]], tierH: 1.6,
     ramps: [
-      { x1: 65, x2: 74, z1: 85, z2: 89, steps: 16, dir: 1, bottom: [64, 87], top: [74, 87], stone: true, gap: ['x', 74, 85, 89] },
-      { axis: 'z', x1: 79, x2: 83, z1: 71, z2: 80, steps: 16, dir: 1, bottom: [81, 70], top: [81, 80], stone: true, gap: ['z', 80, 79, 83] }
+      { x1: 69, x2: 78, z1: 88, z2: 92, steps: 16, dir: 1, bottom: [68, 90], top: [78, 90], stone: true, gap: ['x', 78, 88, 92] },
+      { axis: 'z', x1: 83, x2: 87, z1: 74, z2: 83, steps: 16, dir: 1, bottom: [85, 73], top: [85, 83], stone: true, gap: ['z', 83, 83, 87] }
     ],
     // santuario [x1, x2, z1, z2], paredes de `t` m; puertas [eje de la pared, línea, desde, hasta]
-    sanctum: { x1: 78, x2: 88, z1: 84, z2: 94, t: 0.5, h: 5, comb: 8,
-               doors: [['z', 84, 81.5, 84], ['x', 78, 86, 88.5]] },
+    sanctum: { x1: 82, x2: 92, z1: 87, z2: 97, t: 0.5, h: 5, comb: 8,
+               doors: [['z', 87, 85.5, 88], ['x', 82, 89, 91.5]] },
     river: { w: [60, 63, 66, 100], s: [60, 95, 66, 69],            // brazo oeste y brazo sur [x1, x2, z1, z2]
-             bridges: [['w', 76, 80], ['w', 90, 94], ['s', 79, 83]] },
+             bridges: [['w', 76, 80], ['w', 90, 94], ['s', 83, 87]] },   // F5.16: el del sur, con la rampa
     clear: [58, 95, 64, 100]                                        // sin árboles de jungla adentro
   },
   // F5.12: cercos que se compran y se queman (son puertas: CONFIG.DOORS, DOOR_LINKS). Al comprarlo arde `time` s
@@ -972,10 +976,12 @@ const CONFIG = {
   // piso en y = `y`) a la que se baja por la escotilla del jardín norte. Para el jugador, fundido y
   // teletransporte; para los zombies, un enlace del grid (NAV.link) que cruzan escondidos (ojos rojos al bajar).
   // Cerrada hasta que las 2 estatuas de plantas (al lado de la escotilla) despiertan y comen
-  // F5.16: portal Templo ↔ Calamar, ida y vuelta, gratis. Se prende al abrir el templo (door H6). Solo el jugador:
+  // F5.16: portal Templo ↔ Calamar, ida y vuelta, gratis. Solo el jugador:
   // F cerca del arco, fundido a negro (el de la escotilla) y aparece en `out` del otro. Los zombies no lo cruzan
   // (el flow field no lo ve: si no llegan, el watchdog los respawnea cerca). Sin collider: no toca el grid
-  PORTAL: { door: 'H6', use: 2.3,
+  // F5.16b: sin portal al principio: una tumba en el lugar del arco del templo. Un tiro la hace sangrar `bleed` s y
+  // aparecen los dos arcos. `cooldown` s entre usos. Los que te persiguen a menos de `carry` m cruzan con vos
+  PORTAL: { use: 2.3, bleed: 1.5, cooldown: 2, carry: 20,
     temple: { room: 'R20', x: 65, z: 59.2, rot: 0,       out: [65, 61.2] },
     squid:  { room: 'R19', x: -45, z: -25, rot: Math.PI, out: [-45, -27] } },
   BUNKER: {
@@ -1086,7 +1092,7 @@ const CONFIG = {
         // F5.15: los 3 puentes del río del templo, en el anexo NE
         { axis: 'z', x1: 76, x2: 80, lanes: [60.6, 61.5, 62.4], out: 1.2 },
         { axis: 'z', x1: 90, x2: 94, lanes: [60.6, 61.5, 62.4], out: 1.2 },
-        { x1: 79, x2: 83, lanes: [66.6, 67.5, 68.4], out: 1.2 }
+        { x1: 83, x2: 87, lanes: [66.6, 67.5, 68.4], out: 1.2 }
       ]
     }
   },
@@ -1116,7 +1122,7 @@ const CONFIG = {
   // mirando a la pasarela. Dentro del anillo no navegable: no cambia el grid
   // F5.13: arriba del templo (y = UP.y, nivel 1), contra el santuario, mirando a -z
   // F5.15: adentro del santuario del templo, contra la pared norte
-  PAP: { spot: { x: 83, z: 92.8, rot: Math.PI, y: 4.3, room: 'R20', level: 1 }, size: { w: 1.4, h: 1.8, d: 1.0 },
+  PAP: { spot: { x: 87, z: 95.8, rot: Math.PI, y: 4.3, room: 'R20', level: 1 }, size: { w: 1.4, h: 1.8, d: 1.0 },
     // V2 F2b: la mejora. El arma entra, tarda `time` s y sale; tenés grabTime s para agarrarla o se pierde.
     // Mejorada: todo el daño ×dmgMul, cargador y reserva ×ammoMul, nombre papName, camo. Sin re-PaP.
     cost: 5000, time: 4, grabTime: 10, dmgMul: 2, ammoMul: 1.5,
@@ -1154,10 +1160,11 @@ const CONFIG = {
     { weapon:'smg',     room:'R3', cost:1500, x: 18, z: 9, face:-1 },
     // F5.16 (Diego): la casa queda con 3 (escopeta, subfusil, revólver; el machete es cuerpo a cuerpo) y cada área
     // con 1-2: rancho doble cañón + rifle · calamar LMG · búnker bazooka + Uzi · templo ballesta
-    { weapon:'rifle',   room:'R14', cost:2000, x:-56, z:34, face: 1 },                // F5.16: espesura oeste del rancho
-    { weapon:'lmg',     room:'R19', cost:2500, x:-60, z:-4, face:-1, axis:'z' },      // F5.16: espesura norte del calamar
-    { weapon:'uzi',     room:'R17', cost:1200, x:-60, z:53, face: 1, axis:'z' },      // F5.16: espesura sur del claro del búnker
-    { weapon:'crossbow',room:'R20', cost:2000, x: 58, z:56, face: 1, axis:'z', post:true },   // F5.16: tablón en la entrada del templo
+    // (en tablón propio y a ~2.3 m de la espesura: los arbustos del borde tapaban la tiza pegada a la pared)
+    { weapon:'rifle',   room:'R14', cost:2000, x:-53.6, z:37.5, face: 1, post:true },            // F5.16: rancho, oeste
+    { weapon:'lmg',     room:'R19', cost:2500, x:-60, z:-6.3, face:-1, axis:'z', post:true },    // F5.16: calamar, norte
+    { weapon:'uzi',     room:'R17', cost:1200, x:-60, z:55.3, face: 1, axis:'z', post:true },    // F5.16: claro del búnker, sur
+    { weapon:'crossbow',room:'R20', cost:2000, x: 58, z:57.5, face: 1, axis:'z', post:true },    // F5.16: entrada del templo
     // V2 F3b. axis 'z' = pared a lo largo de x (face ±1 = hacia ±z). y = altura de la tiza (cerca de 1.2 m).
     // post = tablón propio (el muelle no tiene paredes). 'machete' no es arma de inventario: ver CONFIG.MACHETE
     // F5.13: en el tablón de la torre de salvavidas (CONFIG.LIFEGUARD), mirando a la casa
@@ -2717,6 +2724,10 @@ function buildTempleShell() {
     if (over) r.col.overhead = true;
     return r;
   };
+  // F5.16 (bug del playtest): los zombies del piso cruzaban las rampas de costado (el grid de abajo no las ve).
+  // Su huella es un límite SOLO para zombies (el jugador sube por la rampa; los de la escalera van por el enlace,
+  // sin colisión). tag bound:*: no frena balas
+  for (const R of T.ramps) addBoundary(R.x1, R.x2, R.z1, R.z2, 'bound:rampa', 0, UP.y).zombieOnly = true;
   solid(T.top.x1, T.top.x2, 0, y, T.top.z1, T.top.z2, 'temple');       // la base: arriba se pisa (y = UP.y)
   for (const t of T.tiers) solid(t[0], t[1], 0, T.tierH, t[2], t[3], 'temple');
   // F5.15: el santuario es un cuarto (paredes con 2 puertas) y adentro está el Pack-a-Punch. Colliders de arriba:
@@ -4753,6 +4764,7 @@ function traceShot(origin, dir, def) {
   }
 
   if (t === 'questShell' && shootShell()) return null;   // F5.9: la caracola brillante se cae de la tortuga
+  if (t === 'tomb') shootTomb();                          // F5.16: la tumba del templo sangra y se abre el portal
   addImpactDecal(h);
   return null;                           // impacto en mundo no cuenta como "hit" de precisión
 }
@@ -4765,6 +4777,7 @@ function tracePierce(hits, dir, def) {
   for (const h of hits) {
     const t = h.object.userData.type;
     if (t !== 'zombieHead' && t !== 'zombieBody') {
+      if (t === 'tomb') shootTomb();                    // F5.16
       if (!(t === 'questShell' && shootShell())) addImpactDecal(h);
       shotImpact.point.copy(h.point); break;
     }
@@ -11636,7 +11649,7 @@ function hatchTeleport(p) {
 }
 function updateBunker(dt) {
   updateStatues(dt);
-  updatePortals(clock.elapsedTime);                                                    // F5.16
+  updatePortals(dt, clock.elapsedTime);                                                // F5.16
   if (BUNK.open && BUNK.halves[0].position.x > -2.3) {                               // F5.13: las puertas se corren
     const x = Math.max(-2.3, BUNK.halves[0].position.x - dt * 1.2);
     BUNK.halves[0].position.x = x; BUNK.halves[1].position.x = -x;
@@ -11644,15 +11657,20 @@ function updateBunker(dt) {
   if (BUNK.fadeT > 0) {                                                               // negro a mitad: teletransporte
     const F = CONFIG.BUNKER.fade;
     BUNK.fadeT = Math.max(0, BUNK.fadeT - dt);
-    if (!BUNK.fadeDone && BUNK.fadeT <= F) { BUNK.fadeDone = true; hatchTeleport(BUNK.fadeTo); }
+    if (!BUNK.fadeDone && BUNK.fadeT <= F) {
+      BUNK.fadeDone = true; hatchTeleport(BUNK.fadeTo);
+      if (PORTAL.from) { portalCarry(PORTAL.from, BUNK.fadeTo); PORTAL.from = null; }   // F5.16
+    }
     const o = BUNK.fadeT > F ? 1 - (BUNK.fadeT - F) / F : BUNK.fadeT / F;
     if (UI.fade) UI.fade.style.opacity = Math.max(0, Math.min(1, o)).toFixed(3);
   }
 }
-// F5.16: portal Templo ↔ Calamar (CONFIG.PORTAL). Dos arcos de piedra con un anillo que brilla (MeshBasic aditivo,
-// creado una vez). Usa el fundido de la escotilla (BUNK.fadeT)
-const PORTAL = { arcs: [] };
-function portalOn() { const d = state.doors[CONFIG.PORTAL.door]; return !!(d && d.open); }
+// F5.16: portal Templo ↔ Calamar (CONFIG.PORTAL). Al principio no hay portal: en el templo hay una tumba. Un tiro
+// (traceShot/tracePierce -> shootTomb) la hace sangrar `bleed` s y se convierte en los dos arcos (templo y
+// calamar). F cerca de un arco: fundido de la escotilla (BUNK.fadeT) y aparecés en `out` del otro, con `cooldown`
+// s de espera. Los que te perseguían (a menos de `carry` m, no bosses) salen del piso cerca del otro arco
+const PORTAL = { arcs: [], open: false, bleedT: 0, dripT: 0, cd: 0, tomb: null, tombHit: null, pool: null, from: null };
+function portalOn() { return PORTAL.open; }
 function buildPortals() {
   const P = CONFIG.PORTAL, mat = new THREE.MeshLambertMaterial({ vertexColors: true });
   for (const key of ['temple', 'squid']) {
@@ -11665,16 +11683,57 @@ function buildPortals() {
     }
     mb.box(0, 2.95, 0, 3.3, 0.4, 0.7, 0x5a5a52); mb.box(0, 3.25, 0, 1, 0.3, 0.5, 0x3a8a6a);   // dintel
     mb.setFrame(null);
-    const m = mb.mesh(mat); if (m) { m.userData.theme = false; m.updateMatrix(); }
+    const arc = mb.mesh(mat); if (arc) { arc.userData.theme = false; arc.updateMatrix(); }
     const ring = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.12, 8, 24),
-      new THREE.MeshBasicMaterial({ color: 0x3aff9a, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false }));
+      new THREE.MeshBasicMaterial({ color: 0x3aff9a, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }));
     const core = new THREE.Mesh(new THREE.CircleGeometry(0.95, 20),
-      new THREE.MeshBasicMaterial({ color: 0x1a8a6a, transparent: true, opacity: 0.1, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+      new THREE.MeshBasicMaterial({ color: 0x1a8a6a, transparent: true, opacity: 0.4, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
     for (const o of [ring, core]) { o.position.set(S.x, 1.45, S.z); o.rotation.y = S.rot; scene.add(o); }
-    PORTAL.arcs.push({ key, S, ring, core });
+    PORTAL.arcs.push({ key, S, arc, ring, core });
   }
+  // la tumba: lápida de piedra con cruz, montículo de tierra; su caja de tiro (sin collider) en hitMeshes
+  const S = P.temple, tb = new MeshBuilder();
+  tb.setFrame(S.x, 0, S.z, S.rot);
+  tb.box(0, 0.15, 0.9, 1.1, 0.3, 2.0, 0x4a3a28);                       // montículo
+  tb.box(0, 0.75, -0.15, 0.95, 1.5, 0.25, 0x6a6a62);                   // lápida
+  tb.box(0, 1.55, -0.15, 0.55, 0.18, 0.26, 0x5a5a54);
+  tb.box(0, 1.1, -0.01, 0.1, 0.55, 0.02, 0x2a2a28); tb.box(0, 1.2, -0.01, 0.34, 0.1, 0.02, 0x2a2a28);   // cruz tallada
+  for (let k = 0; k < 5; k++) tb.box(-0.5 + k * 0.25, 0.32, 0.4 + (k % 2) * 0.9, 0.12, 0.05, 0.12, 0xd8d0b8);   // huesitos
+  tb.setFrame(null);
+  PORTAL.tomb = tb.mesh(mat); if (PORTAL.tomb) { PORTAL.tomb.userData.theme = false; PORTAL.tomb.updateMatrix(); }
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.7, 0.5), new THREE.MeshBasicMaterial());
+  hit.visible = false; hit.position.set(S.x, 0.85, S.z); hit.rotation.y = S.rot; hit.userData = { type: 'tomb' };
+  scene.add(hit); PORTAL.tombHit = hit;
+  PORTAL.pool = new THREE.Mesh(new THREE.CircleGeometry(1, 20), new THREE.MeshBasicMaterial({ color: 0x4a0808, transparent: true, opacity: 0.85, depthWrite: false }));
+  PORTAL.pool.rotation.x = -Math.PI / 2; PORTAL.pool.position.set(S.x, 0.03, S.z); PORTAL.pool.visible = false;
+  scene.add(PORTAL.pool);
+  resetPortals();
+}
+function resetPortals() {
+  PORTAL.open = false; PORTAL.bleedT = 0; PORTAL.cd = 0; PORTAL.from = null;
+  for (const A of PORTAL.arcs) { A.arc.visible = A.ring.visible = A.core.visible = false; }
+  if (PORTAL.tomb) PORTAL.tomb.visible = true;
+  if (PORTAL.pool) { PORTAL.pool.visible = false; PORTAL.pool.scale.setScalar(0.01); }
+  if (PORTAL.tombHit && !WORLD.hitMeshes.includes(PORTAL.tombHit)) WORLD.hitMeshes.push(PORTAL.tombHit);
+}
+// un tiro a la tumba: sangra y después se abre el portal. true = le pegó a la tumba cerrada
+function shootTomb() {
+  if (PORTAL.open || PORTAL.bleedT > 0) return false;
+  PORTAL.bleedT = CONFIG.PORTAL.bleed; PORTAL.dripT = 0;
+  PORTAL.pool.visible = true;
+  sfxThunder();
+  return true;
+}
+function openPortals() {
+  PORTAL.open = true; PORTAL.bleedT = 0;
+  PORTAL.tomb.visible = false;
+  const i = WORLD.hitMeshes.indexOf(PORTAL.tombHit); if (i >= 0) WORLD.hitMeshes.splice(i, 1);
+  for (const A of PORTAL.arcs) { A.arc.visible = A.ring.visible = A.core.visible = true; }
+  showBanner('SE ABRIÓ UN PORTAL');
+  sfxShieldTake();
 }
 function portalNear(room, px, pz, bd) {
+  if (!PORTAL.open) return null;
   const P = CONFIG.PORTAL;
   for (const A of PORTAL.arcs) {
     if (!room || room.id !== A.S.room) continue;
@@ -11684,23 +11743,52 @@ function portalNear(room, px, pz, bd) {
   return null;
 }
 function portalPrompt(t) {
-  if (!portalOn()) return { text: 'Portal apagado - abrí el templo', cost: 0 };
+  if (PORTAL.cd > 0) return { text: 'El portal se está recargando...', cost: 0 };
   return { text: t.portal === 'temple' ? '[F] Viajar a la Playa del Calamar' : '[F] Viajar al Templo', cost: 0 };
 }
 function usePortal(t) {
-  if (!portalOn() || BUNK.fadeT > 0) return false;
-  const P = CONFIG.PORTAL;
+  if (!PORTAL.open || PORTAL.cd > 0 || BUNK.fadeT > 0) return false;
+  const P = CONFIG.PORTAL, F = CONFIG.BUNKER.fade;
   BUNK.fadeTo = t.portal === 'temple' ? P.squid.out : P.temple.out;
-  BUNK.fadeT = CONFIG.BUNKER.fade * 2; BUNK.fadeDone = false;
+  PORTAL.from = t.portal === 'temple' ? P.temple : P.squid;
+  BUNK.fadeT = F * 2; BUNK.fadeDone = false;
+  PORTAL.cd = F * 2 + P.cooldown;                                    // se cuenta desde que llegás
   sfxShieldTake();
   return true;
 }
-function updatePortals(t) {
-  const on = portalOn();
+// los que te perseguían salen del piso alrededor del arco de llegada (celdas navegables, anillo de 3 a 7 m)
+function portalCarry(from, to) {
+  const P = CONFIG.PORTAL;
+  let k = 0;
+  for (const z of state.zombies) {
+    if (!z.active || !z.alive || z.boss || z.climb || (z.level || 0) !== 0) continue;
+    if (z.state !== 'walk' && z.state !== 'emerge') continue;
+    if (Math.hypot(z.px - from.x, z.pz - from.z) > P.carry) continue;
+    for (let tries = 0; tries < 24; tries++, k++) {
+      const a = k * 2.399, r = 3 + (k % 5);
+      const x = to[0] + Math.cos(a) * r, zz = to[1] + Math.sin(a) * r;
+      if (isNav(Math.floor(x), Math.floor(zz))) { resetZombie(z, { x: Math.floor(x) + 0.5, z: Math.floor(zz) + 0.5 }, true); k++; break; }
+    }
+  }
+}
+function updatePortals(dt, t) {
+  PORTAL.cd = Math.max(0, PORTAL.cd - dt);
+  if (PORTAL.bleedT > 0) {                                           // la tumba sangra
+    PORTAL.bleedT -= dt; PORTAL.dripT -= dt;
+    const k = 1 - Math.max(0, PORTAL.bleedT) / CONFIG.PORTAL.bleed;
+    PORTAL.pool.scale.setScalar(0.2 + 1.6 * k);
+    if (PORTAL.dripT <= 0 && typeof spawnBloodDecalAt === 'function') {
+      PORTAL.dripT = 0.12;
+      const S = CONFIG.PORTAL.temple;
+      spawnBloodDecalAt({ point: new THREE.Vector3(S.x, 1.5, S.z) }, true, null);
+    }
+    if (PORTAL.bleedT <= 0) openPortals();
+  }
+  if (!PORTAL.open) return;
   for (const A of PORTAL.arcs) {
-    A.ring.rotation.z = t * (on ? 1.6 : 0.2);
-    A.ring.material.opacity = on ? 0.75 + 0.2 * Math.sin(t * 4) : 0.2;
-    A.core.material.opacity = on ? 0.35 + 0.15 * Math.sin(t * 3) : 0.06;
+    A.ring.rotation.z = t * 1.6;
+    A.ring.material.opacity = (PORTAL.cd > 0 ? 0.35 : 0.75) + 0.2 * Math.sin(t * 4);
+    A.core.material.opacity = (PORTAL.cd > 0 ? 0.15 : 0.35) + 0.15 * Math.sin(t * 3);
   }
 }
 function inBunker() { return groundY(player.pos.x, player.pos.z) < -1; }
@@ -11708,6 +11796,7 @@ function inBunker() { return groundY(player.pos.x, player.pos.z) < -1; }
 function resetBunker() {
   const was = BUNK.open;
   BUNK.open = false; BUNK.fadeT = 0; BUNK.fadeTo = null;
+  resetPortals();                                                                      // F5.16
   if (UI.fade) UI.fade.style.opacity = '0';
   if (BUNK.lid) {
     BUNK.halves[0].position.x = -1.1; BUNK.halves[1].position.x = 1.1;               // puertas cerradas
@@ -13116,6 +13205,19 @@ function gfxMarkShadows() {
     o.castShadow = lit && o.visible;
   });
 }
+// F5.16: distancia de la niebla elegida en Ajustes (dura la sesión). camera.far la sigue (lo de más allá no se
+// dibuja), y el boss y la neblina morada la cierran desde ahí
+function setFog(far) {
+  const F = CONFIG.FOG;
+  far = Math.max(F.min, Math.min(F.max, far || F.far));
+  SETTINGS.fog = far;
+  if (typeof scene !== 'undefined' && scene && scene.fog) {
+    if (typeof BOSS !== 'undefined' && BOSS.fogBase) BOSS.fogBase.far = far;
+    if (!(typeof bossAlive === 'function' && bossAlive())) scene.fog.far = typeof weatherFogFar === 'function' ? weatherFogFar(far) : far;
+  }
+  if (typeof camera !== 'undefined' && camera) { camera.far = far + (F.clip - F.far); camera.updateProjectionMatrix(); }
+  return far;
+}
 function applyQuality(name) {
   const C = CONFIG.GFX, Q = C.presets[name] || C.presets.medio;
   GFX.quality = name in C.presets ? name : 'medio';
@@ -13397,6 +13499,8 @@ function bindInput() {
   const qs = document.getElementById('quality'), pp = document.getElementById('postFx');
   if (qs) qs.addEventListener('change', () => { applyQuality(qs.value); if (pp) pp.checked = GFX.post; });
   if (pp) pp.addEventListener('change', () => setPost(pp.checked));
+  const fs = document.getElementById('fogSel');                 // F5.16: niebla configurable (menos niebla, menos FPS)
+  if (fs) fs.addEventListener('change', () => setFog(+fs.value));
   // F6: volúmenes separados
   const mv = document.getElementById('musicVol'), sv = document.getElementById('sfxVol');
   if (mv) mv.addEventListener('input', () => { initAudio(); setMusicVolume(mv.value / 100); document.getElementById('musicVal').textContent = mv.value + '%'; });

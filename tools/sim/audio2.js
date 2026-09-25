@@ -76,7 +76,7 @@ FakeAC.prototype.createPanner = mkPanner;
 const S = (x, z, feet) => G.surfaceAt(x, z, feet || 0);
 const cases = [[0, 0, 0, 'wood'], [0, 10, 0, 'wood'], [12, 8, 0, 'tile'], [-10, 24, 0, 'conc'], [0, -15, 0, 'sand'],
   [-15, 5, 0, 'grass'], [-60, 60, 0, 'grass'], [25, 14, -1.6, 'water'], [6, -19.5, 0, 'water'], [11, 17, 4.3, 'wood'],
-  [76, 82, 4.3, 'stone'], [69.5, 87, 2, 'stone'], [-24, -80, -8, 'conc'], [30, 8, 0, 'tile'], [0, -35, 0, 'wood']];
+  [80, 85, 4.3, 'stone'], [73.5, 90, 2, 'stone'], [-24, -80, -8, 'conc'], [30, 8, 0, 'tile'], [0, -35, 0, 'wood']];
 const bad = cases.filter(([x, z, f, s]) => S(x, z, f) !== s);
 check(!bad.length, 'superficie: madera, azulejo, concreto, arena, pasto, agua, piedra', bad.map(([x, z, f, s]) => `(${x},${z}) ${S(x, z, f)}≠${s}`).join(' '));
 

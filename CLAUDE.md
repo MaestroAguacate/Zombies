@@ -1125,6 +1125,31 @@ Si agregás estado o funciones que un test necesita, exponelas en la línea `glo
   (`rainRoof`).
 - Test: `f516.js` (topología y portal). Se adaptaron `map.js`, `f512.js`, `f515.js` y `wallbuys.js`.
 
+## Playtest de la tanda B (V2 F5.16b) — manda sobre la tanda B donde se contradice
+- **Armas de pared invisibles:** los arbustos de `buildJungle` se dibujan encima de las paredes de espesura y
+  tapaban la tiza. Rifle (−53.6, 37.5), LMG (−60, −6.3), Uzi (−60, 55.3) y ballesta (58, 57.5) van en **tablón
+  propio** (`post:true`) a ~2.3 m del borde. Regla: nunca una tiza pegada a una pared de `thicket`.
+- **Portal con tumba** (`CONFIG.PORTAL` use 2.3 · bleed 1.5 · cooldown 2 · carry 20):
+  - Al principio no hay arcos: en el lugar del del templo hay una **tumba** (lápida, montículo, huesos) con caja
+    de tiro `userData.type 'tomb'` en hitMeshes (sin collider). Un tiro (`traceShot`/`tracePierce` → `shootTomb`)
+    la hace sangrar 1.5 s (chorros de sangre + charco que crece) y `openPortals` muestra los dos arcos, saca la
+    tumba de hitMeshes y avisa "SE ABRIÓ UN PORTAL". Ya no depende de H6 (la tumba solo se alcanza con el templo
+    abierto).
+  - `PORTAL.cd`: después de usarlo, 2 s (contados desde que llegás) con el cartel "se está recargando".
+  - **Los que te perseguían cruzan:** en el medio del fundido, `portalCarry` saca del piso (`resetZombie` con la
+    misma vida) alrededor del arco de llegada, en un anillo de 3 a 7 m, a los zombies y mobs vivos del piso a
+    menos de `carry` m del arco de salida. **Los bosses no cruzan.**
+  - `resetPortals` (desde `resetBunker`) vuelve a la tumba.
+- **Templo pegado a la esquina NE del anexo** (+4 en x, +3 en z): cima x 78..92, z 83..97; los escalones tocan
+  x 95 y z 100, así que no se camina por detrás (norte y este). PaP en (87, 95.8). El puente sur del río y su
+  zona de pirañas pasaron a x 83..87 (frente a la rampa sur). La almeja de R20 pasó a (80, 60).
+- **Rampas del templo:** su huella en el piso es un `bound:rampa` **solo para zombies** (`zombieOnly`): los del
+  piso ya no las cruzan de costado. El jugador sube igual y los que trepan van por el enlace, sin colisión.
+- **Niebla en Ajustes** (`setFog(far)`, `SETTINGS.fog`, `CONFIG.FOG.min/max` 20..90): Muy espesa 25 · Normal 40
+  · Liviana 60 · Casi nada 90, con el aviso "Menos niebla = menos FPS". Mueve `camera.far` (far + 4) y
+  `BOSS.fogBase`. Dura la sesión.
+- Test: `f516.js` (portal con tumba, cruce, cooldown, templo, rampas, niebla). `audio2.js` adaptado.
+
 ## Audio (V2 F6) — `src/audio.js`, `CONFIG.AUDIO`
 - **Buses:** `sfx → compresor → master`, `amb → master`, `music → master` (F6), más 2 loops nuevos
   (viento y bichos) directo al master. Todo sigue saliendo sin hacer nada si no hay contexto.

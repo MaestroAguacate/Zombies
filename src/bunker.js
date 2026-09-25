@@ -357,7 +357,7 @@ function hatchTeleport(p) {
 }
 function updateBunker(dt) {
   updateStatues(dt);
-  updatePortals(clock.elapsedTime);                                                    // F5.16
+  updatePortals(dt, clock.elapsedTime);                                                // F5.16
   if (BUNK.open && BUNK.halves[0].position.x > -2.3) {                               // F5.13: las puertas se corren
     const x = Math.max(-2.3, BUNK.halves[0].position.x - dt * 1.2);
     BUNK.halves[0].position.x = x; BUNK.halves[1].position.x = -x;
@@ -365,15 +365,20 @@ function updateBunker(dt) {
   if (BUNK.fadeT > 0) {                                                               // negro a mitad: teletransporte
     const F = CONFIG.BUNKER.fade;
     BUNK.fadeT = Math.max(0, BUNK.fadeT - dt);
-    if (!BUNK.fadeDone && BUNK.fadeT <= F) { BUNK.fadeDone = true; hatchTeleport(BUNK.fadeTo); }
+    if (!BUNK.fadeDone && BUNK.fadeT <= F) {
+      BUNK.fadeDone = true; hatchTeleport(BUNK.fadeTo);
+      if (PORTAL.from) { portalCarry(PORTAL.from, BUNK.fadeTo); PORTAL.from = null; }   // F5.16
+    }
     const o = BUNK.fadeT > F ? 1 - (BUNK.fadeT - F) / F : BUNK.fadeT / F;
     if (UI.fade) UI.fade.style.opacity = Math.max(0, Math.min(1, o)).toFixed(3);
   }
 }
-// F5.16: portal Templo ↔ Calamar (CONFIG.PORTAL). Dos arcos de piedra con un anillo que brilla (MeshBasic aditivo,
-// creado una vez). Usa el fundido de la escotilla (BUNK.fadeT)
-const PORTAL = { arcs: [] };
-function portalOn() { const d = state.doors[CONFIG.PORTAL.door]; return !!(d && d.open); }
+// F5.16: portal Templo ↔ Calamar (CONFIG.PORTAL). Al principio no hay portal: en el templo hay una tumba. Un tiro
+// (traceShot/tracePierce -> shootTomb) la hace sangrar `bleed` s y se convierte en los dos arcos (templo y
+// calamar). F cerca de un arco: fundido de la escotilla (BUNK.fadeT) y aparecés en `out` del otro, con `cooldown`
+// s de espera. Los que te perseguían (a menos de `carry` m, no bosses) salen del piso cerca del otro arco
+const PORTAL = { arcs: [], open: false, bleedT: 0, dripT: 0, cd: 0, tomb: null, tombHit: null, pool: null, from: null };
+function portalOn() { return PORTAL.open; }
 function buildPortals() {
   const P = CONFIG.PORTAL, mat = new THREE.MeshLambertMaterial({ vertexColors: true });
   for (const key of ['temple', 'squid']) {
@@ -386,16 +391,57 @@ function buildPortals() {
     }
     mb.box(0, 2.95, 0, 3.3, 0.4, 0.7, 0x5a5a52); mb.box(0, 3.25, 0, 1, 0.3, 0.5, 0x3a8a6a);   // dintel
     mb.setFrame(null);
-    const m = mb.mesh(mat); if (m) { m.userData.theme = false; m.updateMatrix(); }
+    const arc = mb.mesh(mat); if (arc) { arc.userData.theme = false; arc.updateMatrix(); }
     const ring = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.12, 8, 24),
-      new THREE.MeshBasicMaterial({ color: 0x3aff9a, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false }));
+      new THREE.MeshBasicMaterial({ color: 0x3aff9a, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }));
     const core = new THREE.Mesh(new THREE.CircleGeometry(0.95, 20),
-      new THREE.MeshBasicMaterial({ color: 0x1a8a6a, transparent: true, opacity: 0.1, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+      new THREE.MeshBasicMaterial({ color: 0x1a8a6a, transparent: true, opacity: 0.4, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
     for (const o of [ring, core]) { o.position.set(S.x, 1.45, S.z); o.rotation.y = S.rot; scene.add(o); }
-    PORTAL.arcs.push({ key, S, ring, core });
+    PORTAL.arcs.push({ key, S, arc, ring, core });
   }
+  // la tumba: lápida de piedra con cruz, montículo de tierra; su caja de tiro (sin collider) en hitMeshes
+  const S = P.temple, tb = new MeshBuilder();
+  tb.setFrame(S.x, 0, S.z, S.rot);
+  tb.box(0, 0.15, 0.9, 1.1, 0.3, 2.0, 0x4a3a28);                       // montículo
+  tb.box(0, 0.75, -0.15, 0.95, 1.5, 0.25, 0x6a6a62);                   // lápida
+  tb.box(0, 1.55, -0.15, 0.55, 0.18, 0.26, 0x5a5a54);
+  tb.box(0, 1.1, -0.01, 0.1, 0.55, 0.02, 0x2a2a28); tb.box(0, 1.2, -0.01, 0.34, 0.1, 0.02, 0x2a2a28);   // cruz tallada
+  for (let k = 0; k < 5; k++) tb.box(-0.5 + k * 0.25, 0.32, 0.4 + (k % 2) * 0.9, 0.12, 0.05, 0.12, 0xd8d0b8);   // huesitos
+  tb.setFrame(null);
+  PORTAL.tomb = tb.mesh(mat); if (PORTAL.tomb) { PORTAL.tomb.userData.theme = false; PORTAL.tomb.updateMatrix(); }
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.7, 0.5), new THREE.MeshBasicMaterial());
+  hit.visible = false; hit.position.set(S.x, 0.85, S.z); hit.rotation.y = S.rot; hit.userData = { type: 'tomb' };
+  scene.add(hit); PORTAL.tombHit = hit;
+  PORTAL.pool = new THREE.Mesh(new THREE.CircleGeometry(1, 20), new THREE.MeshBasicMaterial({ color: 0x4a0808, transparent: true, opacity: 0.85, depthWrite: false }));
+  PORTAL.pool.rotation.x = -Math.PI / 2; PORTAL.pool.position.set(S.x, 0.03, S.z); PORTAL.pool.visible = false;
+  scene.add(PORTAL.pool);
+  resetPortals();
+}
+function resetPortals() {
+  PORTAL.open = false; PORTAL.bleedT = 0; PORTAL.cd = 0; PORTAL.from = null;
+  for (const A of PORTAL.arcs) { A.arc.visible = A.ring.visible = A.core.visible = false; }
+  if (PORTAL.tomb) PORTAL.tomb.visible = true;
+  if (PORTAL.pool) { PORTAL.pool.visible = false; PORTAL.pool.scale.setScalar(0.01); }
+  if (PORTAL.tombHit && !WORLD.hitMeshes.includes(PORTAL.tombHit)) WORLD.hitMeshes.push(PORTAL.tombHit);
+}
+// un tiro a la tumba: sangra y después se abre el portal. true = le pegó a la tumba cerrada
+function shootTomb() {
+  if (PORTAL.open || PORTAL.bleedT > 0) return false;
+  PORTAL.bleedT = CONFIG.PORTAL.bleed; PORTAL.dripT = 0;
+  PORTAL.pool.visible = true;
+  sfxThunder();
+  return true;
+}
+function openPortals() {
+  PORTAL.open = true; PORTAL.bleedT = 0;
+  PORTAL.tomb.visible = false;
+  const i = WORLD.hitMeshes.indexOf(PORTAL.tombHit); if (i >= 0) WORLD.hitMeshes.splice(i, 1);
+  for (const A of PORTAL.arcs) { A.arc.visible = A.ring.visible = A.core.visible = true; }
+  showBanner('SE ABRIÓ UN PORTAL');
+  sfxShieldTake();
 }
 function portalNear(room, px, pz, bd) {
+  if (!PORTAL.open) return null;
   const P = CONFIG.PORTAL;
   for (const A of PORTAL.arcs) {
     if (!room || room.id !== A.S.room) continue;
@@ -405,23 +451,52 @@ function portalNear(room, px, pz, bd) {
   return null;
 }
 function portalPrompt(t) {
-  if (!portalOn()) return { text: 'Portal apagado - abrí el templo', cost: 0 };
+  if (PORTAL.cd > 0) return { text: 'El portal se está recargando...', cost: 0 };
   return { text: t.portal === 'temple' ? '[F] Viajar a la Playa del Calamar' : '[F] Viajar al Templo', cost: 0 };
 }
 function usePortal(t) {
-  if (!portalOn() || BUNK.fadeT > 0) return false;
-  const P = CONFIG.PORTAL;
+  if (!PORTAL.open || PORTAL.cd > 0 || BUNK.fadeT > 0) return false;
+  const P = CONFIG.PORTAL, F = CONFIG.BUNKER.fade;
   BUNK.fadeTo = t.portal === 'temple' ? P.squid.out : P.temple.out;
-  BUNK.fadeT = CONFIG.BUNKER.fade * 2; BUNK.fadeDone = false;
+  PORTAL.from = t.portal === 'temple' ? P.temple : P.squid;
+  BUNK.fadeT = F * 2; BUNK.fadeDone = false;
+  PORTAL.cd = F * 2 + P.cooldown;                                    // se cuenta desde que llegás
   sfxShieldTake();
   return true;
 }
-function updatePortals(t) {
-  const on = portalOn();
+// los que te perseguían salen del piso alrededor del arco de llegada (celdas navegables, anillo de 3 a 7 m)
+function portalCarry(from, to) {
+  const P = CONFIG.PORTAL;
+  let k = 0;
+  for (const z of state.zombies) {
+    if (!z.active || !z.alive || z.boss || z.climb || (z.level || 0) !== 0) continue;
+    if (z.state !== 'walk' && z.state !== 'emerge') continue;
+    if (Math.hypot(z.px - from.x, z.pz - from.z) > P.carry) continue;
+    for (let tries = 0; tries < 24; tries++, k++) {
+      const a = k * 2.399, r = 3 + (k % 5);
+      const x = to[0] + Math.cos(a) * r, zz = to[1] + Math.sin(a) * r;
+      if (isNav(Math.floor(x), Math.floor(zz))) { resetZombie(z, { x: Math.floor(x) + 0.5, z: Math.floor(zz) + 0.5 }, true); k++; break; }
+    }
+  }
+}
+function updatePortals(dt, t) {
+  PORTAL.cd = Math.max(0, PORTAL.cd - dt);
+  if (PORTAL.bleedT > 0) {                                           // la tumba sangra
+    PORTAL.bleedT -= dt; PORTAL.dripT -= dt;
+    const k = 1 - Math.max(0, PORTAL.bleedT) / CONFIG.PORTAL.bleed;
+    PORTAL.pool.scale.setScalar(0.2 + 1.6 * k);
+    if (PORTAL.dripT <= 0 && typeof spawnBloodDecalAt === 'function') {
+      PORTAL.dripT = 0.12;
+      const S = CONFIG.PORTAL.temple;
+      spawnBloodDecalAt({ point: new THREE.Vector3(S.x, 1.5, S.z) }, true, null);
+    }
+    if (PORTAL.bleedT <= 0) openPortals();
+  }
+  if (!PORTAL.open) return;
   for (const A of PORTAL.arcs) {
-    A.ring.rotation.z = t * (on ? 1.6 : 0.2);
-    A.ring.material.opacity = on ? 0.75 + 0.2 * Math.sin(t * 4) : 0.2;
-    A.core.material.opacity = on ? 0.35 + 0.15 * Math.sin(t * 3) : 0.06;
+    A.ring.rotation.z = t * 1.6;
+    A.ring.material.opacity = (PORTAL.cd > 0 ? 0.35 : 0.75) + 0.2 * Math.sin(t * 4);
+    A.core.material.opacity = (PORTAL.cd > 0 ? 0.15 : 0.35) + 0.15 * Math.sin(t * 3);
   }
 }
 function inBunker() { return groundY(player.pos.x, player.pos.z) < -1; }
@@ -429,6 +504,7 @@ function inBunker() { return groundY(player.pos.x, player.pos.z) < -1; }
 function resetBunker() {
   const was = BUNK.open;
   BUNK.open = false; BUNK.fadeT = 0; BUNK.fadeTo = null;
+  resetPortals();                                                                      // F5.16
   if (UI.fade) UI.fade.style.opacity = '0';
   if (BUNK.lid) {
     BUNK.halves[0].position.x = -1.1; BUNK.halves[1].position.x = 1.1;               // puertas cerradas

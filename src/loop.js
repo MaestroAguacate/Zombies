@@ -106,6 +106,8 @@ function bindInput() {
   const qs = document.getElementById('quality'), pp = document.getElementById('postFx');
   if (qs) qs.addEventListener('change', () => { applyQuality(qs.value); if (pp) pp.checked = GFX.post; });
   if (pp) pp.addEventListener('change', () => setPost(pp.checked));
+  const fs = document.getElementById('fogSel');                 // F5.16: niebla configurable (menos niebla, menos FPS)
+  if (fs) fs.addEventListener('change', () => setFog(+fs.value));
   // F6: volúmenes separados
   const mv = document.getElementById('musicVol'), sv = document.getElementById('sfxVol');
   if (mv) mv.addEventListener('input', () => { initAudio(); setMusicVolume(mv.value / 100); document.getElementById('musicVal').textContent = mv.value + '%'; });
