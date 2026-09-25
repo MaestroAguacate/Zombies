@@ -89,7 +89,7 @@ check(G.PORTAL.bleedT > 0 && !G.portalOn(), 'un tiro a la tumba: sangra (todaví
 bunkerTicks(Math.ceil(PT.bleed * 60) + 2);
 check(G.portalOn() && !G.PORTAL.tomb.visible && G.PORTAL.arcs.every(A => A.arc.visible) && !G.WORLD.hitMeshes.includes(G.PORTAL.tombHit), 'después se abre: los dos arcos, sin tumba');
 G.updateInteract();
-check(G.interactState.kind === 'portal' && /Calamar/.test(G.promptFor(G.interactState).text), 'cartel del portal', `("${G.promptFor(G.interactState).text}")`);
+check(G.interactState.kind === 'portal' && /Squid/.test(G.promptFor(G.interactState).text), 'cartel del portal', `("${G.promptFor(G.interactState).text}")`);
 clearAll();
 const chaser = G.spawnZombie(); chaser.state = 'walk'; chaser.px = PT.temple.x + 3; chaser.pz = PT.temple.z + 4; chaser.level = 0;
 const far = G.spawnZombie(); far.state = 'walk'; far.px = 0; far.pz = -10; far.level = 0;
@@ -100,7 +100,7 @@ const dc = Math.hypot(chaser.px - PT.squid.out[0], chaser.pz - PT.squid.out[1]);
 check(dc < 9 && G.roomAt(chaser.px, chaser.pz).id === 'R19' && chaser.alive, 'el zombie que me seguía sale cerca del otro portal', `(${dc.toFixed(1)} m)`);
 check(Math.hypot(far.px, far.pz + 10) < 1, 'el que estaba lejos se queda');
 G.updateInteract();
-check(G.interactState.kind === 'portal' && !G.interact() && /recargando/.test(G.promptFor(G.interactState).text), 'recién llegado: el portal se recarga (no te devuelve)');
+check(G.interactState.kind === 'portal' && !G.interact() && /recharging/.test(G.promptFor(G.interactState).text), 'recién llegado: el portal se recarga (no te devuelve)');
 bunkerTicks(Math.ceil(PT.cooldown * 60) + 5); G.updateInteract();
 check(G.interact(), 'a los ' + PT.cooldown + ' s se puede volver');
 bunkerTicks(90);
