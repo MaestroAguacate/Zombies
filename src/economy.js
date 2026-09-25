@@ -329,6 +329,24 @@ function buildBox() {
   WORLD.colliders.push(col);
 
   Object.assign(BOX, { group: g, lid: lidPivot, light, glow, hit: body, collider: col, disp });
+  // F5.17 (Diego, como en Black Ops): rayo de luz del cielo a la caja. 3 planos aditivos cruzados, sin niebla (se ve
+  // de lejos, hasta camera.far). Se esconde mientras la caja se muda
+  const bt = makeTexWH(32, 128, (c, w, h) => {
+    const gx = c.createLinearGradient(0, 0, w, 0);
+    gx.addColorStop(0, 'rgba(0,0,0,0)'); gx.addColorStop(0.5, 'rgba(255,255,255,1)'); gx.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = gx; c.fillRect(0, 0, w, h);
+    const gy = c.createLinearGradient(0, 0, 0, h);
+    gy.addColorStop(0, 'rgba(0,0,0,1)'); gy.addColorStop(0.35, 'rgba(0,0,0,0)'); gy.addColorStop(0.97, 'rgba(0,0,0,0)'); gy.addColorStop(1, 'rgba(0,0,0,.6)');
+    c.globalCompositeOperation = 'destination-out'; c.fillStyle = gy; c.fillRect(0, 0, w, h);
+  });
+  const beam = new THREE.Group(), bm = new THREE.MeshBasicMaterial({ map: bt, color: B.beamColor, transparent: true, opacity: 0.55,
+    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  for (let k = 0; k < 3; k++) {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(B.beamWidth, B.beamHeight), bm);
+    p.position.y = B.beamHeight / 2; p.rotation.y = k * Math.PI / 3; p.frustumCulled = false; beam.add(p);
+  }
+  scene.add(beam);
+  BOX.beam = beam; BOX.beamMat = bm;
 }
 function buildTeddy() {
   const g = new THREE.Group(), C = 0x8a5a34, L = 0xc79a6a, D = 0x1a1210;
@@ -359,6 +377,7 @@ function placeBox(roomId) {
   BOX.light.position.set(sp.x, 1.6, sp.z);
   BOX.disp.position.set(sp.x, 0, sp.z);
   BOX.disp.rotation.y = sp.rot;
+  if (BOX.beam) BOX.beam.position.set(sp.x, 0, sp.z);            // F5.17
   buildNavGrid();
 }
 function boxShow(id) {           // id de arma, 'teddy' o null
@@ -417,6 +436,10 @@ function updateBox(dt) {
   const B = CONFIG.BOX, S = B.size;
   BOX.t += dt;
   const t = BOX.t;
+  if (BOX.beam) {                                                 // F5.17: el rayo late y se va mientras se muda
+    BOX.beam.visible = BOX.phase !== 'moving' && BOX.phase !== 'teddy';
+    BOX.beamMat.opacity = 0.45 + 0.12 * Math.sin(clock.elapsedTime * 2.4);
+  }
   let lidTarget = 0, light = 0, dispY = S.h + 0.3;
 
   if (BOX.phase === 'rolling') {
@@ -594,6 +617,7 @@ function openDoor(id) {
     const p = m.position;
     if (p.x > c.minX - 0.1 && p.x < c.maxX + 0.1 && p.z > c.minZ - 0.1 && p.z < c.maxZ + 0.1) m.visible = false;
   });
+  if (id === 'H8') beachWall(false);                             // F5.17b: con el sendero del calamar se abre la playa
   buildNavGrid();
   updateFlowField(true);
 }
@@ -604,6 +628,16 @@ function closeDoor(id) {
   d.collider.solid = true;
   scene.add(d.mesh);
   if (WORLD.hitMeshes.indexOf(d.mesh) < 0) WORLD.hitMeshes.push(d.mesh);
+  if (id === 'H8') beachWall(true);
+}
+// F5.17b: el cerco entre la playa oeste y la costa del calamar (x -41) se va cuando se compra H8
+function beachWall(on) {
+  const W = WORLD.beachWall;
+  if (!W) return;
+  W.col.solid = on;
+  const i = WORLD.hitMeshes.indexOf(W.mesh);
+  if (on) { scene.add(W.mesh); if (i < 0) WORLD.hitMeshes.push(W.mesh); W.mesh.position.y = W.y0; W.mesh.material.color.setHex(0xffffff); }
+  else { scene.remove(W.mesh); if (i >= 0) WORLD.hitMeshes.splice(i, 1); }
 }
 function closeAllDoors() {
   Object.keys(state.doors).forEach(closeDoor);

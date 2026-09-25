@@ -40,8 +40,9 @@ check(reachable([]) === 'R1', 'todo cerrado: solo el porche');
 check(reachable(all) === every, `todo abierto: los ${every.split(',').length} cuartos`);
 // F5.6: el techo une la piscina con el jardín oeste (escaleras 1 y 2), y el jardín oeste da a la playa por D14
 // (F5.15: la playa también se abre desde el campamento (H4) y la costa del calamar (H5))
-const noBeach = reachable(but('D11', 'D13', 'D14', 'H4', 'H5'));
-check(!noBeach.includes('R10') && !noBeach.includes('R11'), 'sin D11, D13, D14, H4 ni H5 no hay playa ni muelle');
+const noBeach = reachable(but('D11', 'D13', 'D14', 'H4', 'H5', 'H8'));   // F5.17b: H8 también abre la playa
+check(!noBeach.includes('R10') && !noBeach.includes('R11'), 'sin D11, D13, D14, H4, H5 ni H8 no hay playa ni muelle');
+check(reachable(but('D11', 'D13', 'D14', 'H4', 'H5')).includes('R10'), 'F5.17b: con H8 abierta, la playa se abre desde la costa del calamar');
 check(reachable(but('D11', 'D13')).includes('R10'), 'F5.6: sin D11 ni D13, a la playa por el techo y el jardín oeste (D14)');
 check(reachable(but('D11')).includes('R10'), 'sin D11 la playa se llega desde la piscina (D13)');
 check(reachable(but('D12')).includes('R10') && !reachable(but('D12')).includes('R11'), 'F5.16: sin D12 hay playa pero no muelle (un solo acceso)');
@@ -127,7 +128,7 @@ const r = CONFIG.PLAYER.radius, E = 0.01;
 let p0;
 // yaw 0 = -z · π = +z · π/2 = -x · -π/2 = +x
 // F5.12: los costados de la playa son cercos que se queman (H4, H5): cerrados frenan
-G.resetGame(); state.running = true; Object.keys(state.doors).filter(id => id !== 'H4' && id !== 'H5').forEach(G.openDoor);
+G.resetGame(); state.running = true; Object.keys(state.doors).filter(id => id !== 'H4' && id !== 'H5' && id !== 'H8').forEach(G.openDoor);   // F5.17b: H8 abre la pared oeste de la playa
 check(walk(10, -10, 0, 4).z >= -23.8 + r - E, 'playa: no se entra al mar');
 check(walk(-35, -10, Math.PI / 2, 3).x >= -40.8 + r - E, 'playa: límite oeste (F5.15: la costa, con H5 cerrada)');
 check(walk(-30, -10, Math.PI, 3).z <= -4 - r + E, 'playa oeste: la espesura frena hacia el norte');

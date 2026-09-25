@@ -66,8 +66,12 @@ const nav = (x, z) => { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <=
 function reachWith(open) { G.resetGame(); state.running = true; open.forEach(G.openDoor); player.pos.set(0, 1.7, 0); G.updateFlowField(true); }
 const casa = Object.keys(state.doors).filter(id => /^D/.test(id) && id !== 'D20');
 check(!state.doors.H3 && !state.doors.H4 && !state.doors.H5 && !state.doors.H7 && !G.ROOMS.some(r => r.id === 'R18'), 'sin Campamento (R18) ni H3, H4, H5, H7');
-reachWith(casa.concat(['H2', 'H8']));
+reachWith(casa.concat(['H2']));
 check(!nav(-50, 30) && !nav(-60, 64) && !nav(-60, -10), 'sin el lazo, desde la casa no se llega a pie al rancho, al búnker ni al calamar');
+reachWith(casa.concat(['H8']));
+check(nav(-60, -10) && !G.WORLD.beachWall.col.solid, 'F5.17b: con H8 abierta se va la pared oeste de la playa: el calamar se abre desde la playa');
+G.resetGame();
+check(G.WORLD.beachWall.col.solid && G.WORLD.hitMeshes.includes(G.WORLD.beachWall.mesh), 'resetGame: la pared vuelve');
 reachWith(casa.concat(['D20']));
 check(nav(-50, 30) && !nav(-60, 64) && !nav(-60, -10) && !nav(70, 60), 'con el lazo: el rancho sí; búnker, calamar y templo no');
 reachWith(casa.concat(['D20', 'H2', 'H8']));
@@ -151,7 +155,8 @@ check(CONFIG.TEMPLE.ramps.every(R => G.flowAt(R.bottom[0], R.bottom[1]) >= 0), '
     const inner = x >= ix1 && x < ix2 && z >= iz1 && z < iz2;
     if (G.isUp(x, z)) up++; if (inner === G.isUp(x, z)) bad++;
   }
-  check(up === (ox2 - ox1) * (oz2 - oz1) - (ix2 - ix1) * (iz2 - iz1) && bad === 0, 'entrepiso: un anillo de 3 m a ' + G.UP.y + ' m alrededor del hueco', `(${up} celdas)`);
+  check(up >= (ox2 - ox1) * (oz2 - oz1) - (ix2 - ix1) * (iz2 - iz1) - 2 && bad <= 2,   // F5.17b: Stamin-Up tapa 2 celdas
+        'entrepiso: un anillo de 3 m a ' + G.UP.y + ' m alrededor del hueco', `(${up} celdas)`);
   const R = S.ramp, a = NAVI(R.bottom[0], R.bottom[1]), b = G.upIdx(R.top[0], R.top[1]);
   check(G.UP.flights.includes(R) && G.NAV.link[a] === b && G.NAV.link[b] === a, 'la escalera enlaza el piso con el entrepiso');
   player.pos.set(-51.5, G.UP.y + 1.7, 85.5); G.updateFlowField(true);
@@ -160,6 +165,8 @@ check(CONFIG.TEMPLE.ramps.every(R => G.flowAt(R.bottom[0], R.bottom[1]) >= 0), '
   check(G.WORLD.colliders.some(c => c.tag === 'roofrail' && c.minX > ox1 - 0.2 && c.maxX < ox2 + 0.2 && c.minZ > oz1 - 0.2 && c.maxZ < oz2 + 0.2), 'barandas en el entrepiso');
   const K = CONFIG.PERKS.list.stamin, GN = CONFIG.GENERATORS.spots.garaje, U = CONFIG.WALLBUYS.find(w => w.weapon === 'uzi');
   check(G.roomAt(K.x, K.z).id === 'R21' && G.roomAt(GN.x, GN.z).id === 'R21' && G.roomAt(U.x, U.z - 0.5).id === 'R21' && U.level === 1, 'Stamin-Up y un generador adentro, la Uzi en el entrepiso');
+  const J = S.jump;
+  check(K.level === 1 && !G.WORLD.colliders.some(c => c.tag === 'roofrail' && c.minZ < J[1] + 0.2 && c.maxZ > J[1] - 0.2 && c.maxX > J[2] + 0.1 && c.minX < J[3] - 0.1), 'F5.17b: Stamin-Up arriba y hueco en la baranda para tirarse');
   check(G.PROPS.filter(p => p.id.startsWith('shellPost')).every(p => p.collider && G.roomAt((p.box[0] + p.box[1]) / 2, (p.box[2] + p.box[3]) / 2).id === 'R21'), 'postes del entrepiso sólidos');
   // lluvia: la cúpula la frena, salvo el tragaluz
   check(Math.abs(G.rainRoof(S.x + 7, S.z) - S.h * Math.sqrt(1 - (7 / S.a) ** 2)) < 1e-6 && G.rainRoof(S.x, S.z) <= 0.01 && G.rainRoof(S.x, S.z + S.b + 2) <= 0.01, 'la cúpula frena la lluvia; por el tragaluz entra');

@@ -173,7 +173,9 @@ const CONFIG = {
     post: { vignette: 0.55, grain: 0.06, warm: 0.14, cold: 14, contrast: 1.06 },
     // el disco del sol (atardecer, bajo al oeste) y la luna (se ve de noche, sobre el mar)
     sunDisk: { dir: [-0.85, 0.1, -0.52], size: 34, color: 0xff9a4a },
-    moon: { dir: [0.35, 0.42, -0.84], size: 22, color: 0xe8ecff, from: 0.55 }
+    moon: { dir: [0.35, 0.42, -0.84], size: 22, color: 0xe8ecff, from: 0.55 },
+    // F5.17b: domo del cielo (sigue a la cámara, adentro de camera.far): abajo el color de la niebla, arriba este
+    sky: { dayTop: 0x5a3a78, nightTop: 0x080c1e, purpleTop: 0x2a0c48 }
   },
   // F5.16: niebla permanente (Diego): no se ve de un área a la otra. `clip` = camera.far: lo que queda más lejos
   // ni se dibuja (el frustum lo descarta). El cielo no se ve: el fondo es el color de la niebla
@@ -450,6 +452,7 @@ const CONFIG = {
            'uzi', 'ak47', 'deagle', 'spas', 'bow', 'bazooka', 'monkey'],
     weights: { raygun: 0.45 },            // el resto pesa 1
     lightColor: 0xffc84a, lightIntensity: 1.8,
+    beamColor: 0xa8d8ff, beamWidth: 1.4, beamHeight: 60,   // F5.17: rayo del cielo a la caja (como en Black Ops)
     size: { w: 1.6, h: 0.8, d: 0.7 },
     startRoom: 'R5',
     spots: {
@@ -487,7 +490,7 @@ const CONFIG = {
       jugg:   { name: 'JUGGERNOG',    abbr: 'JG', cost: 2500, room: 'R11', x: 0, z: -49.4, rot: 0,     color: 0xd8322a },   // F5.16: al final del muelle (un solo acceso)
       speed:  { name: 'SPEED COLA',   abbr: 'SC', cost: 3000, room: 'R14', x: -52, z: 39.45, rot: Math.PI,     color: 0x3ac85a },   // F5.13: rancho, contra el cerco norte
       dtap:   { name: 'DOUBLE TAP',   abbr: 'DT', cost: 2000, room: 'R8',  x: 34.45, z: 10,    rot: -Math.PI / 2, color: 0xe8a22a },   // F5.8: pared este nueva
-      stamin: { name: 'STAMIN-UP',    abbr: 'SU', cost: 2000, room: 'R21', x: -63.25, z: 81,    rot: Math.PI / 2, color: 0xe8d24a },   // F5.17: adentro del caparazón, lado oeste  // F5.16: estación de policía
+      stamin: { name: 'STAMIN-UP',    abbr: 'SU', cost: 2000, room: 'R21', x: -56.3, z: 86.5, rot: Math.PI, level: 1, color: 0xe8d24a },   // F5.17b: en el entrepiso del caparazón   // F5.17: adentro del caparazón, lado oeste  // F5.16: estación de policía
       // F5.11: Mule Kick (3 armas) en el búnker, contra la pared oeste (y = piso del búnker)
       mule:   { name: 'MULE KICK',    abbr: 'MK', cost: 4000, room: 'R16', x: -37.55, z: -78, rot:  Math.PI / 2, color: 0x4aa84a, y: -8 }
     },
@@ -695,6 +698,7 @@ const CONFIG = {
            door: { id: 'D21', x1: -53, x2: -49, z: 70.4, h: 1.2, cost: 1250 },
            deck: { outer: [-58, -44, 75, 87], inner: [-55, -47, 78, 84] },
            ramp: { x1: -54, x2: -47, z1: 78.3, z2: 80.7, dir: 1, steps: 16, bottom: [-55, 79], top: [-47, 79], gap: ['x', -47, 78, 81], open: true },
+           jump: ['z', 84, -54, -48],   // F5.17b: hueco en la baranda del entrepiso para tirarse al medio
            posts: [[-57.8, 75.2], [-44.2, 75.2], [-57.8, 86.8], [-44.2, 86.8], [-55, 77.8], [-47, 77.8], [-55, 84.2], [-47, 84.2],
                    [-57.8, 81], [-44.2, 81], [-51, 86.8]],
            feeders: [[-51.9, 73.9, 0.9], [-49.4, 74.7, -2.2], [-50.2, 72.6, 3.1]], cop: [-50.6, 73.8],

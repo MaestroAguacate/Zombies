@@ -36,6 +36,52 @@ function buildGfx() {
   if (GFX.el && GFX.el.style && cv.toDataURL) GFX.el.style.setProperty('--grain', 'url(' + cv.toDataURL() + ')');
   if (WORLD.sun && WORLD.sun.target) scene.add(WORLD.sun.target);         // el sol apunta al jugador (sombras)
   GFX.sunBase = WORLD.sun ? WORLD.sun.position.clone().normalize() : new THREE.Vector3(-0.7, 0.3, -0.5);
+  buildSkyDome();
+}
+// F5.17b (Diego: "¿es muy costoso ver el cielo?"): lo caro no es el cielo sino ver lejos (más geometría). El cielo es
+// un domo que sigue a la cámara, más chico que camera.far, dibujado primero sin profundidad: detrás de todo. Abajo
+// es el color de la niebla (lo lejano se funde en el horizonte) y arriba degrada al cielo de la hora, con el sol, la
+// luna y estrellas pintados en el shader. Un draw call, ninguna luz. La niebla sigue recortando igual
+const SKYDOME = { mesh: null, u: null };
+function buildSkyDome() {
+  const C = CONFIG.GFX.sky, u = {
+    horizon: { value: scene.fog.color }, top: { value: new THREE.Color(C.dayTop) },
+    sunDir: { value: new THREE.Vector3().fromArray(CONFIG.GFX.sunDisk.dir).normalize() }, sunCol: { value: new THREE.Color(CONFIG.GFX.sunDisk.color) },
+    moonDir: { value: new THREE.Vector3().fromArray(CONFIG.GFX.moon.dir).normalize() }, sunA: { value: 1 }, moonA: { value: 0 }, starA: { value: 0 }
+  };
+  const m = new THREE.ShaderMaterial({ uniforms: u, side: THREE.BackSide, depthTest: false, depthWrite: false, fog: false,
+    vertexShader: 'varying vec3 vDir; void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: [
+      'uniform vec3 horizon, top, sunCol, sunDir, moonDir; uniform float sunA, moonA, starA; varying vec3 vDir;',
+      'void main() {',
+      '  vec3 d = normalize(vDir); float h = d.y;',
+      '  vec3 c = mix(horizon, top, smoothstep(0.03, 0.62, h));',
+      '  float s = max(dot(d, sunDir), 0.0);',
+      '  c += sunCol * (pow(s, 48.0) * 0.55 + smoothstep(0.9988, 0.9994, s) * 1.4) * sunA;',
+      '  float m = max(dot(d, moonDir), 0.0);',
+      '  c += vec3(0.92, 0.95, 1.0) * smoothstep(0.9992, 0.9996, m) * moonA + vec3(0.45, 0.55, 0.9) * pow(m, 160.0) * 0.35 * moonA;',
+      '  vec3 q = floor(d * 260.0); float n = fract(sin(dot(q, vec3(12.9898, 78.233, 45.164))) * 43758.5453);',
+      '  c += vec3(step(0.9975, n)) * starA * smoothstep(0.08, 0.35, h);',
+      '  gl_FragColor = vec4(c, 1.0);',
+      '}'].join('\n')
+  });
+  const g = new THREE.SphereGeometry(1, 32, 16);
+  SKYDOME.mesh = new THREE.Mesh(g, m); SKYDOME.u = u;
+  SKYDOME.mesh.renderOrder = -1e6; SKYDOME.mesh.frustumCulled = false; SKYDOME.mesh.userData.theme = false;
+  scene.add(SKYDOME.mesh);
+}
+const _skyC = new THREE.Color(), _skyN = new THREE.Color(), _skyP = new THREE.Color();
+function updateSkyDome() {
+  const D = SKYDOME.mesh;
+  if (!D) return;
+  const C = CONFIG.GFX.sky, k = typeof NIGHT !== 'undefined' ? NIGHT.k : 0, p = typeof NIGHT !== 'undefined' ? NIGHT.p : 0;
+  D.position.copy(camera.position);
+  D.scale.setScalar(Math.max(10, camera.far - 3));
+  // arriba: del violeta del atardecer al azul de la noche (la neblina morada lo tiñe)
+  SKYDOME.u.top.value.copy(_skyC.setHex(C.dayTop)).lerp(_skyN.setHex(C.nightTop), k).lerp(_skyP.setHex(C.purpleTop), p);
+  SKYDOME.u.sunA.value = Math.max(0, 1 - k / 0.6) * (1 - p);
+  SKYDOME.u.moonA.value = Math.max(0, (k - CONFIG.GFX.moon.from) / (1 - CONFIG.GFX.moon.from)) * (1 - 0.6 * p);
+  SKYDOME.u.starA.value = Math.max(0, (k - 0.3) / 0.7) * (1 - 0.7 * p);
 }
 // una vez, con todo construido: quién proyecta y quién recibe sombra
 function gfxMarkShadows() {
@@ -144,6 +190,7 @@ function updateGfx(dt) {
     GFX.el.style.setProperty('--gx', Math.floor(Math.random() * 128) + 'px');
     GFX.el.style.setProperty('--gy', Math.floor(Math.random() * 128) + 'px');
   }
+  updateSkyDome();                                                        // F5.17b
   // sol y luna
   const k = typeof NIGHT !== 'undefined' ? NIGHT.k : 0, M = CONFIG.GFX.moon;
   if (GFX.sunDisk) {

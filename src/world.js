@@ -50,7 +50,7 @@ UP.flights = [];
 (S => {
   const [ox1, ox2, oz1, oz2] = S.deck.outer, [ix1, ix2, iz1, iz2] = S.deck.inner;
   UP.walk.push([ox1, ox2, oz1, iz1], [ox1, ox2, iz2, oz2], [ox1, ix1, iz1, iz2], [ix2, ox2, iz1, iz2]);
-  UP.flights.push(S.ramp); UP.gaps.push(S.ramp.gap);
+  UP.flights.push(S.ramp); UP.gaps.push(S.ramp.gap, S.jump);
 })(CONFIG.SHELL);
 // ¿(x, z) adentro de la elipse del caparazón, agrandada m metros? (0 = el borde de afuera)
 function shellK(x, z, m) {
@@ -235,6 +235,7 @@ function openRooms() {
     const links = [];
     for (const id in DOOR_LINKS) { const d = state.doors[id]; if (d && d.open) links.push(DOOR_LINKS[id]); }
     if (typeof portalOn === 'function' && portalOn()) links.push(['R20', 'R19']);   // F5.16: portal del templo
+    if (state.doors.H8 && state.doors.H8.open) links.push(['R10', 'R19']);           // F5.17b: la pared de la playa se fue con H8
     for (const L of links.concat(OPEN_LINKS)) {
       const o = L[0] === r ? L[1] : L[1] === r ? L[0] : null;
       if (o && !seen.has(o)) { seen.add(o); q.push(o); }
@@ -1136,7 +1137,8 @@ function buildMap() {
   hedge( -8, -4,  -8,  4);                     //      este, entre la cerca y la sala
   // F5.15: la playa oeste y la costa del calamar comparten el borde x -41. F5.16: cerco fijo entero (sin H5): al
   // calamar se llega por el rancho (H8) o por el portal del templo
-  hedge(-41, -24, -41, -4);
+  WORLD.beachWall = addWall(-41, -24, -41, -4, HG, MAT.hedge.clone(), 'hedge');   // F5.17b: se quema y se abre con H8 (rancho -> calamar)
+  WORLD.beachWall.y0 = WORLD.beachWall.mesh.position.y;
   // (F5.12: sin cerco este del jardín trasero: sigue la jungla este)
   // (F5.7: el hueco entre la caseta y el pasillo exterior ya no está cercado: es parte del jardín)
 

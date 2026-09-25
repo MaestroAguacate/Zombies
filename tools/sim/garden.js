@@ -164,7 +164,7 @@ check(gardenTries(9, 10, 34, 200) === 0, 'con DOGS.enabled = false tampoco (los 
 // 4) cercos: frenan al jugador y las balas
 fresh();
 // (F5.12: los que separan zonas pasaron a ser cercos que se queman, H1..H5: acá quedan los fijos)
-const hedges = WORLD.colliders.filter(c => c.tag === 'hedge');
+const hedges = WORLD.colliders.filter(c => c.tag === 'hedge' && c !== WORLD.beachWall.col);   // F5.17b: la de la playa se va con H8
 check(hedges.length >= 5 && hedges.every(c => c.mesh && WORLD.hitMeshes.includes(c.mesh) && c.maxY >= GD.hedgeH - 1e-6), 'cercos de arbustos: sólidos y frenan balas');
 player.pos.set(-22, P.height, 10); player.yaw = Math.PI / 2; keys.KeyW = true;
 for (let i = 0; i < 120; i++) { G.tick(dt); G.updatePlayer(dt); }

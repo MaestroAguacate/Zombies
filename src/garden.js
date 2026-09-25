@@ -649,6 +649,15 @@ function buildJungle() {
     R.rock(x, w * 0.22, z, w, w * 0.62, w * 0.82, [0x8a8a80, 0x7a7a70, 0x9a968a][n % 3], n, 0, rnd(0, 3), 0);
     R.blob(x + 0.05, w * 0.55, z, w * 0.62, w * 0.16, w * 0.5, 0x4a6a2a, n);           // musgo
   }
+  // F5.17b (Diego: "en los bosques deja el piso verde, ahorita es arena"): pasto oscuro debajo de la espesura y de la
+  // franja de afuera. Justo debajo del piso de los cuartos (que lo tapan); UV en metros, así los tramos que se pisan
+  // quedan iguales y no titilan
+  const gf = new MeshBuilder(), q = (x1, x2, z1, z2) => gf.quad([x1, -0.012, z2], [x2, -0.012, z2], [x2, -0.012, z1], [x1, -0.012, z1],
+    [[x1 / 3, -z2 / 3], [x2 / 3, -z2 / 3], [x2 / 3, -z1 / 3], [x1 / 3, -z1 / 3]], 0xffffff);
+  for (const r of CONFIG.THICKET) q(r[0], r[1], r[2], r[3]);
+  q(-95, 115, 74, 120); q(-95, -75, -24, 74); q(55, 115, -24, 55); q(95, 115, 55, 74);
+  const gm = gf.mesh(new THREE.MeshLambertMaterial({ map: TEX.grass, color: 0x5a7446 }));
+  if (gm) { gm.userData.theme = false; gm.updateMatrix(); }
   for (const m of C.meshes(MAT.bark)) m.updateMatrix();
   for (const m of CL.meshes(FOLI.mat)) m.updateMatrix();
   for (const m of CR.meshes(MAT.rock)) m.updateMatrix();
@@ -680,7 +689,7 @@ function buildGardenDress() {
   const fern = (x, z, sc) => { for (let k = 0; k < 6; k++) lf.frond(x, 0.04, z, 1.1 * sc, 0.45 * sc, k / 6 * 6.28 + rr() * 0.5, -0.25 - rr() * 0.45, 'fern', leafT[k % 5]); };
   // 1) cercos de arbustos: hojas pegadas a las dos caras y matas arriba (el bloque verde queda de núcleo)
   for (const c of WORLD.colliders) {
-    if (c.tag !== 'hedge' || !c.mesh) continue;
+    if (c.tag !== 'hedge' || !c.mesh || (WORLD.beachWall && c === WORLD.beachWall.col)) continue;   // (la de la playa va aparte: se va con H8)
     const alongX = c.maxX - c.minX > c.maxZ - c.minZ, L = alongX ? c.maxX - c.minX : c.maxZ - c.minZ, n = Math.ceil(L / 1.1), H = c.maxY;
     for (let i = 0; i < n; i++) {
       const f = (i + 0.5) / n, x = alongX ? c.minX + f * (c.maxX - c.minX) : (c.minX + c.maxX) / 2, z = alongX ? (c.minZ + c.maxZ) / 2 : c.minZ + f * (c.maxZ - c.minZ);
@@ -707,6 +716,16 @@ function buildGardenDress() {
     }
     const vm = vb.mesh(FOLI.mat);
     if (vm) { scene.remove(vm); vm.userData.theme = false; vm.matrixAutoUpdate = true; vm.position.copy(d.mesh.position).negate(); d.mesh.add(vm); }
+  }
+  // la pared de la playa oeste (se quema con H8): hojas y lianas hijas del bloque
+  if (WORLD.beachWall) {
+    const W = WORLD.beachWall, c = W.col, vb = new MeshBuilder(), x = (c.minX + c.maxX) / 2;
+    for (let z = c.minZ + 0.5; z < c.maxZ; z += 1.1) for (const sd of [-1, 1]) {
+      vb.card(x + sd * 0.25, -0.12, z + (rr() - 0.5) * 0.3, 1.5, c.maxY + 0.3, 0, Math.PI / 2, (rr() - 0.5) * 0.2, 'leaf', leafT[Math.floor(z) % 5]);
+      if (Math.floor(z) % 3 === 0) vb.card(x + sd * 0.3, c.maxY - 1.6, z, 0.5, 1.8, 0, Math.PI / 2, 0, 'vine', 0xffffff);
+    }
+    const vm = vb.mesh(FOLI.mat);
+    if (vm) { scene.remove(vm); vm.userData.theme = false; vm.matrixAutoUpdate = true; vm.position.copy(W.mesh.position).negate(); W.mesh.add(vm); }
   }
   // 3) pasto y helechos al pie de los bordes de los jardines (sin tapar tizas ni máquinas)
   for (const r of ROOMS.filter(q => q.id === 'R12' || q.id === 'R13')) {
@@ -921,10 +940,22 @@ function buildBurns() {
     }
     d.flames = list;
   }
+  // F5.17b: el cerco de la playa oeste arde junto con H8 (llamas propias a lo largo de sus 20 m)
+  const W = WORLD.beachWall;
+  if (W) {
+    W.flames = [];
+    const c = W.col;
+    for (let i = 0; i < 24; i++) {
+      const f = new THREE.Mesh(geo, BURNS.mat);
+      f.position.set((c.minX + c.maxX) / 2, 1.2, c.minZ + (c.maxZ - c.minZ) * (i + 0.5) / 24); f.rotation.y = Math.PI / 2;
+      f.visible = false; scene.add(f); W.flames.push(f);
+    }
+  }
 }
 function startBurn(d) {
   d.burning = true; d.burnT = CONFIG.BURN.time;
   for (const f of d.flames) f.visible = true;
+  if (d.id === 'H8' && WORLD.beachWall && WORLD.beachWall.flames) for (const f of WORLD.beachWall.flames) f.visible = true;   // F5.17b
   sfxExplosion(Math.hypot(player.pos.x - d.mesh.position.x, player.pos.z - d.mesh.position.z));
   return true;
 }
@@ -938,6 +969,12 @@ function updateBurns(dt) {
     d.mesh.material.color.setRGB(1 - 0.85 * k, 1 - 0.9 * k, 1 - 0.9 * k);   // se pone negro
     d.mesh.position.y = d.y0 - Math.max(0, k - 0.5) * 2 * CONFIG.GARDEN.hedgeH;   // y se hunde
     d.flames.forEach((f, i) => { f.scale.set(1, 0.7 + 0.5 * Math.abs(Math.sin(t * 9 + i)) * (1 - k * 0.5), 1); });
+    const W = H.id === 'H8' && WORLD.beachWall;                       // F5.17b: el cerco de la playa arde con H8
+    if (W) {
+      W.mesh.material.color.setRGB(1 - 0.85 * k, 1 - 0.9 * k, 1 - 0.9 * k);
+      W.mesh.position.y = W.y0 - Math.max(0, k - 0.5) * 2 * CONFIG.GARDEN.hedgeH;
+      W.flames.forEach((f, i) => { f.scale.set(1, 0.7 + 0.5 * Math.abs(Math.sin(t * 8 + i)) * (1 - k * 0.5), 1); if (d.burnT <= 0) f.visible = false; });
+    }
     if (d.burnT <= 0) {
       d.burning = false;
       for (const f of d.flames) f.visible = false;
@@ -957,6 +994,7 @@ function resetBurns() {
     d.mesh.material.color.setHex(0xffffff);
     if (d.flames) for (const f of d.flames) f.visible = false;
   }
+  if (WORLD.beachWall && WORLD.beachWall.flames) for (const f of WORLD.beachWall.flames) f.visible = false;   // F5.17b
 }
 
 //--- F5.13: el templo (solo dibujo; lo sólido va en world.js buildTempleShell). Bloques de piedra de ~1.5 m
