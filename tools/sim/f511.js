@@ -27,12 +27,14 @@ const nearNav = (x, z) => { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; d
 
 // 1) mapa
 fresh(true); setPlayer(-22, 29);
-check(G.roomAt(-30, 8).id === 'R17' && G.roomAt(-30, -15).id === 'R17', 'al lado del rancho, jungla hasta el mar (pasto y arena) (F5.13: R17)');
-check(nearNav(-30, 8) && nearNav(-30, -15), 'se llega caminando desde el rancho');
+// F5.15: al oeste del jardín es espesura; del rancho al mar va el sendero de la Playa del Calamar (R19)
+check(!G.roomAt(-30, 8) && G.inThicket(-30, 8), 'F5.15: entre el jardín oeste y el rancho es espesura (no se camina)');
+check(G.roomAt(-44, 8).id === 'R19' && G.roomAt(-30, -15).id === 'R10', 'F5.15: sendero rancho → Playa del Calamar (R19) y la playa oeste es R10');
+check(nearNav(-44, 8) && nearNav(-44, -10), 'se llega caminando desde el rancho por el sendero');
 check(G.roomAt(0, 48).id === 'R15' && nearNav(-20, 48) && nearNav(30, 48), 'jardín norte: de un jardín al otro por detrás del sótano');
 fresh(false); Object.keys(state.doors).filter(id => id !== 'D20' && !/^H\d$/.test(id)).forEach(G.openDoor); setPlayer(0, -10);
-{ const d = G.flowAt(-30, -15);   // F5.13: se llega solo dando toda la vuelta por la jungla norte
-  check(d < 0 || d > 60, 'con el lazo y los cercos cerrados, desde la playa no se entra directo a la jungla oeste', `(${d})`); }
+{ const d = G.flowAt(-60, 60);   // F5.15: el Claro del Búnker está detrás de las lianas H2/H3
+  check(d < 0, 'con el lazo y las lianas cerradas, desde la playa no se llega al Claro del Búnker', `(${d})`); }
 const S1 = G.UP.stairs;
 check(Math.abs((S1.z2 - S1.z1) - 4.8) < 1e-9, 'la escalera del jardín trasero mide 4.8 m (×3)');
 const st = CONFIG.PERKS.list.stamin;

@@ -34,11 +34,12 @@ check(!H4.open && H4.collider.solid && H4.mesh.parent && H4.mesh.material.color.
 
 // 2) la jungla
 fresh(); G.debugOpenAllDoors(); setPlayer(0, 50);
-check(G.roomAt(-50, 60).id === 'R15' && G.roomAt(-50, 10).id === 'R17' && G.roomAt(45, 10).id === 'R18' && G.roomAt(28, -15).id === 'R18', 'la jungla da toda la vuelta (norte, oeste, este)');
-check(nearNav(-70, 70) && nearNav(38, 73) && nearNav(-70, -15) && nearNav(50, -15), 'se llega a las 4 esquinas del cuadrado');
+// F5.15: la jungla vieja es espesura; quedan áreas (R15/R17/R18/R19/R20) unidas por senderos
+check(G.roomAt(0, 50).id === 'R15' && G.roomAt(-60, 60).id === 'R17' && G.roomAt(45, 10).id === 'R18' && G.roomAt(28, -12).id === 'R18' && !G.roomAt(-50, 10), 'F5.15: áreas de la jungla (norte, claro, campamento) y espesura entre medio');
+check(nearNav(-70, 70) && nearNav(90, 95) && nearNav(-70, -55) && nearNav(50, 30), 'se llega a las 4 puntas (claro, templo, calamar, campamento)');
 const trees = G.JUNGLE.trees;
-check(trees.length > 40 && trees.every(t => G.PROPS.some(p => p.id === t.id && p.collider)), 'árboles con tronco sólido', `(${trees.length})`);
-check(trees.every(t => ['R15', 'R17', 'R18'].includes(G.roomAt(t.x, t.z).id)), 'todos adentro de la jungla');
+check(trees.length > 30 && trees.every(t => G.PROPS.some(p => p.id === t.id && p.collider)), 'árboles con tronco sólido', `(${trees.length})`);
+check(trees.every(t => G.roomAt(t.x, t.z) && ['R15', 'R17', 'R18', 'R20'].includes(G.roomAt(t.x, t.z).id)), 'todos adentro de un área de jungla (F5.15: y el templo)');
 check(G.SPAWN_POINTS.filter(s => ['R15', 'R17', 'R18'].includes(s.room)).every(s => s.valid && G.flowAt(s.cx, s.cz) >= 0), 'spawns de la jungla válidos y alcanzables');
 // el borde de afuera frena
 player.pos.set(-73, P.height, 30); player.vel.set(0, 0, 0); player.yaw = Math.PI / 2; G.keys.KeyW = true;

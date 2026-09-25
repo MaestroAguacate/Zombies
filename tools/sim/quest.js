@@ -61,7 +61,7 @@ for (let i = 0; i < 80; i++) { G.resetGame(); seen.add(QUEST.palm); }
 check(seen.size === 4 && !QUEST.coco.g.visible, 'se sortea una de las 4 por partida (sin coco a la vista)');
 {
   const L = Q.shellLand, cx = Math.floor(L.x), cz = Math.floor(L.z);
-  player.pos.set(-20, 1.7, 30); G.updateFlowField(true);   // (con todas las puertas abiertas)
+  G.debugOpenAllDoors(); player.pos.set(-20, 1.7, 30); G.updateFlowField(true);   // (el loop de resetGame de arriba las cerró)
   check(G.roomAt(L.x, L.z).id === 'R19' && !WORLD.colliders.some(c => c.solid && !c.overhead && L.x > c.minX - 0.3 && L.x < c.maxX + 0.3 && L.z > c.minZ - 0.3 && L.z < c.maxZ + 0.3) &&
     nearNav(L), 'F5.13: la caracola cae enfrente de la boca del calamar, libre y donde se llega', `(${cx}, ${cz})`);
   const CH = CONFIG.SQUIDHEAD.chamber;

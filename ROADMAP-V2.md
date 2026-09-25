@@ -646,6 +646,71 @@ esquina NE para el templo · las estatuas del búnker despiertan con 5 kills de 
     3250.
 - Cada tanda con tests y una partida simulada (`soak.js`).
 
+## F5.16 — 5 ÁREAS (aprobado por Diego, 2026-09-25) — PLAN, va por tandas
+
+**Áreas:** 1 Casa (playa + casa + jardines + muelle) · 2 Templo · 3 Búnker · 4 Rancho + tortugario · 5 Calamar +
+embarcadero.
+**Conexiones:** Casa ↔ Rancho · Casa ↔ Templo · Rancho ↔ Calamar · Rancho ↔ Búnker · Templo ↔ Calamar por un
+portal. Nada más: Casa no llega directo ni al Búnker ni al Calamar.
+
+Decisiones de Diego (2026-09-25):
+- El Campamento (R18, lianas H4 y H7) se elimina y queda como espesura. Su almeja y sus spawns se reubican.
+- Portal de ida y vuelta, gratis. Se activa al abrir el templo. Los zombies no lo usan: el flow field no cruza
+  portales.
+- En el Búnker, el corredor de la estación lleva al búnker actual, más chico. Se van la escotilla y las estatuas
+  de plantas; Mule Kick y la bazooka se quedan abajo.
+- Niebla permanente de ~30 m. Con eso se recorta el dibujo lejano (camera.far / ocultar lo que está lejos) para
+  ganar FPS.
+
+**Perks:** QR en el porche (ya está) · Jugg al final del muelle · Speed Cola en el rancho (ya está) · Double Tap
+en el calamar · Stamin-Up en el búnker · Mule Kick abajo en el búnker (no cambia).
+**Generadores:** piscina (ya está) · muelle (ya está) · rancho (sale de la caseta) · estación de policía (sale del
+garaje).
+**Armas de pared** (Casa 3, cada área 1-2; propuesta, a confirmar en su tanda): Casa: escopeta, subfusil, revólver
+(+ machete, que es cuerpo a cuerpo) · Rancho: doble cañón, rifle · Calamar: LMG · Búnker: bazooka (abajo) + Uzi
+(estación) · Templo: ballesta o francotirador.
+
+### Tanda A — ajustes sin tocar la topología
+- La caja devuelve los 950 cuando sale el oso.
+- Niebla fija de ~30 m, más el recorte de dibujo lejano. Medir draw calls antes y después.
+- Lluvia siempre en el templo y en el búnker, en cualquier ronda (clima por zona, no por ronda).
+- Bug: el piso del rancho parpadea (z-fighting entre planos superpuestos).
+- Techo solo techo: se sacan las escaleras 1 y 2 y la pasarela deja de caminarse (el grid de arriba queda solo
+  para la cima del templo). Las plantas carnívoras bajan a los jardines, repartidas. El banco del escudo vuelve
+  al garaje y el doble cañón baja.
+- Muelle de un solo acceso, como el original: sin segundo tronco, pasarela ni D18. Jugg al final.
+- Generador de la caseta al rancho.
+- Ojo: la quest de la caracola pide plantas que comen arrastrados en el techo. Pasa a ser en el piso del jardín.
+
+### Tanda B — topología
+- Borrar el Campamento (R18, H4, H7) y los accesos que sobran: H3 (casa → búnker) y H5 (playa oeste → calamar).
+- Quedan: Casa ↔ Rancho (lazo D20), Rancho ↔ Búnker (H2), Rancho ↔ Calamar (H8), Casa ↔ Templo (H6).
+- Portal Templo ↔ Calamar (fundido a negro, como la escotilla).
+- Recalcular precios con Dijkstra en `map.js`. Reubicar almejas, spawns y armas de pared.
+
+### Tanda C — Rancho y tortugario
+- Rancho un poco más grande. Tortugario del tamaño del rancho, abierto y corrible.
+- Cueva en el tortugario, con la única tortuga viva. La trampa se activa ahí.
+- Huesos de zombies y de tortugas por el piso.
+- Speed Cola, generador, doble cañón y rifle.
+
+### Tanda D — Búnker y estación de policía
+- Mini estación de policía destrozada en el Claro del Búnker, con cadáveres de policías.
+- Puerta comprable. Al asomarte, 3 zombies comiéndose a un policía muerto. Al comprar la puerta se dan cuenta y
+  van por vos.
+- Adentro, un corredor muy oscuro que baja al búnker actual (más chico). Reemplaza la escotilla y las estatuas.
+  El caballito de mar necesita un nuevo disparador (propuesta: aparece al llegar al búnker por primera vez).
+- Generador en la estación, Stamin-Up y Uzi. Lluvia siempre.
+
+### Tanda E — Calamar y embarcadero
+- Embarcadero amplio y oscuro, sobre la arena al costado de la cabeza del calamar.
+- Cadáveres de animales de mar, algunos medio alienígenas.
+- Double Tap, LMG y el portal de llegada.
+
+Cada tanda: tests nuevos más los viejos adaptados, `CLAUDE.md` al día, commit y tag `v2-f5.16x`.
+
+---
+
 ## F6 — AUDIO — HECHO (sin commit)
 
 Sigue siendo procedural (Web Audio), sin archivos. Además de lo pedido: pasos en pasto y piedra, bichos y pájaros

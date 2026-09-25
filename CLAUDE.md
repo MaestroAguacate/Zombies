@@ -32,7 +32,10 @@ Más **F5.14** (fumigador, 9 almejas de colores con premios, la pieza de la Ola 
 grande). Más **F6** (audio: música procedural, audio 3D, pasos por superficie, ambiente por zona, volúmenes
 separados). Más **F7** (gráficos: calidad Bajo/Medio/Alto, sombras en Alto, post-proceso CSS, ciclo de luz con
 sol y luna, desmembramiento, animaciones y poses de muerte, agua animada, playa con props y cangrejos).
-F5.6–F7 sin commit: falta el playtest de Diego (sobre todo FPS con sombras), el commit y el tag. Después, F8.
+**Repo (2026-09-25):** GitHub `MaestroAguacate/Zombies` arrancó de cero con subidas web: sin historial ni tags
+viejos (`v1-final`…`v2-f5.5` solo existen en la copia local de Diego). F5.6–F7 + F5.15 están en `main`, con los
+43 tests en verde (7 tests desactualizados por F5.15 se arreglaron: f510, f511, f512, f513, quest, roof, audio2).
+Falta el playtest de Diego (sobre todo FPS con sombras). **Sigue F5.16 (5 áreas, ver ROADMAP-V2)** y después F8.
 
 ## Reglas no negociables
 - **Se edita `src/`, nunca `index.html`.** `node build.js` concatena `src/*.js` (en `build.js` ORDER) dentro

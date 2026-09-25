@@ -27,7 +27,7 @@ const nearNav = (x, z) => { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; d
 fresh(false);
 const D20 = state.doors.D20;
 check(D20 && D20.cost === 1500 && !D20.open, 'lazo D20: 1500, cerrado');
-check(G.roomAt(-49, 29).id === 'R14' && G.roomAt(-34, 29).id === 'R17' && G.roomAt(-26, 29).id === 'R12', 'F5.13: el rancho (R14) va de x -56 a -42, en la jungla al oeste del jardín');
+check(G.roomAt(-49, 29).id === 'R14' && G.roomAt(-34, 29).id === 'R14' && G.roomAt(-26, 29).id === 'R12', 'F5.13: el rancho (R14) va de x -56 a -42 (F5.15: con su sendero hasta el lazo)');
 Object.keys(state.doors).filter(id => id !== 'D20' && !/^H\d$/.test(id)).forEach(G.openDoor);   // todo abierto menos el lazo (F5.12: y los cercos del rancho)
 setPlayer(-22, 29);
 const dClosed = G.flowAt(-49, 36);

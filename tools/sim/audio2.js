@@ -75,8 +75,8 @@ FakeAC.prototype.createPanner = mkPanner;
 // 2) superficies
 const S = (x, z, feet) => G.surfaceAt(x, z, feet || 0);
 const cases = [[0, 0, 0, 'wood'], [0, 10, 0, 'wood'], [12, 8, 0, 'tile'], [-10, 24, 0, 'conc'], [0, -15, 0, 'sand'],
-  [-15, 5, 0, 'grass'], [-40, 60, 0, 'grass'], [25, 14, -1.6, 'water'], [6, -19.5, 0, 'water'], [11, 17, 4.3, 'wood'],
-  [50, 69, 4.3, 'stone'], [40, 69.5, 1.5, 'stone'], [-24, -80, -8, 'conc'], [30, 8, 0, 'tile'], [0, -35, 0, 'wood']];
+  [-15, 5, 0, 'grass'], [-60, 60, 0, 'grass'], [25, 14, -1.6, 'water'], [6, -19.5, 0, 'water'], [11, 17, 4.3, 'wood'],
+  [76, 82, 4.3, 'stone'], [69.5, 87, 2, 'stone'], [-24, -80, -8, 'conc'], [30, 8, 0, 'tile'], [0, -35, 0, 'wood']];
 const bad = cases.filter(([x, z, f, s]) => S(x, z, f) !== s);
 check(!bad.length, 'superficie: madera, azulejo, concreto, arena, pasto, agua, piedra', bad.map(([x, z, f, s]) => `(${x},${z}) ${S(x, z, f)}≠${s}`).join(' '));
 
@@ -159,14 +159,14 @@ function amb(x, z, y) {
   player.pos.set(x, (y || 0) + 1.7, z); G.updateAmbience();
   return { waves: AUDIO.amb.gain.target, wind: AUDIO.wind.g.gain.target, bugs: AUDIO.bugs.g.gain.target };
 }
-const beach = amb(0, -15), pier = amb(0, -35), sala = amb(0, 10), jung = amb(-40, 60), sot = amb(-10, 35);
+const beach = amb(0, -15), pier = amb(0, -35), sala = amb(0, 10), jung = amb(-60, 60), sot = amb(-10, 35);
 check(beach.waves > jung.waves && jung.waves > sot.waves && beach.waves > sala.waves, 'olas: fuertes en la playa, bajas en la jungla, casi nada en el sótano',
   `(${beach.waves.toFixed(2)} / ${jung.waves.toFixed(2)} / ${sala.waves.toFixed(2)} / ${sot.waves.toFixed(2)})`);
 check(pier.wind > beach.wind && sala.wind === 0, 'viento: fuerte en el muelle, nada adentro');
 check(jung.bugs > 0 && beach.bugs === 0 && sala.bugs === 0, 'bichos solo en la jungla');
 const t0 = count('osc'); amb(-10, 35); AUDIO.nextDrip = 0; for (let i = 0; i < 300; i++) { ctx.currentTime += 1 / 60; G.updateAmbience(); }
 check(count('osc') - t0 >= 4, 'gotas en el sótano');
-const b0 = count('osc'); amb(-40, 60); AUDIO.nextBird = 0; G.updateAmbience();
+const b0 = count('osc'); amb(-60, 60); AUDIO.nextBird = 0; G.updateAmbience();
 check(count('osc') - b0 >= 2, 'pájaros en la jungla');
 
 // 8) volúmenes

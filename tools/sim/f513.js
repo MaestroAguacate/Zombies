@@ -94,7 +94,7 @@ check(G.interactState.kind === 'wall' && /REVÓLVER/.test(G.promptFor(G.interact
 
 // 5) borde oeste en x -75 y la lengua de arena
 fresh(); G.debugOpenAllDoors(); setPlayer(-60, -30);
-check(G.roomAt(-70, -30).id === 'R19' && G.roomAt(-70, 20).id === 'R17' && nearNav(-70, -30) && nearNav(-70, 60), 'el mapa llega a x -75 (arena y jungla)');
+check(G.roomAt(-70, -30).id === 'R19' && G.roomAt(-70, 60).id === 'R17' && nearNav(-70, -30) && nearNav(-70, 60), 'el mapa llega a x -75 (arena y Claro del Búnker; F5.15: entre medio, espesura)');
 player.pos.set(-73, P.height, -30); walk(Math.PI / 2, 1.5);
 check(player.pos.x > -75, 'el borde oeste frena', `(x ${player.pos.x.toFixed(2)})`);
 player.pos.set(-50, P.height, -58); walk(0, 1.5);

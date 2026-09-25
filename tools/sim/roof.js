@@ -41,7 +41,7 @@ check(indoor.every(r => G.roofAt((r.x1 + r.x2) / 2, (r.z1 + r.z2) / 2)), 'todos 
 check([[8.5, 16], [15, 16], [17, 19], [0, 29]].every(([x, z]) => G.roofAt(x, z)), 'los huecos entre cuartos están tapados');
 let roofN = 0, walkN = 0;
 for (let i = 0; i < UP.mask.length; i++) { roofN += UP.mask[i]; walkN += UP.walkMask[i]; }
-check(walkN > roofN * 0.35 && walkN < roofN * 0.5, 'F5.7: se camina ~40% del techo (cocina entera, sala ensanchada)', `(${walkN} de ${roofN} m²)`);
+check(walkN > roofN * 0.35 && walkN < roofN * 0.6, 'F5.7: se camina ~40-55% del techo (cocina entera, sala ensanchada; F5.15: más la cima del templo)', `(${walkN} de ${roofN} m²)`);
 check([[20, 25], [11, 25], [11, 17], [11, 10], [17, 5], [16, 10], [5, 5], [0, 11], [-7.5, 11]].every(([x, z]) => G.walkAt(x, z)) &&
       [[-10, 24], [0, 24], [0, 16], [3, 20], [20, 29]].every(([x, z]) => !G.walkAt(x, z) && G.roofAt(x, z)),
   'pasarela sobre caseta, dormitorio, toda la cocina y la sala; garaje, pasillo y el resto quedan afuera');
