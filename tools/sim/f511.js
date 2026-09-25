@@ -37,7 +37,7 @@ fresh(false); Object.keys(state.doors).filter(id => id !== 'D20' && !/^H\d$/.tes
   check(d < 0, 'con el lazo y las lianas cerradas, desde la playa no se llega al Claro del Búnker', `(${d})`); }
 check(!G.UP.stairs, 'F5.16: sin escalera en el jardín trasero');
 const st = CONFIG.PERKS.list.stamin;
-check(st.room === 'R13' && Math.abs(st.z - 30.45) < 1e-9, 'Stamin-Up en la pared norte de la caseta');
+check(st.room === 'R21', 'F5.16: Stamin-Up en la estación de policía');
 check(CONFIG.RANCHO.palapa.h > 4, 'techo de la palapa más alto (' + CONFIG.RANCHO.palapa.h + ' m)');
 check(G.PROPS.filter(p => p.id.startsWith('reposeraJ') && p.collider).length === CONFIG.DECOR.loungers.length, 'reposeras sólidas');
 

@@ -695,7 +695,7 @@ garaje).
 - Huesos de zombies y de tortugas por el piso.
 - Speed Cola, generador, doble cañón y rifle.
 
-### Tanda D — Búnker y estación de policía
+### Tanda D — Búnker y estación de policía — HECHO (falta playtest)
 - Mini estación de policía destrozada en el Claro del Búnker, con cadáveres de policías.
 - Puerta comprable. Al asomarte, 3 zombies comiéndose a un policía muerto. Al comprar la puerta se dan cuenta y
   van por vos.

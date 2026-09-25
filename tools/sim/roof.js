@@ -37,7 +37,7 @@ over.forEach(c => { c.solid = false; }); G.buildNavGrid();
 const same = NAV.cells.every((v, i) => v === withRoof[i]);
 over.forEach(c => { c.solid = true; }); G.buildNavGrid();
 check(same, 'el techo (barandas y macetas incluidas) no cambia el grid del piso', `(${over.length} colliders de arriba)`);
-const indoor = G.ROOMS.filter(r => !r.outdoor);
+const indoor = G.ROOMS.filter(r => !r.outdoor && r.id !== 'R21');   // F5.16: la estación queda fuera del grid de arriba (su techo es solo collider)
 check(indoor.every(r => G.roofAt((r.x1 + r.x2) / 2, (r.z1 + r.z2) / 2)), 'todos los cuartos cerrados tienen techo', indoor.map(r => r.id).join(','));
 check([[8.5, 16], [15, 16], [17, 19], [0, 29]].every(([x, z]) => G.roofAt(x, z)), 'los huecos entre cuartos están tapados');
 const T = CONFIG.TEMPLE.top;

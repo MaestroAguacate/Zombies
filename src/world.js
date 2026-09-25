@@ -140,6 +140,10 @@ const ROOMS = [
   { id:'R15', name:'JARDINES NORTE',x1:-27, x2: 35, z1: 40, z2: 58, floor:'jungle', outdoor:true },
   // F5.16: 5 ÁREAS. Casa (playa, casa, jardines, muelle) ↔ Rancho (D20) y ↔ Templo (H6); Rancho ↔ Búnker (H2) y
   // ↔ Calamar (H8); Templo ↔ Calamar por el portal. Sin Campamento (R18), ni H3, H4, H5, H7
+  // F5.16 tanda D: estación de policía (R21) en el claro, con su corredor oscuro y el búnker chico (misma área). Va antes que R17: roomAt devuelve la primera caja
+  { id:'R21', name:'POLICE STATION', x1:-56, x2:-44, z1: 58, z2: 68, floor:'conc' },
+  { id:'R21', name:'DARK CORRIDOR',  x1:-44, x2:-35, z1: 61, z2: 65, floor:'conc', part:true, dark:true },
+  { id:'R21', name:'MINI BUNKER',    x1:-35, x2:-27, z1: 59, z2: 69, floor:'conc', part:true },
   // R17: el claro del búnker (esquina NO), con un solo sendero: desde el rancho (H2)
   { id:'R17', name:'CLARO DEL BUNKER', x1:-75, x2:-42, z1: 53, z2: 74, floor:'jungle', outdoor:true },
   { id:'R17', name:'CLARO DEL BUNKER', x1:-46, x2:-42, z1: 40, z2: 53, floor:'jungle', outdoor:true, part:true, corridor:true },
@@ -171,7 +175,8 @@ const DOOR_LINKS = {
   D19:['R7','R12'],                            // F5.7: portón sótano -> jardín oeste (se abre solo con la energía)
   D20:['R12','R14'],                           // F5.10: lazo del jardín oeste (F5.15: sendero al rancho)
   // F5.15: las entradas de las áreas (lianas que se queman)
-  H2:['R14','R17'], H6:['R15','R20'], H8:['R14','R19']      // F5.16: sin H3, H4, H5 ni H7
+  H2:['R14','R17'], H6:['R15','R20'], H8:['R14','R19'],     // F5.16: sin H3, H4, H5 ni H7
+  D21:['R17','R21']                                          // F5.16 tanda D: estación de policía
 };
 
 // piscina de R8: el ÚNICO lugar donde el piso no está en y=0. Rampa en el lado sur (z1 -> rampEnd),
@@ -366,6 +371,7 @@ const SPAWN_POINTS = [
   // F5.10: rancho (solo con el lazo D20 abierto: detrás de una puerta cerrada flowAt = -1)
   { room:'R14', x:-44.5, z:36.5 }, { room:'R14', x:-43.5, z:27.5 }, { room:'R14', x:-46.5, z:21.5 },   // F5.13: corrido
   { room:'R14', x:-60.5, z:21.5 }, { room:'R14', x:-61.5, z:37.5 },    // F5.16: tortugario
+  { room:'R21', x:-39.5, z:63.5 }, { room:'R21', x:-31.5, z:67.5 },    // F5.16: corredor oscuro y búnker chico
   { room:'R10', x:-30.5, z:-14.5 },                                     // F5.15: la playa oeste
   { room:'R19', x:-48.5, z:-30.5 }, { room:'R19', x:-70.5, z:-30.5 },  // F5.13: playa del calamar
   { room:'R15', x:-22.5, z:52.5 }, { room:'R15', x: 2.5, z:53.5 }, { room:'R15', x: 30.5, z:52.5 },   // F5.11: jardín norte
@@ -921,11 +927,13 @@ function buildMap() {
       mat.map.needsUpdate = true;
       mat.map.repeat.set((x2 - x1) / 2, (z2 - z1) / 2);
       if (!r.outdoor) mat.color.setHex(CONFIG.THEME.interiorTint);   // interiores más oscuros (no hay sombras)
+      if (r.dark) mat.color.multiplyScalar(CONFIG.POLICE.darkMul);   // F5.16: el corredor de la estación
       addBox(x1, x2, -0.3, 0, z1, z2, mat, 'floor:' + r.id, { noCollide: true });
     }
     if (!r.outdoor) {
       const cm = MAT.ceil.clone();
       cm.color.setHex(CONFIG.THEME.ceilTint);
+      if (r.dark) cm.color.multiplyScalar(CONFIG.POLICE.darkMul);
       cm.map = cm.map.clone(); cm.map.needsUpdate = true;
       cm.map.repeat.set((r.x2 - r.x1) / 2, (r.z2 - r.z1) / 2);
       // F2.8: el techo es sólido y caminable (nivel de arriba). overhead: el piso no lo ve; roofSurface: arriba es piso
@@ -1085,6 +1093,7 @@ function buildMap() {
   // F5.15: el lazo es la boca del sendero al rancho (z 26..31); el resto del borde lo cierra la espesura
   makeDoor('D20', -27, -27, 26, 31, CONFIG.RANCHO.ropeH, new THREE.MeshBasicMaterial({ visible: false }));
   buildRope(state.doors.D20);
+  buildPoliceWalls();                  // F5.16 tanda D
   // F5.12: cercos que se compran y se queman (burn: buyDoor -> startBurn, arden y se abren)
   for (const B of CONFIG.BURN.hedges) {
     makeDoor(B.id, B.x1, B.x2, B.z1, B.z2, HG, MAT.hedge.clone());   // material propio: se pone negro al arder
@@ -1346,6 +1355,23 @@ function buildThicketWalls() {
   }
 }
 // F5.15: las 4 paredes del santuario [x1, x2, z1, z2], cortadas por sus puertas (las usa el dibujo también)
+// F5.16 tanda D: paredes de la estación, el corredor y el búnker chico (tag 'pwall': sin piel del tema, no se
+// pisan) y la barricada D21 (1.2 m: se ve adentro por encima)
+function buildPoliceWalls() {
+  const P = CONFIG.POLICE, [sx1, sx2, sz1, sz2] = P.station, [cx1, cx2, cz1, cz2] = P.corridor, [mx1, mx2, mz1, mz2] = P.mini;
+  const H = CONFIG.WALL_H, D = P.door;
+  const st = MAT.conc.clone(); st.color.setHex(0x8a8e94);
+  const dk = MAT.conc.clone(); dk.color.setHex(0x8a8e94).multiplyScalar(P.darkMul);
+  const bk = MAT.conc.clone(); bk.color.setHex(0x6a6e66);
+  const w = (x1, z1, x2, z2, m) => addWall(x1, z1, x2, z2, H, m, 'pwall');
+  w(sx1, sz1, D.x1, sz1, st); w(D.x2, sz1, sx2, sz1, st);          // sur, con la barricada
+  w(sx1, sz2, sx2, sz2, st); w(sx1, sz1, sx1, sz2, st);            // norte y oeste
+  w(sx2, sz1, sx2, cz1, st); w(sx2, cz2, sx2, sz2, st);            // este, con la boca del corredor
+  w(cx1, cz1, cx2, cz1, dk); w(cx1, cz2, cx2, cz2, dk);            // corredor
+  w(mx1, mz1, mx1, cz1, bk); w(mx1, cz2, mx1, mz2, bk);            // búnker chico: oeste con la boca
+  w(mx1, mz1, mx2, mz1, bk); w(mx1, mz2, mx2, mz2, bk); w(mx2, mz1, mx2, mz2, bk);
+  makeDoor(D.id, D.x1, D.x2, D.z, D.z, D.h, MAT.gate);
+}
 function sanctumWalls() {
   const S = CONFIG.TEMPLE.sanctum, t = S.t, out = [];
   const wall = (alongX, line0, line1, a, b, axis, line) => {        // pared de a a b, salteando sus puertas

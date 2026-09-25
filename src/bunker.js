@@ -35,7 +35,8 @@ function bunkerLight(x, z) {
 function shade(hex, k) { const c = new THREE.Color(hex); return c.multiplyScalar(k).getHex(); }
 
 function buildBunker() {
-  buildPortals();                                                                      // F5.16
+  buildPortals();
+  buildPolice();                                                                       // F5.16 tanda D                                                                      // F5.16
   const B = CONFIG.BUNKER, y0 = B.y, y1 = B.y + B.h, mb = new MeshBuilder(), lit = (x, z) => 0.16 + 0.7 * bunkerLight(x, z);
   // piso y techo por baldosa de 1 m (la luz pintada), paredes por metro
   for (let x = B.x1; x < B.x2; x++) for (let z = B.z1; z < B.z2; z++) {
@@ -358,6 +359,7 @@ function hatchTeleport(p) {
 function updateBunker(dt) {
   updateStatues(dt);
   updatePortals(dt, clock.elapsedTime);                                                // F5.16
+  updatePolice(dt, clock.elapsedTime);
   if (BUNK.open && BUNK.halves[0].position.x > -2.3) {                               // F5.13: las puertas se corren
     const x = Math.max(-2.3, BUNK.halves[0].position.x - dt * 1.2);
     BUNK.halves[0].position.x = x; BUNK.halves[1].position.x = -x;
@@ -499,12 +501,98 @@ function updatePortals(dt, t) {
     A.core.material.opacity = (PORTAL.cd > 0 ? 0.15 : 0.35) + 0.15 * Math.sin(t * 3);
   }
 }
+// F5.16 tanda D: la estación de policía (CONFIG.POLICE). Dibujo: escritorios volcados, lockers, papeles, cinta,
+// cartel, policías muertos con sangre, y 3 zombies arrodillados comiéndose a uno (solo dibujo: brazos que suben a
+// la boca). Al abrirse la barricada (D21) se paran: salen 3 zombies de verdad donde estaban (extra de la ronda)
+const POLICE = { feeders: [], woke: false };
+function buildPolice() {
+  const P = CONFIG.POLICE, [sx1, sx2, sz1, sz2] = P.station, [mx1, mx2, mz1, mz2] = P.mini, mb = new MeshBuilder(), rr = mulberry(21);
+  const blood = 0x5a0a08, navy = 0x1e2a44, skin = 0xc89a7a;
+  // escritorios volcados, sillas, lockers abiertos, archivero, papeles
+  mb.box(-54.6, 0.45, 62.5, 0.9, 0.9, 1.8, 0x6a5a48, 0, 0, 1.3);
+  mb.box(-45.4, 0.4, 60.2, 1.8, 0.8, 0.8, 0x6a5a48, 0.2, 0.4, 0);
+  for (let k = 0; k < 4; k++) mb.box(-47.5 + k * 0.62, 1.0, 67.55, 0.58, 2.0, 0.45, k % 2 ? 0x4a5a6a : 0x3e4e5e);   // lockers
+  mb.box(-44.7, 0.6, 63.8, 0.5, 1.2, 0.6, 0x5a5a5a, 0, 0, -0.5);        // archivero caído
+  for (let k = 0; k < 28; k++) mb.box(sx1 + 1 + rr() * (sx2 - sx1 - 2), 0.02, sz1 + 1 + rr() * (sz2 - sz1 - 2), 0.25, 0.01, 0.32, 0xe8e4d8, 0, rr() * 6, 0);
+  // cinta policial en la barricada y cartel POLICE arriba de la puerta
+  for (let k = 0; k < 2; k++) mb.box((P.door.x1 + P.door.x2) / 2, 0.7 + k * 0.45, sz1 - 0.25, 3.4, 0.08, 0.02, 0xf0d020, 0, 0, k ? 0.12 : -0.1);
+  mb.box((P.door.x1 + P.door.x2) / 2, 3.4, sz1 - 0.22, 2.6, 0.5, 0.04, 0x1e2a44);
+  mb.box((P.door.x1 + P.door.x2) / 2, 3.4, sz1 - 0.25, 2.2, 0.12, 0.01, 0xe8e8e8);
+  // policías muertos: uniforme azul, charco de sangre, gorra tirada
+  const deadCop = (x, z, r) => {
+    mb.box(x, 0.03, z, 1.8, 0.02, 1.4, blood, 0, r, 0);
+    mb.box(x, 0.16, z, 0.5, 0.28, 1.0, navy, 0, r, 0);
+    mb.box(x + Math.sin(r) * 0.65, 0.16, z + Math.cos(r) * 0.65, 0.3, 0.26, 0.3, skin, 0, r, 0);
+    mb.box(x - Math.sin(r) * 0.8, 0.1, z - Math.cos(r) * 0.8, 0.4, 0.18, 0.6, 0x1a1e2a, 0, r, 0);
+    mb.box(x + Math.cos(r) * 0.6, 0.06, z - Math.sin(r) * 0.6, 0.3, 0.08, 0.3, 0x141a2a, 0, r + 0.5, 0);   // gorra
+    mb.box(x + 0.2, 0.2, z + 0.1, 0.06, 0.04, 0.08, 0xd8c040, 0, r, 0);   // placa
+  };
+  for (const [x, z, r] of P.bodies) deadCop(x, z, r);
+  const [cx, cz] = P.cop;                                               // el que se están comiendo
+  mb.box(cx, 0.03, cz, 2.6, 0.02, 2.2, blood);
+  mb.box(cx, 0.14, cz, 0.5, 0.24, 1.0, navy, 0, 0.3, 0); mb.box(cx + 0.2, 0.14, cz + 0.62, 0.3, 0.24, 0.3, skin);
+  mb.box(cx - 0.3, 0.1, cz - 0.2, 0.5, 0.06, 0.4, 0x8a1a14);           // tripas
+  // búnker chico: cajas de munición, un catre, una lámpara rota (sin luz) y un mapa en la pared
+  for (let k = 0; k < 4; k++) mb.box(mx1 + 1.2 + (k % 2) * 0.9, 0.3 + Math.floor(k / 2) * 0.6, mz2 - 1, 0.8, 0.55, 0.6, 0x4a5a32);
+  mb.box(mx2 - 1, 0.35, mz1 + 1.5, 0.9, 0.3, 2.0, 0x5a6a4a);
+  mb.box(mx1 + 0.25, 2.2, (mz1 + mz2) / 2 + 2.5, 0.02, 1.2, 1.8, 0xc8b890);
+  const m = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
+  if (m) { m.userData.theme = false; m.updateMatrix(); }
+  // los que comen: figuras de zombie arrodilladas (un grupo por cada uno, con los brazos aparte)
+  const zskin = CONFIG.ZOMBIE.skinColor;
+  for (const [x, z, r] of P.feeders) {
+    const g = new THREE.Group(), b = new MeshBuilder();
+    b.box(0, 0.25, -0.1, 0.5, 0.3, 0.7, 0x3f3a33);                    // piernas dobladas
+    b.box(0, 0.75, 0.05, 0.56, 0.62, 0.3, 0x5a4a3a, 0.45, 0, 0);       // torso inclinado
+    b.box(0, 1.08, 0.32, 0.4, 0.4, 0.4, zskin, 0.3, 0, 0);             // cabeza agachada
+    b.box(-0.09, 1.1, 0.53, 0.08, 0.05, 0.02, 0xffdd33); b.box(0.09, 1.1, 0.53, 0.08, 0.05, 0.02, 0xffdd33);
+    b.box(0, 0.98, 0.53, 0.2, 0.06, 0.02, blood);                      // boca con sangre
+    const bm = b.mesh(new THREE.MeshLambertMaterial({ vertexColors: true })); scene.remove(bm); bm.matrixAutoUpdate = true; bm.userData.theme = false; g.add(bm);
+    const arms = [];
+    for (const sx of [-1, 1]) {
+      const a = new THREE.Group(); a.position.set(sx * 0.36, 0.95, 0.15);
+      const am = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.6, 0.15), new THREE.MeshLambertMaterial({ color: zskin }));
+      am.position.set(0, -0.28, 0); a.add(am); g.add(a); arms.push(a);
+    }
+    g.position.set(x, 0, z); g.rotation.y = r; scene.add(g);
+    POLICE.feeders.push({ g, arms, x, z, ph: rr() * 6 });
+  }
+}
+function updatePolice(dt, t) {
+  if (!POLICE.woke) {
+    for (const f of POLICE.feeders) {                                 // mastican: brazos a la boca, cabeza que tira
+      const k = Math.sin(t * 5 + f.ph);
+      f.arms[0].rotation.x = -1.2 + 0.5 * k; f.arms[1].rotation.x = -1.2 - 0.5 * k;
+      f.g.position.y = 0.03 * Math.abs(k);
+    }
+    const d = state.doors[CONFIG.POLICE.door.id];
+    if (d && d.open) policeWake();
+  }
+}
+// se dan cuenta: se esconden las figuras y salen 3 zombies de verdad donde estaban, yendo por el jugador
+function policeWake() {
+  POLICE.woke = true;
+  for (const f of POLICE.feeders) {
+    f.g.visible = false;
+    const q = ZPOOL.find(o => !o.active);
+    if (!q) continue;
+    resetZombie(q, { x: f.x, z: f.z }, false, 'normal');
+    q.state = 'walk'; q.fromClam = true;                             // extra: la ronda espera a que mueran
+    state.zombies.push(q);
+  }
+  sfxThunder();
+}
+function resetPolice() {
+  POLICE.woke = false;
+  for (const f of POLICE.feeders) f.g.visible = true;
+}
 function inBunker() { return groundY(player.pos.x, player.pos.z) < -1; }
 
 function resetBunker() {
   const was = BUNK.open;
   BUNK.open = false; BUNK.fadeT = 0; BUNK.fadeTo = null;
   resetPortals();                                                                      // F5.16
+  resetPolice();
   if (UI.fade) UI.fade.style.opacity = '0';
   if (BUNK.lid) {
     BUNK.halves[0].position.x = -1.1; BUNK.halves[1].position.x = 1.1;               // puertas cerradas

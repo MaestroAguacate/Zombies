@@ -131,4 +131,27 @@ check(CONFIG.TEMPLE.ramps.every(R => G.flowAt(R.bottom[0], R.bottom[1]) >= 0), '
   check(TC.count === 1 && Math.abs(TC.exit.x - CV.mouth.x) < 0.01 && Math.abs(TC.exit.z - CV.mouth.z) < 0.01 && G.roomAt(TC.lever.x, TC.lever.z).id === 'R14', 'una sola tortuga, sale de la boca de la cueva; la palanca al lado');
   check(G.SPAWN_POINTS.filter(s => s.room === 'R14' && s.x < PN.x2).every(s => s.valid && G.flowAt(s.cx, s.cz) >= 0), 'spawns del tortugario válidos'); }
 
+// 9) tanda D: estación de policía, 3 zombies comiendo, corredor oscuro y búnker chico
+{ const PC = CONFIG.POLICE, D = state.doors[PC.door.id];
+  fresh(); G.debugOpenAllDoors();
+  check(D && D.cost === PC.door.cost && G.DOOR_LINKS[PC.door.id].join() === 'R17,R21', 'barricada D21 (' + PC.door.cost + ') entre el claro y la estación');
+  const [sx1, sx2, sz1, sz2] = PC.station, [mx1, mx2, mz1, mz2] = PC.mini;
+  check(G.roomAt((sx1 + sx2) / 2, (sz1 + sz2) / 2).id === 'R21' && G.roomAt(-39.5, 63).name === 'DARK CORRIDOR' && G.roomAt((mx1 + mx2) / 2, (mz1 + mz2) / 2).name === 'MINI BUNKER', 'estación, corredor oscuro y búnker chico (R21)');
+  const E = CONFIG.BUNKER.entrance;
+  check(Math.hypot((E.x1 + E.x2) / 2 - sx1, (E.z1 + E.z2) / 2 - sz2) > 10, 'el búnker de la escotilla queda alejado de la estación');
+  player.pos.set(-49.5, 1.7, 62); G.updateFlowField(true);
+  check(G.flowAt(-40, 63) >= 0 && G.flowAt((mx1 + mx2) / 2, (mz1 + mz2) / 2) >= 0 && G.flowAt(-60, 60) >= 0, 'con la barricada abierta: estación → corredor → búnker chico, y el claro');
+  const K = CONFIG.PERKS.list.stamin, GN = CONFIG.GENERATORS.spots.garaje, U = CONFIG.WALLBUYS.find(w => w.weapon === 'uzi');
+  check(G.roomAt(K.x, K.z).id === 'R21' && G.roomAt(GN.x, GN.z).id === 'R21' && G.roomAt(U.x - 0.5, U.z).id === 'R21', 'Stamin-Up, un generador y la Uzi en la estación');
+  // los 3 que comen: figuras al principio, zombies de verdad al abrir
+  G.resetGame(); state.running = true; clearAll();
+  check(G.POLICE.feeders.length === 3 && G.POLICE.feeders.every(f => f.g.visible) && !G.POLICE.woke && state.zombies.length === 0, '3 zombies comiéndose a un policía (dibujo, no cuentan)');
+  G.updatePolice(dt, 1);
+  check(!G.POLICE.woke, 'con la barricada cerrada siguen comiendo');
+  G.openDoor(PC.door.id); G.updatePolice(dt, 1.1);
+  const woke = state.zombies.filter(q => q.alive && G.roomAt(q.px, q.pz) && G.roomAt(q.px, q.pz).id === 'R21');
+  check(G.POLICE.woke && G.POLICE.feeders.every(f => !f.g.visible) && woke.length === 3 && woke.every(q => q.state === 'walk' && q.fromClam), 'al comprar la barricada se paran: 3 zombies de verdad (extra)', `(${woke.length})`);
+  G.resetGame();
+  check(!G.POLICE.woke && G.POLICE.feeders.every(f => f.g.visible), 'resetGame: vuelven a comer'); }
+
 console.log(fail ? `FALLA (${fail})` : 'PASA'); process.exit(fail ? 1 : 0);

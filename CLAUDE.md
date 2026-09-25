@@ -35,7 +35,7 @@ sol y luna, desmembramiento, animaciones y poses de muerte, agua animada, playa 
 **Repo (2026-09-25):** GitHub `MaestroAguacate/Zombies` arrancó de cero con subidas web: sin historial ni tags
 viejos (`v1-final`…`v2-f5.5` solo existen en la copia local de Diego). F5.6–F7 + F5.15 están en `main`, con los
 43 tests en verde (7 tests desactualizados por F5.15 se arreglaron: f510, f511, f512, f513, quest, roof, audio2).
-Falta el playtest de Diego (sobre todo FPS con sombras). **F5.16 (5 áreas, ver ROADMAP-V2): tandas A, B y C hechas**, siguen D–E y después F8. **Todo el juego está en inglés** (textos visibles); el código y los comentarios siguen en español.
+Falta el playtest de Diego (sobre todo FPS con sombras). **F5.16 (5 áreas, ver ROADMAP-V2): tandas A, B, C y D hechas**, sigue E (calamar y embarcadero) y después F8. **Todo el juego está en inglés** (textos visibles); el código y los comentarios siguen en español.
 
 ## Reglas no negociables
 - **Se edita `src/`, nunca `index.html`.** `node build.js` concatena `src/*.js` (en `build.js` ORDER) dentro
@@ -1168,6 +1168,24 @@ Si agregás estado o funciones que un test necesita, exponelas en la línea `glo
     boca de la cueva y vuelve a esconderse ahí. Palanca en (−64.2, 30.2). La cueva va al norte porque al sur la barra
     del rancho tapaba la salida.
 - Test: `f516.js` (tanda C). Se adaptaron los tests a los textos en inglés, `f510.js` (tortuga) y `f515.js`.
+
+## Tanda D: estación de policía (V2 F5.16d) — `CONFIG.POLICE`, `bunker.js` (`POLICE`, `buildPolice`, `updatePolice`, `policeWake`)
+- **R21** en el claro del búnker (va **antes que R17** en `ROOMS`: `roomAt` devuelve la primera caja):
+  - estación x −56..−44, z 58..68 (cerrada, con techo);
+  - corredor oscuro x −44..−35, z 61..65 (`dark:true`: piso y techo × `darkMul` 0.2, paredes oscuras);
+  - búnker chico x −35..−27, z 59..69 (cajas de munición, catre, mapa).
+- Paredes con tag **`pwall`** (`buildPoliceWalls`): sin piel del tema y no se pisan (`standable`). **D21**: barricada
+  de 1.2 m (1250) entre el claro y la estación, con cinta y cartel POLICE: se ve adentro por encima.
+- Adentro: escritorios volcados, lockers, papeles, 5 policías muertos con sangre, placa y gorra, y **3 zombies
+  arrodillados comiéndose a uno** (figuras de dibujo, brazos a la boca: no cuentan para la ronda). Al abrirse D21
+  (`updatePolice` lo mira cada frame, también con `debugOpenAllDoors`), `policeWake` las esconde y saca 3 zombies de
+  verdad del pool en su lugar, caminando (`fromClam = true`: la ronda espera a que mueran). `resetPolice` las vuelve.
+- En la estación: **Stamin-Up** (−46, 67.55), el **generador `garaje`** (−55.45, 66; la clave no cambia) y la **Uzi**
+  en el búnker chico (pared este, x −27). 2 spawns (corredor y búnker chico).
+- El búnker de la escotilla (esquina NO) queda como estaba, a ~15 m.
+- Precio desde el porche: claro 6250 + D21 = 7500.
+- Test: `f516.js` (tanda D). Se adaptaron `garden.js`, `f511.js` y `roof.js` (R21 queda fuera del grid de arriba:
+  su techo es solo collider, así que `roofAt` da falso adentro).
 
 ## Audio (V2 F6) — `src/audio.js`, `CONFIG.AUDIO`
 - **Buses:** `sfx → compresor → master`, `amb → master`, `music → master` (F6), más 2 loops nuevos

@@ -136,7 +136,7 @@ check(gate.open && !gate.collider.solid, 'al prender la energía se abre solo');
 G.resetGame();
 check(!state.doors.D19.open, 'resetGame lo cierra');
 check(G.roomAt(CONFIG.SOULS.spots.sotano.x, CONFIG.SOULS.spots.sotano.z).id === 'R12', 'la caja de almas del sótano está en el jardín oeste');
-check(G.roomAt(CONFIG.PERKS.list.stamin.x, CONFIG.PERKS.list.stamin.z).id === 'R13', 'Stamin-Up está en el jardín trasero');
+check(G.roomAt(CONFIG.PERKS.list.stamin.x, CONFIG.PERKS.list.stamin.z).id === 'R21', 'F5.16: Stamin-Up está en la estación de policía');
 
 // 3) perros del jardín trasero
 CONFIG.DOGS.enabled = true;
