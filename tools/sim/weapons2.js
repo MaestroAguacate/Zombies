@@ -27,7 +27,7 @@ function atWall(wb, floor) {                               // 1.2 m frente a la 
 // 1) números del ROADMAP
 check(W.revolver.damage === 110 && W.revolver.magSize === 6, 'revólver: 110, 6 balas');
 check(W.doublebarrel.damage === 45 && W.doublebarrel.pellets === 10 && W.doublebarrel.magSize === 2, 'doble cañón: 45 × 10, 2 balas');
-check(W.crossbow.damage === 400 && W.crossbow.pierce === 3 && CONFIG.BOX.pool.includes('crossbow') && !wbOf('crossbow'), 'ballesta: 400, atraviesa 3, solo en la caja');
+check(W.crossbow.damage === 400 && W.crossbow.pierce === 3 && CONFIG.BOX.pool.includes('crossbow') && wbOf('crossbow') && wbOf('crossbow').room === 'R20', 'ballesta: 400, atraviesa 3, en la caja y (F5.16) en el templo');
 check(CONFIG.MACHETE.damage === 500 && CONFIG.MACHETE.cost === 3000, 'machete: 500, 3000');
 check(['revolver', 'doublebarrel', 'crossbow'].every(id => /^[A-Z ]+$/.test(W[id].papName)), 'papName en inglés', ['revolver', 'doublebarrel', 'crossbow'].map(id => W[id].papName).join(' · '));
 
