@@ -16243,7 +16243,7 @@ function bindInput() {
   UI.mapCity.addEventListener('click', () => pickMap('city'));
   UI.mapBeach.addEventListener('click', () => pickMap('beach'));
   UI.mapQ.addEventListener('click', () => pickMap('q'));
-  UI.btnQuit.addEventListener('click', () => { resetGame(); MENU.started = false; showMenu('main'); });
+  UI.btnQuit.addEventListener('click', () => { saveProfile(); resetGame(); MENU.started = false; showMenu('main'); });   // F5.18b: la XP de la ronda en curso no se pierde
   UI.btnGoMenu.addEventListener('click', () => { resetGame(); MENU.started = false; showMenu('main'); });
   UI.sens.addEventListener('input', () => setSensitivity(UI.sens.value / 100));
   UI.vol.addEventListener('input', () => { initAudio(); setVolume(UI.vol.value / 100); UI.volVal.textContent = UI.vol.value + '%'; });
