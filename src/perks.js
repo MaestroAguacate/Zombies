@@ -16,7 +16,7 @@ function hasPerk(id) { return state.perks.indexOf(id) >= 0; }
 function maxHealth() { return hasPerk('jugg') ? CONFIG.PERKS.juggHealth : CONFIG.PLAYER.maxHealth; }
 function perkRate() { return hasPerk('dtap') ? CONFIG.PERKS.dtapRate : 1; }          // divide el intervalo entre disparos
 function perkDmg() { return hasPerk('dtap') ? CONFIG.PERKS.dtapDamage : 1; }
-function perkReload() { return hasPerk('speed') ? CONFIG.PERKS.speedReload : 1; }
+function perkReload() { return (hasPerk('speed') ? CONFIG.PERKS.speedReload : 1) * (gumActive('quickhands') ? 0.5 : 1); }   // F5.18b: QUICK HANDS
 function sprintMul() { return hasPerk('stamin') ? CONFIG.PERKS.staminSpeed : 1; }
 function staminaMul() { return hasPerk('stamin') ? CONFIG.PERKS.staminTime : 1; }
 

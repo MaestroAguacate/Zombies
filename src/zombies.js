@@ -749,6 +749,7 @@ function updateZombies(dt) {
     z.sx = z.sz = z.wantX = z.wantZ = 0;
     if (z.state !== 'walk') continue;
     if (DOWN.on) { fleeZombie(z, P); continue; }                // F5.18: tirado con Quick Revive, se alejan
+    if (gumActive('shadow') && !z.boss) { z.mode = 'direct'; continue; }   // F5.18b: SHADOW STEP, no te ven
     if (!lure) steerZombie(z, P);
     else if (!z.boss) steerZombie(z, lure, 0);                   // todos al langostino
     else { const d = FLOW.dist; FLOW.dist = FLOW.pdist; steerZombie(z, P); FLOW.dist = d; }   // el boss, al jugador
@@ -845,7 +846,7 @@ function updateZombies(dt) {
     const pl = playerLevel(), onTop = playerOnTop();
     // F5.6: si estás arriba de un mueble te agarra de las piernas desde el borde (si no, el medio de la cama era seguro)
     const reach = onTop !== undefined ? Math.max(K.attackRange, C.attackRangeOnTop) : K.attackRange;
-    if (DOWN.on) { /* F5.18: tirado: nadie pega */ }
+    if (DOWN.on || (gumActive('shadow') && !z.boss)) { /* F5.18: tirado (o SHADOW STEP): nadie pega */ }
     else if (z.boss) bossTryAttack(z, distP, pl, onTop);            // F5: golpe al piso con aviso
     else if ((z.level || 0) === pl && distP < reach && z.attackCd <= 0 &&
         segmentClear(z.px, z.pz, P.x, P.z, 0.02, false, onTop, pl)) {

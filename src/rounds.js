@@ -47,6 +47,7 @@ function spawnMob() {
 function startRound(n) {
   if (n > 1 && n > state.round) { addXP(CONFIG.PROGRESSION.xp.round * (n - 1)); saveProfile(); }   // F5.18: XP por ronda terminada
   state.round = n;
+  GUMM.uses = 0;                       // F5.18b: la chiclera vuelve a 500
   roundState.phase = 'active';
   setSquidHead(n);                     // F5.13: la cabeza del calamar sube un poco por ronda
   clamsRound(n);                       // F5.14: las almejas que tocan cambian de color
@@ -195,6 +196,7 @@ function resetGame() {
   resetBunker();                       // F5.11: escotilla cerrada, estatuas de piedra
   resetClams();                        // F5.14
   resetMatchXP();                      // F5.18
+  resetGums();                         // F5.18b
   resetGibs();                         // F7b: sin pedazos en el piso: almejas vacías, fumigador en otro lugar (después de resetQuest)
   resetRockets();                      // F5.11: sin cohetes en vuelo ni arco cargando
   resetMonkeys();                      // F5.11: sin langostinos

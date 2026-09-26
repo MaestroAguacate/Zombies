@@ -31,6 +31,7 @@ const ORDER = [
   'bunker.js',   // 7h búnker, escotilla y estatuas de plantas (V2 F5.11)
   'clams.js',    // 7i almejas y fumigador (V2 F5.14)
   'progress.js', // 7j XP, niveles, accesorios de armas, perfil (V2 F5.18)
+  'gums.js',     // 7k chicles: chicleras en el mapa y sus efectos (V2 F5.18b)
   'ui.js',       // 8 UI: HUD, menús, overlay de debug
   'audio.js',    // 8b audio procedural
   'gfx.js',      // 8c calidad, sombras, post-proceso CSS, sol y luna (V2 F7a)

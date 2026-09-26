@@ -1,6 +1,6 @@
 //=== 7. ECONOMY ==========================================================
 function addPoints(p) {
-  const amt = state.effects.doublePoints > 0 ? p * 2 : p;
+  const amt = state.effects.doublePoints > 0 || gumActive('beacon') ? p * 2 : p;   // F5.18b: BEACON
   state.points += amt;
   STATS.pointsEarned += amt;
   pendingPts += amt;
@@ -172,6 +172,7 @@ function refundBox() {
   pendingPts += n;
 }
 function spendPoints(cost) {
+  if (gumActive('freeall')) return true;                          // F5.18b: SHOPPING SPREE, todo gratis
   if (state.points < cost) return false;
   state.points -= cost;
   showSpend(cost);
@@ -182,6 +183,7 @@ function buyDoor(id) {
   const d = state.doors[id];
   if (!d || d.open || d.power || d.burning) return false;   // F5.7: el portón del sótano solo lo abre la energía
   if (!spendPoints(d.cost)) return false;
+  rollInk();                                                    // F5.18b: a veces cae una moneda de la tienda de chicles
   if (d.burn) return startBurn(d);                 // F5.12: el cerco arde y se abre al terminar (updateBurns lo cuenta)
   openDoor(id);
   STATS.doors++;
@@ -416,11 +418,14 @@ function rollBoxResult() {
 // F sobre la caja: pagar (idle) o agarrar (ready)
 function useBox() {
   if (BOX.phase === 'idle') {
-    if (!spendPoints(CONFIG.BOX.cost)) return false;
+    const lucky = gumActive('luckybox');                         // F5.18b: LUCKY BOX: gratis y sin oso
+    if (!lucky && !spendPoints(CONFIG.BOX.cost)) return false;
+    if (lucky) GUMM.fx.luckybox = 0; else rollInk();
     STATS.boxUses++;
     BOX.phase = 'rolling'; BOX.t = 0; BOX.nextCycle = 0;
     BOX.result = rollBoxResult();
-    BOX.paid = CONFIG.BOX.cost;                                  // F5.16: el oso devuelve lo pagado
+    if (lucky) for (let k = 0; k < 20 && BOX.result === 'teddy'; k++) BOX.result = rollBoxResult();
+    BOX.paid = lucky ? 0 : CONFIG.BOX.cost;                      // F5.16: el oso devuelve lo pagado
     return true;
   }
   if (BOX.phase === 'ready') {
@@ -576,6 +581,8 @@ function updateInteract() {
   if (pt) { bd = pt.dist; kind = 'portal'; target = pt.target; }
   const cl = clamNear(room, px, pz, bd);                          // F5.14: fumigador y almejas
   if (cl) { bd = cl.dist; kind = cl.kind; target = cl.target; }
+  const gm = gumNear(room, px, pz, bd);                           // F5.18b: chicleras
+  if (gm) { bd = gm.dist; kind = 'gum'; target = gm.target; }
   interactState.kind = kind; interactState.target = target;
 }
 function interact() {
@@ -592,6 +599,7 @@ function interact() {
   }
   if (it.kind === 'hatch') { const ok = useHatch(it.target); if (!ok) { sfxDeny(); denyPrompt(); } return ok; }   // F5.11
   if (it.kind === 'portal') { const ok = usePortal(it.target); if (!ok) { sfxDeny(); denyPrompt(); } return ok; }  // F5.16
+  if (it.kind === 'gum') { const ok = useGumMachine(it.target); if (ok) sfxBuy(); else { sfxDeny(); denyPrompt(); } return ok; }   // F5.18b
   const ok = it.kind === 'door' ? buyDoor(it.target.id)
            : it.kind === 'pap'  ? usePap()
            : it.kind === 'box'  ? useBox()
@@ -602,6 +610,13 @@ function interact() {
   if (ok) sfxBuy(); else { sfxDeny(); denyPrompt(); }
   updateInteract();
   return ok;
+}
+// F5.18b: moneda de la tienda de chicles (CONFIG.GUMS.currency), al azar al comprar puertas, lianas y la caja
+function rollInk() {
+  if (Math.random() >= CONFIG.GUMS.inkChance) return false;
+  addInk(1);
+  showBanner('+1 ' + CONFIG.GUMS.currency, 2);
+  return true;
 }
 function openDoor(id) {
   const d = state.doors[id];

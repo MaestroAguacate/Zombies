@@ -17,6 +17,7 @@ function debugKey(code, repeat) {
   if (code === 'KeyK') { roundState.nextDog = state.round + 1; debugRound(state.round + 1); return true; }
   if (code === 'KeyJ') { roundState.forceBoss = state.round + 1; debugRound(state.round + 1); return true; }
   if (code === 'KeyO') { debugUnlockAll(); return true; }
+  if (code === 'KeyX') { devMaxAccount(); return true; }            // F5.18b: cuenta al máximo y todos los chicles (solo la sesión)
   if (code === 'KeyB') { toggleNavDebug(); return true; }
   if (code === 'KeyH') { UI.debug.style.display = UI.debug.style.display === 'none' ? '' : 'none'; return true; }
   return false;

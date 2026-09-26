@@ -30,7 +30,8 @@ function initUI() {
   UI.lowhp = document.getElementById('lowhp');
   UI.dmgNums = document.getElementById('dmgNums');  // F5.11: ajuste "números de daño"
   UI.ink = document.getElementById('ink');          // F5.9: tinta de calamar
-  UI.fade = document.getElementById('fade');        // F5.11: fundido de la escotilla
+  UI.fade = document.getElementById('fade');
+  UI.gumhud = document.getElementById('gumhud');    // F5.18b: chicles activos        // F5.11: fundido de la escotilla
   UI.go = document.getElementById('gameover');
   UI.goRound = document.getElementById('goRound');
   UI.goKills = document.getElementById('goKills');
@@ -38,7 +39,7 @@ function initUI() {
   ['goTime', 'goHeads', 'goKnife', 'goFav', 'goPts', 'goDmg', 'goDoors', 'goBox', 'btnGoMenu', 'btnPlay', 'btnControls',
    'btnSettings', 'btnQuit', 'panelControls', 'panelSettings', 'sens', 'sensVal', 'vol', 'volVal', 'menuMsg',
    'btnMaps', 'btnWeapons', 'btnProfile', 'panelMaps', 'panelWeapons', 'panelProfile', 'mProfMini', 'menuSil', 'goXP', 'goLvl',   // F5.18
-   'mapCity', 'mapBeach', 'mapQ']
+   'mapCity', 'mapBeach', 'mapQ', 'btnGums', 'panelGums']
     .forEach(id => { UI[id] = document.getElementById(id); });
   UI.goBest = document.getElementById('goBest');
   UI.record = document.getElementById('record');
@@ -73,6 +74,7 @@ function promptFor(it) {
   if (it.kind === 'portal') return portalPrompt(it.target); // F5.16
   if (it.kind === 'fumigator' || it.kind === 'clam') return clamPrompt(it);   // F5.14
   if (it.kind === 'pap') return papPrompt();
+  if (it.kind === 'gum') return gumPrompt(it.target);   // F5.18b: chiclera
   if (it.kind === 'box') {
     if (BOX.phase === 'ready') return { text: '[F] Take ' + (BOX.result === 'monkey' ? CONFIG.MONKEY.name : CONFIG.WEAPONS[BOX.result].name), cost: 0 };
     return { text: '[F] Mystery Box - ' + CONFIG.BOX.cost, cost: CONFIG.BOX.cost };
@@ -91,7 +93,7 @@ function updatePromptUI(dt) {
   let text = '', poor = false;
   if (it.kind && state.running) {
     const p = promptFor(it);
-    text = p.text; poor = state.points < p.cost;
+    text = p.text; poor = state.points < p.cost && !gumActive('freeall');   // F5.18b: SHOPPING SPREE
   }
   if (text !== promptText) {
     promptText = text;
@@ -176,7 +178,7 @@ function showMenu(mode) {                  // 'main' | 'pause' | null (ocultar)
   UI.start.classList.remove('hidden');
 }
 const MENU_PANELS = { maps: ['panelMaps', 'btnMaps'], weapons: ['panelWeapons', 'btnWeapons'], profile: ['panelProfile', 'btnProfile'],
-                      settings: ['panelSettings', 'btnSettings'], controls: ['panelControls', 'btnControls'] };
+                      settings: ['panelSettings', 'btnSettings'], controls: ['panelControls', 'btnControls'], gums: ['panelGums', 'btnGums'] };
 function menuPanel(which) {                // abre uno, cierra los otros; clic de nuevo = cerrar
   for (const k in MENU_PANELS) {
     const p = UI[MENU_PANELS[k][0]], b = UI[MENU_PANELS[k][1]];
@@ -186,6 +188,7 @@ function menuPanel(which) {                // abre uno, cierra los otros; clic d
   }
   if (which === 'weapons') renderWeaponsPanel();
   if (which === 'profile') renderProfilePanel();
+  if (which === 'gums') renderGumsPanel();
 }
 function xpBarHTML(cls) {
   const [a, b] = levelProgress(PROFILE.xp), k = b ? a / b : 1;
@@ -203,17 +206,24 @@ function renderProfilePanel() {
   for (const k in P.attachments) if (P.attachments[k].level > L) next.push([P.attachments[k].level, P.attachments[k].name]);
   for (const c of P.camos) if (c.level > L) next.push([c.level, c.name + ' CAMO']);
   next.sort((x, y) => x[0] - y[0]);
-  UI.panelProfile.innerHTML = '<h3>PROFILE</h3><div class="prof"><div class="badge">' + L + '</div><div>' +
+  const opts = accountNames().map(n => '<option' + (n === PROFILE.name ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+  UI.panelProfile.innerHTML = '<h3>PROFILE</h3>' +
+    '<div class="acct">ACCOUNT <select id="acctSel">' + opts + '</select><input id="acctNew" maxlength="16" placeholder="NEW ACCOUNT"><button id="acctAdd">CREATE</button>' +
+    (accountNames().length > 1 ? '<button id="acctDel">DELETE</button>' : '') +
+    (CONFIG.DEBUG_MODE ? '<button id="devMax" class="dev">' + (DEV.on ? 'DEV ACCOUNT ON' : 'DEV: MAX ACCOUNT (this session)') + '</button>' : '') + '</div>' +
+    '<div class="prof"><div class="badge">' + L + '</div><div>' +
     '<input id="profName" maxlength="16" value="' + esc(PROFILE.name) + '">' +
     '<div class="tier">' + tierName(L) + '</div>' + xpBarHTML('pbar') +
     '<p class="dim">' + (b ? a + ' / ' + b + ' XP to level ' + (L + 1) : 'MAX LEVEL') + '</p></div></div>' +
     '<div class="pstats"><span>Level</span><span>' + L + ' / ' + P.maxLevel + '</span><span>Total XP</span><span>' + PROFILE.xp + '</span>' +
     '<span>Best round</span><span>' + loadHighScore() + '</span>' +
     '<span>Next unlock</span><span>' + (next.length ? next[0][1] + ' (level ' + next[0][0] + ')' : 'Everything unlocked') + '</span></div>';
-  const inp = document.getElementById('profName');
-  if (inp && inp.addEventListener) inp.addEventListener('change', () => {
-    PROFILE.name = (inp.value || 'SURVIVOR').toUpperCase().slice(0, 16); saveProfile(); renderProfileMini();
-  });
+  const inp = document.getElementById('profName'), on = (id, ev, f) => { const e = document.getElementById(id); if (e && e.addEventListener) e.addEventListener(ev, f); };
+  on('profName', 'change', () => { if (!renameAccount(inp.value)) UI.menuMsg.textContent = 'That name is taken.'; renderProfilePanel(); renderProfileMini(); });
+  on('acctSel', 'change', e => { switchAccount(e.target.value); renderProfilePanel(); renderProfileMini(); });
+  on('acctAdd', 'click', () => { const n = document.getElementById('acctNew').value; if (!createAccount(n)) UI.menuMsg.textContent = 'Pick a new name.'; renderProfilePanel(); renderProfileMini(); });
+  on('acctDel', 'click', () => { if (confirm('Delete account ' + PROFILE.name + '?')) deleteAccount(PROFILE.name); renderProfilePanel(); renderProfileMini(); });
+  on('devMax', 'click', () => { devMaxAccount(); renderProfilePanel(); renderProfileMini(); });
 }
 function renderWeaponsPanel() {
   const P = CONFIG.PROGRESSION, ids = Object.keys(CONFIG.WEAPONS).filter(canAttach);
@@ -222,10 +232,10 @@ function renderWeaponsPanel() {
   let h = '<h3>WEAPONS · ATTACHMENTS (' + L.att.length + '/' + P.maxAtt + ')</h3><div class="wgrid"><div class="wlist">';
   for (const w of ids) { const n = (PROFILE.loadout[w] && PROFILE.loadout[w].att.length) || 0;
     h += '<button data-w="' + w + '" class="' + (w === id ? 'on' : '') + '">' + CONFIG.WEAPONS[w].name + (n ? '<small>' + n + '</small>' : '') + '</button>'; }
-  h += '</div><div><b style="letter-spacing:3px">' + CONFIG.WEAPONS[id].name + '</b><div class="atts">';
-  for (const k in P.attachments) {
+  h += '</div><div><b style="letter-spacing:3px">' + CONFIG.WEAPONS[id].name + '</b><div id="wprev" class="wprev"></div><div class="atts">';
+  for (const k of attsFor(id)) {                     // F5.18b: solo los que tienen sentido en esa arma
     const A = P.attachments[k], lock = lv < A.level, on = L.att.indexOf(k) >= 0;
-    h += '<div class="att' + (on ? ' on' : '') + (lock ? ' locked' : '') + '" data-a="' + k + '"><b>' + A.name + '</b><span>' +
+    h += '<div class="att' + (on ? ' on' : '') + (lock ? ' locked' : '') + '" data-a="' + k + '"><b>' + attName(id, k) + '</b><span>' +
          (lock ? 'Unlocks at level ' + A.level : A.desc) + '</span></div>';
   }
   h += '</div><b style="letter-spacing:3px">CAMO</b><div class="camos" style="margin-top:8px">' +
@@ -238,6 +248,7 @@ function renderWeaponsPanel() {
   h += '</div></div></div>';
   UI.panelWeapons.innerHTML = h;
   if (!UI.panelWeapons.querySelectorAll) return;
+  weaponPreview(document.getElementById('wprev'), id);   // F5.18b: el arma con lo que le pusiste, girando
   UI.panelWeapons.querySelectorAll('[data-w]').forEach(b => b.addEventListener('click', () => { MENU.weapon = b.dataset.w; renderWeaponsPanel(); }));
   UI.panelWeapons.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.a;
@@ -250,6 +261,103 @@ function renderWeaponsPanel() {
     if (c && !camoUnlocked(c)) return;
     setCamo(id, c); renderWeaponsPanel();
   }));
+}
+// F5.18b: vista previa del arma en el menú de armas. Un renderer chico aparte (se crea la primera vez que se abre el
+// panel); el modelo se arma igual que en la mano (accesorios y camo) y gira despacio mientras el panel está abierto
+const WPREV = { r: null, scene: null, cam: null, model: null };
+function weaponPreview(host, id) {
+  if (!host) return;
+  if (!WPREV.r) {
+    try { WPREV.r = new THREE.WebGLRenderer({ antialias: true, alpha: true }); } catch (e) { return; }
+    WPREV.r.setPixelRatio(Math.min(devicePixelRatio, 2)); WPREV.r.setSize(440, 180);
+    WPREV.scene = new THREE.Scene();
+    WPREV.scene.add(new THREE.HemisphereLight(0xfff4e0, 0x404858, 1.15));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.9); dl.position.set(1.5, 2, 2); WPREV.scene.add(dl);
+    WPREV.cam = new THREE.PerspectiveCamera(28, 440 / 180, 0.01, 20);
+  }
+  host.appendChild(WPREV.r.domElement);
+  if (WPREV.model) WPREV.scene.remove(WPREV.model);
+  const def = slotDef({ id }), m = buildWeaponModel(def);
+  if (def.camo) tintModel(m, def.camo);
+  if (def.att) addAttachmentModels(m, def.att, def);
+  const beams = []; m.traverse(o => { if (o.userData.beam) beams.push(o); });
+  beams.forEach(o => o.parent.remove(o));                              // el haz del láser no entra en la vista (ni en la caja)
+  const w = Math.max(240, Math.min(560, host.clientWidth || 440));
+  WPREV.r.setSize(w, 180); WPREV.cam.aspect = w / 180; WPREV.cam.updateProjectionMatrix();
+  m.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(m), c = bb.getCenter(new THREE.Vector3()), sz = bb.getSize(new THREE.Vector3());
+  m.position.sub(c);
+  const g = new THREE.Group(); g.add(m); g.rotation.y = Math.PI / 2 + 0.35; WPREV.model = g; WPREV.scene.add(g);
+  const r = Math.max(sz.z * 0.62, sz.y, 0.25);
+  WPREV.cam.position.set(0, r * 0.2, r * 2.2); WPREV.cam.lookAt(0, 0, 0);
+  WPREV.r.render(WPREV.scene, WPREV.cam);
+}
+function updateWeaponPreview(dt) {
+  if (!WPREV.model || !UI.panelWeapons || !UI.panelWeapons.classList.contains('open')) return;
+  WPREV.model.rotation.y += dt * 0.6;
+  WPREV.r.render(WPREV.scene, WPREV.cam);
+}
+// F5.18b: pestaña de chicles: preset de 5, todos los chicles (con cuántos tenés) y la tienda con la moneda
+const GUMUI = { slot: 0, rolling: false };
+function gumChip(g, cls) { return '<i class="gum ' + (cls || '') + '" style="background:' + g.color + ';border-color:' + CONFIG.GUMS.rarities[g.rarity].color + '">' + g.icon + '</i>'; }
+function renderGumsPanel() {
+  const G = CONFIG.GUMS, n = G.presetSize, lv = rankLevel();
+  let h = '<h3>GUMS · ' + G.currency + ': ' + (DEV.on ? '∞' : PROFILE.ink) + '</h3><div class="dim">PRESET (click a slot, then a gum)</div><div class="preset">';
+  for (let i = 0; i < n; i++) {
+    const id = PROFILE.preset[i], g = id && gumDef(id);
+    h += '<div class="pslot' + (g ? '' : ' empty') + (GUMUI.slot === i ? ' sel' : '') + '" data-slot="' + i + '">' +
+         (g ? gumChip(g) + '<div>' + g.name + '</div>' : '<i class="gum">+</i><div>EMPTY</div>') + '</div>';
+  }
+  h += '</div><div class="gumgrid">';
+  for (const r of ['classic', 'rare', 'ultra', 'epic']) for (const id in G.list) {
+    const g = G.list[id];
+    if (g.rarity !== r) continue;
+    const c = gumCount(id), lock = r === 'classic' && lv < g.level && !DEV.on;
+    const tag = lock ? 'LOCKED · LV ' + g.level : c === Infinity ? G.rarities[r].name + ' · ∞' : G.rarities[r].name + ' · ×' + c;
+    h += '<div class="gcard' + (c > 0 ? '' : ' none') + '" data-gum="' + id + '" title="' + esc(g.desc) + '">' + gumChip(g) + '<div><b>' + g.name + '</b><span>' + tag + '</span><br><span>' + esc(g.desc) + '</span></div></div>';
+  }
+  h += '</div><div class="dim">SHOP — spend ' + G.currency + ' (drops from doors, vines and the Mystery Box)</div><div class="shop">';
+  for (let t = 1; t <= 3; t++) {
+    const o = G.shop[t].odds;
+    h += '<button data-shop="' + t + '"' + ((PROFILE.ink >= t || DEV.on) && !GUMUI.rolling ? '' : ' disabled') + '>' + t + ' INK · ' + G.shop[t].count + ' GUM' + (t > 1 ? 'S' : '') +
+         '<br><small>' + Math.round(o.rare * 100) + '/' + Math.round(o.ultra * 100) + '/' + Math.round(o.epic * 100) + '%</small></button>';
+  }
+  h += '</div><div id="gumRoll"></div>';
+  UI.panelGums.innerHTML = h;
+  if (!UI.panelGums.querySelectorAll) return;
+  UI.panelGums.querySelectorAll('[data-slot]').forEach(e => e.addEventListener('click', () => {
+    const i = +e.dataset.slot;
+    if (GUMUI.slot === i && PROFILE.preset[i]) setPresetSlot(i, null);
+    GUMUI.slot = i; renderGumsPanel();
+  }));
+  UI.panelGums.querySelectorAll('[data-gum]').forEach(e => e.addEventListener('click', () => {
+    if (!setPresetSlot(GUMUI.slot, e.dataset.gum)) return;
+    GUMUI.slot = Math.min(n - 1, GUMUI.slot + 1); renderGumsPanel();
+  }));
+  UI.panelGums.querySelectorAll('[data-shop]').forEach(e => e.addEventListener('click', () => gumShop(+e.dataset.shop)));
+}
+// sorteo con animación: los chicles pasan rápido 1.6 s y quedan los ganados
+function gumShop(tier) {
+  if (GUMUI.rolling) return;
+  const won = rollGumPack(tier);
+  if (!won) { UI.menuMsg.textContent = 'Not enough ' + CONFIG.GUMS.currency + '.'; return; }
+  GUMUI.rolling = true; renderGumsPanel();
+  const box = document.getElementById('gumRoll'), all = Object.keys(CONFIG.GUMS.list).filter(id => !gumClassic(id));
+  let t = 0;
+  const tick = () => {
+    t += 80;
+    if (t < 1600) {
+      box.innerHTML = won.map(() => gumChip(gumDef(all[Math.floor(Math.random() * all.length)]))).join('');
+      setTimeout(tick, 80);
+      return;
+    }
+    GUMUI.rolling = false; renderGumsPanel();
+    const b2 = document.getElementById('gumRoll');
+    if (b2) b2.innerHTML = won.map(id => { const g = gumDef(id), R = CONFIG.GUMS.rarities[g.rarity];
+      return '<div class="won">' + gumChip(g) + '<div style="color:' + R.color + '">' + R.name + '</div><div>' + g.name + '</div></div>'; }).join('');
+    if (typeof sfxBuy === 'function') sfxBuy();
+  };
+  tick();
 }
 // mapas: solo la playa; los otros dos, bloqueados
 function pickMap(key) {

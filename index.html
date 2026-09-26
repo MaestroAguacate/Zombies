@@ -122,6 +122,11 @@
   #cook b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff4a2a,#ffb347)}
   /* perks (F2): abajo a la izquierda · stamina: barra fina abajo al centro */
   #perks{position:absolute;left:16px;bottom:calc(14px + var(--safe-b));display:flex;gap:6px}
+  /* F5.18b: chicles activos (cubos de color con ícono y tiempo o cargas) */
+  #gumhud{position:absolute;left:16px;bottom:calc(52px + var(--safe-b));display:flex;gap:6px}
+  #gumhud i{position:relative;width:34px;height:34px;border:2px solid;border-radius:6px;display:flex;align-items:center;
+            justify-content:center;font-style:normal;font-size:18px;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+  #gumhud i b{position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);font-size:10px;white-space:nowrap;text-shadow:0 1px 2px #000}
   #perks i{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;
            font:700 11px/1 ui-monospace,Consolas,monospace;font-style:normal;color:#fff;
            text-shadow:0 1px 2px #000;box-shadow:0 2px 6px rgba(0,0,0,.7),inset 0 0 0 2px rgba(255,255,255,.25)}
@@ -227,12 +232,14 @@
                 font:800 56px/1 ui-monospace,monospace;color:rgba(200,120,255,.5)}
   .shake{animation:deny .35s}
   /* armas */
-  .wgrid{display:grid;grid-template-columns:190px 1fr;gap:16px}
+  .wgrid{display:grid;grid-template-columns:170px minmax(0,1fr);gap:16px}
   .wlist{display:flex;flex-direction:column;gap:4px;max-height:52vh;overflow-y:auto}
   .wlist button{cursor:pointer;text-align:left;background:rgba(255,255,255,.04);color:var(--ink);border:1px solid transparent;
                 border-radius:4px;padding:7px 10px;font:600 12px ui-monospace,monospace;letter-spacing:1px}
   .wlist button.on{border-color:var(--accent);background:rgba(255,179,71,.12)}
   .wlist button small{color:var(--accent);float:right}
+  .wprev{height:180px;margin:6px 0;border-radius:6px;background:radial-gradient(ellipse at 50% 60%,rgba(255,179,71,.14),rgba(0,0,0,.2));overflow:hidden}
+  .wprev canvas{display:block;margin:0 auto}
   .atts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:8px 0 14px}
   .att{cursor:pointer;border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:9px 11px;background:rgba(255,255,255,.03)}
   .att b{display:block;letter-spacing:2px;font-size:12px}
@@ -254,6 +261,32 @@
   .tier{color:var(--accent);letter-spacing:4px;font-weight:700;margin:6px 0}
   .pstats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin-top:14px;font-size:12px}
   .pstats span:nth-child(odd){color:var(--dim)}
+  /* chicles (F5.18b) */
+  .gum{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;border:3px solid;
+       font-size:22px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.25),0 2px 6px rgba(0,0,0,.5)}
+  .preset{display:flex;gap:10px;margin:6px 0 14px}
+  .pslot{cursor:pointer;width:64px;text-align:center;font-size:9px;letter-spacing:1px;color:var(--dim)}
+  .pslot .gum{width:56px;height:56px;font-size:26px}
+  .pslot.empty .gum{background:rgba(255,255,255,.04);border-style:dashed;border-color:rgba(255,255,255,.25)}
+  .pslot.sel .gum{outline:2px solid var(--accent);outline-offset:3px}
+  .gumgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;max-height:30vh;overflow-y:auto;margin-bottom:12px}
+  .gcard{cursor:pointer;display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
+  .gcard b{display:block;font-size:11px;letter-spacing:1px}
+  .gcard span{font-size:10px;color:var(--dim)}
+  .gcard.none{opacity:.4;cursor:default}
+  .gcard .gum{width:36px;height:36px;font-size:18px;flex:none}
+  .shop{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .shop button{cursor:pointer;background:rgba(160,80,255,.15);color:var(--ink);border:1px solid #a050ff;border-radius:6px;padding:10px 14px;
+               font:700 12px ui-monospace,monospace;letter-spacing:2px}
+  .shop button:disabled{opacity:.35;cursor:default}
+  #gumRoll{display:flex;gap:14px;min-height:80px;align-items:center;margin-top:10px}
+  #gumRoll .gum{width:64px;height:64px;font-size:30px}
+  #gumRoll .won{text-align:center;font-size:10px;letter-spacing:1px}
+  .acct{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .acct select,.acct input,.acct button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:var(--ink);
+       font:600 12px ui-monospace,monospace;padding:6px 8px;letter-spacing:1px}
+  .acct button{cursor:pointer}
+  .acct button.dev{border-color:#ff4a4a;color:#ff8a7a}
   /* siluetas de mobs (cubos negros con ojos rojos) */
   #menuSil{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
   .sil{position:absolute;bottom:-6px;transform-origin:50% 100%;animation:shamble 2.6s ease-in-out infinite;filter:blur(.6px)}
@@ -288,6 +321,7 @@
   <div id="prompt"></div>
   <div id="cook"><b id="cookbar"></b></div>
   <div id="perks"></div>
+  <div id="gumhud"></div>
   <div id="stam"><b id="stambar"></b></div>
   <div id="craft"><b id="craftbar"></b></div>
   <div id="ammo">
@@ -336,6 +370,7 @@
       <button id="btnPlay" class="primary">PLAY</button>
       <button id="btnMaps" class="main-only">MAPS</button>
       <button id="btnWeapons" class="main-only">WEAPONS</button>
+      <button id="btnGums" class="main-only">GUMS</button>
       <button id="btnProfile" class="main-only">PROFILE</button>
       <button id="btnSettings">SETTINGS</button>
       <button id="btnControls">CONTROLS</button>
@@ -355,6 +390,7 @@
   </div>
   <div id="panelWeapons" class="panel wide"></div>
   <div id="panelProfile" class="panel wide"></div>
+  <div id="panelGums" class="panel wide"></div>
   <div id="panelControls" class="panel">
     <div class="ctl">
       <span><kbd>WASD</kbd></span><span>move</span>
@@ -368,6 +404,7 @@
       <span><kbd>Right click</kbd></span><span>aim (hold)</span>
       <span><kbd>G</kbd></span><span>grenade (hold = cook, 3 s)</span>
       <span><kbd>1</kbd> <kbd>2</kbd> / <kbd>3</kbd></span><span>weapons / shield (click = bash)</span>
+      <span><kbd>T</kbd></span><span>use gum (charges)</span>
       <span><kbd>F</kbd></span><span>open door · buy wall weapon · mystery box · use</span>
       <span><kbd>Esc</kbd></span><span>pause</span>
       <span class="dim"><kbd>O</kbd> <kbd>N</kbd> <kbd>H</kbd></span><span class="dim">debug: unlock all · noclip · overlay</span>
@@ -677,15 +714,34 @@ const CONFIG = {
       reflex:    { name: 'REFLEX SIGHT', level: 6,  desc: 'Red dot: more zoom, 30% tighter aim', adsSpread: 0.7, zoom: 8 },
       laser:     { name: 'LASER SIGHT',  level: 9,  desc: 'Hip fire 40% tighter', hipSpread: 0.6 },
       barrel:    { name: 'LONG BARREL',  level: 12, desc: '+15% damage, 15% tighter', damage: 1.15, spread: 0.85 },
-      stock:     { name: 'STOCK',        level: 15, desc: 'Move faster aiming, 25% less recoil', adsMove: 0.5, recoil: 0.75 }
+      stock:     { name: 'STOCK',        level: 15, desc: 'Move faster aiming, 25% less recoil', adsMove: 0.5, recoil: 0.75 },
+      // F5.18b: solo del arco
+      limbs:      { name: 'LIGHT LIMBS', level: 5,  desc: 'Draw the bow 35% faster', charge: 0.65 },
+      broadhead:  { name: 'BROADHEAD',   level: 10, desc: '+25% arrow damage', damage: 1.25 },
+      stabilizer: { name: 'STABILIZER',  level: 16, desc: 'Arrows 50% tighter', spread: 0.5 }
     },
+    // F5.18b: qué accesorios tiene sentido poner en cada arma (el resto no se ofrece). Sin entrada = los 6 de siempre
+    weaponAtt: {
+      m1911: ['quickdraw', 'fastmag', 'reflex', 'laser', 'barrel'], deagle: ['quickdraw', 'fastmag', 'reflex', 'laser', 'barrel'],
+      revolver: ['quickdraw', 'fastmag', 'reflex', 'laser', 'barrel'], raygun: ['quickdraw', 'fastmag', 'reflex', 'laser'],
+      shotgun: ['quickdraw', 'fastmag', 'laser', 'barrel', 'stock'], spas: ['quickdraw', 'fastmag', 'laser', 'barrel', 'stock'],
+      doublebarrel: ['quickdraw', 'laser', 'barrel', 'stock'], sniper: ['quickdraw', 'fastmag', 'barrel', 'stock'],
+      crossbow: ['quickdraw', 'fastmag', 'laser', 'stock'], bow: ['quickdraw', 'limbs', 'broadhead', 'stabilizer'],
+      bazooka: ['quickdraw', 'fastmag', 'laser']
+    },
+    // nombre del accesorio en un arma puntual (el efecto es el mismo)
+    attAlias: { revolver: { fastmag: 'SPEED LOADER' }, shotgun: { fastmag: 'SHELL CARRIER', barrel: 'CHOKE' },
+                spas: { fastmag: 'SHELL CARRIER', barrel: 'CHOKE' }, doublebarrel: { barrel: 'CHOKE' },
+                crossbow: { fastmag: 'BOLT QUIVER' }, bazooka: { fastmag: 'ROCKET RACK' }, sniper: { barrel: 'SUPPRESSOR' } },
     camos: [
       { id: 'jungle',  name: 'JUNGLE',  color: 0x4a6a32, level: 3 },
       { id: 'sand',    name: 'DESERT',  color: 0xc8a868, level: 10 },
       { id: 'arctic',  name: 'ARCTIC',  color: 0xdce6ee, level: 20 },
       { id: 'crimson', name: 'CRIMSON', color: 0xa01c1c, level: 30 }
     ],
-    noAtt: ['wave', 'flamethrower']                                     // sin accesorios (la Ola y el lanzallamas)
+    noAtt: ['wave', 'flamethrower'],
+    // F5.18b: cuentas locales (varias en la misma compu), todas en una sola clave
+    accountsKey: 'bhz_accounts_v1'                                     // sin accesorios (la Ola y el lanzallamas)
   },
 
   POINTS: { hit: 10, kill: 60, headshotKill: 130, meleeKill: 130 },
@@ -1044,6 +1100,43 @@ const CONFIG = {
   // se compra en su tablón (WALLBUYS)
   // F5.15: en la playa oeste (-27, -20), más larga (w a lo largo de x) y de estilo rancho: 6 patas, techo de palma
   LIFEGUARD: { x: -27, z: -20, w: 6, d: 3.4, h: 2.6 },
+  // F5.18b: chicles (como las Gobble Gums de BO3). CLASSIC: se desbloquean por nivel y no se gastan. RARE, ULTRA y EPIC
+  // se ganan en la tienda (con `currency`, que cae al comprar puertas, lianas y la caja con chance `inkChance`) y se
+  // gastan al agarrarlos. Antes de la partida se eligen `presetSize` para el preset; la chiclera del mapa da uno al azar
+  // del preset (que tengas). type: instant (al agarrarlo), timed (dura `time` s), charges (T usa una carga), melee
+  // (cargas que gasta el cuchillo), passive (hasta que se usa)
+  GUMS: {
+    currency: 'KRAKEN INK', inkChance: 0.14, presetSize: 5,
+    machine: { cost: [500, 1000, 2000], maxPerRound: 3, offer: 6, size: { w: 0.9, h: 1.7, d: 0.7 },
+               spots: [{ room: 'R1', x: 5.45, z: 2.7, rot: -Math.PI / 2 }, { room: 'R14', x: -46.5, z: 39.45, rot: Math.PI },
+                       { room: 'R20', x: 55.45, z: 71, rot: Math.PI / 2 }, { room: 'R19', x: -74.55, z: -40, rot: Math.PI / 2 }] },
+    shop: [null, { count: 1, odds: { rare: 0.72, ultra: 0.23, epic: 0.05 } },
+                 { count: 2, odds: { rare: 0.55, ultra: 0.33, epic: 0.12 } },
+                 { count: 3, odds: { rare: 0.38, ultra: 0.42, epic: 0.2 } }],
+    rarities: { classic: { name: 'CLASSIC', color: '#4aa8ff' }, rare: { name: 'RARE', color: '#6ad86a' },
+                ultra: { name: 'ULTRA RARE', color: '#ffb347' }, epic: { name: 'EPIC', color: '#d060ff' } },
+    list: {
+      shadow:     { name: 'SHADOW STEP',     rarity: 'classic', level: 1,  icon: '👻', color: '#7a8a9a', type: 'timed', time: 10,  desc: 'Zombies ignore you for 10 s' },
+      beacon:     { name: 'BEACON',          rarity: 'classic', level: 1,  icon: '📣', color: '#e8c030', type: 'timed', time: 10,  desc: 'Every zombie rushes you for 10 s. Double points' },
+      quickhands: { name: 'QUICK HANDS',     rarity: 'classic', level: 3,  icon: '✋', color: '#4ac8c8', type: 'timed', time: 180, desc: 'Reload and aim 50% faster for 3 min' },
+      ironlungs:  { name: 'IRON LUNGS',      rarity: 'classic', level: 6,  icon: '💨', color: '#8ad8ff', type: 'timed', time: 120, desc: 'Unlimited sprint for 2 min' },
+      sharpedge:  { name: 'SHARP EDGE',      rarity: 'classic', level: 9,  icon: '🔪', color: '#c8c8d0', type: 'timed', time: 120, desc: 'Knife does 4x damage for 2 min' },
+      restock:    { name: 'RESTOCK',         rarity: 'classic', level: 12, icon: '📦', color: '#a8844a', type: 'instant',          desc: 'Refills the reserve ammo of your weapon' },
+      hardskin:   { name: 'HARD SKIN',       rarity: 'classic', level: 15, icon: '🛡️', color: '#6a7ab8', type: 'timed', time: 60,  desc: 'Take 50% less damage for 1 min' },
+      insta3:     { name: 'TRIPLE THREAT',   rarity: 'rare',  icon: '💀', color: '#e8e8e8', type: 'charges', charges: 3, desc: '3 Insta-Kills: press T to trigger one (15 s each)' },
+      freefire:   { name: 'FREE FIRE',       rarity: 'rare',  icon: '♾️', color: '#ff8a4a', type: 'timed', time: 30, desc: 'No ammo used for 30 s' },
+      popshock:   { name: 'POP SHOCKS',      rarity: 'rare',  icon: '⚡', color: '#f0e040', type: 'melee', charges: 5, desc: 'Your next 5 knife hits explode' },
+      luckybox:   { name: 'LUCKY BOX',       rarity: 'rare',  icon: '🎁', color: '#e84a8a', type: 'passive', desc: 'Next Mystery Box is free and never the teddy' },
+      pointrain:  { name: 'POINT RAIN',      rarity: 'rare',  icon: '💰', color: '#6ad86a', type: 'instant', points: 2500, desc: '+2500 points' },
+      secretsip:  { name: 'SECRET SIP',      rarity: 'ultra', icon: '🥤', color: '#4aa8ff', type: 'charges', charges: 1, desc: 'Press T: a random perk you do not have' },
+      sunburn:    { name: 'SUNBURN',         rarity: 'ultra', icon: '☀️', color: '#ff6a1a', type: 'charges', charges: 1, desc: 'Press T: Kaboom, every zombie burns' },
+      powerdrop:  { name: 'POWER DROP',      rarity: 'ultra', icon: '🎲', color: '#ffd23a', type: 'charges', charges: 1, desc: 'Press T: 2 random power-ups at your feet' },
+      crawlspace: { name: 'CRAWL SPACE',     rarity: 'ultra', icon: '🐛', color: '#8a6a4a', type: 'charges', charges: 1, desc: 'Press T: every zombie near you crawls' },
+      freeall:    { name: 'SHOPPING SPREE',  rarity: 'epic',  icon: '🛒', color: '#ff4ad0', type: 'timed', time: 60, desc: 'Everything is free for 60 s' },
+      perkaholic: { name: 'PERKAHOLIC',      rarity: 'epic',  icon: '🍾', color: '#c060ff', type: 'instant', desc: 'Every perk' },
+      blessing:   { name: "KRAKEN'S BLESSING", rarity: 'epic', icon: '🐙', color: '#8a3ac8', type: 'instant', desc: 'Pack-a-Punch your weapon for free' }
+    }
+  },
   // F5.18: choque en la jungla al oeste del templo (parte de R20, `area`), abierto al anexo por el borde x 55 (z gap).
   // cars: [x, z, ry, color, arde, vuelco ('roof' | 'side')]: sólidos (PROPS 'autoN', caja del vuelco girado).
   // squid: calamar muerto del tamaño de un auto (sólido). boss: Sombrerón muerto con la guitarra atravesada (sólido).
@@ -4482,7 +4575,7 @@ function updatePlayer(dt) {
   player.sprinting = sprinting;                 // F3b: el ADS no entra corriendo
   if (sprinting) {
     stamina.idleT = 0;
-    stamina.v = Math.max(0, stamina.v - dt / (ST.sprintTime * staminaMul()));
+    if (!gumActive('ironlungs')) stamina.v = Math.max(0, stamina.v - dt / (ST.sprintTime * staminaMul()));   // F5.18b: IRON LUNGS
     if (stamina.v === 0) { stamina.exhausted = true; sfxBreath(); }
   } else {
     stamina.idleT += dt;
@@ -4810,6 +4903,7 @@ function damagePlayer(dmg, fromX, fromZ, ignoreIframe) {
   if (state.gameOver || DOWN.on) return;                          // F5.18: tirado sos invulnerable
   const t = clock.elapsedTime;
   if (!ignoreIframe && t - state.lastDamageTime < CONFIG.PLAYER.hitIframe) return;   // i-frame
+  if (gumActive('hardskin')) dmg *= 0.5;                          // F5.18b: HARD SKIN
   STATS.damageTaken += Math.min(dmg, state.health);
   state.health = Math.max(0, state.health - dmg);
   state.lastDamageTime = t;
@@ -4852,7 +4946,7 @@ function adsSpread() {
 function updateAds(dt) {
   const A = CONFIG.ADS, def = curDef();
   const want = ADS.on && def && weaponsState.phase === 'idle' && !player.sprinting;
-  const at = A.time * (def && def.att && def.att.quickdraw ? CONFIG.PROGRESSION.attachments.quickdraw.adsTime : 1);   // F5.18: quickdraw
+  const at = A.time * (def && def.att && def.att.quickdraw ? CONFIG.PROGRESSION.attachments.quickdraw.adsTime : 1) * (gumActive('quickhands') ? 0.5 : 1);   // F5.18: quickdraw, QUICK HANDS
   ADS.k = want ? Math.min(1, ADS.k + dt / at) : Math.max(0, ADS.k - dt / at);
   const fov = A.baseFov - (A.baseFov - ((def && def.adsFov) || A.fov)) * ADS.k;
   if (Math.abs(camera.fov - fov) > 1e-4) { camera.fov = fov; camera.updateProjectionMatrix(); }
@@ -5163,26 +5257,43 @@ function tintModel(model, hex) {
   const c = new THREE.Color(hex);
   model.traverse(o => { if (o.isMesh && o.material && o.material.color) { o.material = o.material.clone(); o.material.color.lerp(c, 0.55); } });
 }
-function addAttachmentModels(model, att) {
-  model.updateMatrixWorld(true);
-  const bb = new THREE.Box3().setFromObject(model), mz = model.userData.muzzle, cx = (bb.min.x + bb.max.x) / 2;
+// F5.18b: cada accesorio se ubica respecto del cañón (muzzle), no de la caja del modelo (que incluye la mano y, en el
+// arco, las palas). pistola = las de mano (el cargador va en la empuñadura)
+function addAttachmentModels(model, att, def) {
+  model.updateMatrixWorld(true); def = def || {};
+  const bb = new THREE.Box3().setFromObject(model), mz = model.userData.muzzle || new THREE.Vector3(0, 0.03, bb.min.z);
+  const pistol = def.reloadAnim === 'pistol' || def.reloadAnim === 'revolver' || def.id === 'raygun';
   const dark = 0x1c1c1e, add = (w, h, d, col, x, y, z) => { const m = box(w, h, d, col, x, y, z); model.add(m); return m; };
-  const mid = (bb.min.z + bb.max.z) / 2;
+  const len = bb.max.z - mz.z, top = def.id === 'bow' ? mz.y + 0.03 : Math.min(bb.max.y, mz.y + 0.08), rear = bb.max.z;
   if (att.reflex) {
-    add(0.03, 0.018, 0.07, dark, cx, bb.max.y + 0.009, mid - 0.02);
-    add(0.034, 0.036, 0.006, dark, cx, bb.max.y + 0.03, mid - 0.055);
+    const z = pistol ? mz.z + len * 0.45 : mz.z + len * 0.55;
+    add(0.028, 0.016, 0.07, dark, 0, top + 0.008, z);
+    add(0.034, 0.036, 0.006, dark, 0, top + 0.03, z - 0.032);
+    add(0.004, 0.036, 0.03, dark, 0.015, top + 0.03, z - 0.02); add(0.004, 0.036, 0.03, dark, -0.015, top + 0.03, z - 0.02);
     const dot = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.004, 0.002), new THREE.MeshBasicMaterial({ color: 0xff2020 }));
-    dot.position.set(cx, bb.max.y + 0.032, mid - 0.058); model.add(dot);
+    dot.position.set(0, top + 0.032, z - 0.036); model.add(dot);
   }
   if (att.laser) {
-    add(0.018, 0.018, 0.06, 0x2a3a2a, cx + 0.022, bb.min.y + 0.03, bb.min.z + 0.08);
+    const lz = mz.z + Math.min(0.14, len * 0.25), ly = mz.y - 0.045;
+    add(0.02, 0.02, 0.07, 0x2a3a2a, 0, ly, lz);
+    add(0.008, 0.008, 0.004, 0xff3030, 0, ly, lz - 0.036);
     const beam = new THREE.Mesh(new THREE.BoxGeometry(0.0015, 0.0015, 4), new THREE.MeshBasicMaterial({ color: 0xff2020, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
-    beam.position.set(cx + 0.022, bb.min.y + 0.03, bb.min.z + 0.05 - 2); model.add(beam);
+    beam.position.set(0, ly, lz - 2.04); beam.userData.beam = true; model.add(beam);
   }
-  if (att.barrel && mz) { add(0.024, 0.024, 0.12, dark, mz.x, mz.y, mz.z - 0.05); mz.z -= 0.11; }
-  if (att.stock) { add(0.028, 0.06, 0.16, 0x2a2622, cx, (bb.min.y + bb.max.y) / 2 - 0.01, bb.max.z + 0.07); add(0.034, 0.08, 0.02, dark, cx, (bb.min.y + bb.max.y) / 2 - 0.015, bb.max.z + 0.15); }
-  if (att.fastmag) { add(0.022, 0.09, 0.04, dark, cx + 0.026, bb.min.y - 0.02, mid); add(0.05, 0.015, 0.045, 0xd8b020, cx + 0.013, bb.min.y - 0.005, mid); }
-  if (att.quickdraw) add(0.046, 0.03, 0.05, 0x3a3a3a, cx, bb.min.y + 0.025, bb.max.z - 0.07);
+  if (att.barrel) { add(0.026, 0.026, 0.12, dark, mz.x, mz.y, mz.z - 0.055); add(0.03, 0.03, 0.02, 0x3a3a3a, mz.x, mz.y, mz.z - 0.11); mz.z -= 0.12; }
+  if (att.stock) {
+    add(0.03, 0.05, 0.16, 0x2a2622, 0, mz.y - 0.03, rear + 0.07);
+    add(0.034, 0.085, 0.022, dark, 0, mz.y - 0.045, rear + 0.155);
+  }
+  if (att.fastmag) {
+    if (pistol) { add(0.03, 0.06, 0.04, dark, 0, bb.min.y - 0.02, rear - 0.07); add(0.036, 0.012, 0.046, 0xd8b020, 0, bb.min.y + 0.005, rear - 0.07); }
+    else { const z = mz.z + len * 0.6; add(0.024, 0.1, 0.045, dark, 0.013, mz.y - 0.1, z); add(0.024, 0.1, 0.045, dark, -0.013, mz.y - 0.1, z); add(0.05, 0.014, 0.05, 0xd8b020, 0, mz.y - 0.1, z); }
+  }
+  if (att.quickdraw) add(0.044, 0.035, 0.05, 0x3a3a3a, 0, pistol ? bb.min.y + 0.06 : mz.y - 0.11, pistol ? rear - 0.07 : rear - 0.13);
+  // arco: palas pintadas, punta ancha en la flecha y estabilizador adelante
+  if (att.limbs) { add(0.03, 0.08, 0.03, 0xc8a040, 0, bb.max.y - 0.05, bb.min.z + 0.3); add(0.03, 0.08, 0.03, 0xc8a040, 0, bb.min.y + 0.05, bb.min.z + 0.3); }
+  if (att.broadhead) { add(0.03, 0.012, 0.03, 0x2a2a2a, mz.x, mz.y, mz.z - 0.01); add(0.012, 0.03, 0.03, 0x2a2a2a, mz.x, mz.y, mz.z - 0.01); }
+  if (att.stabilizer) { add(0.012, 0.012, 0.26, dark, 0, mz.y - 0.07, mz.z + 0.05); add(0.03, 0.03, 0.04, 0x3a3a3a, 0, mz.y - 0.07, mz.z - 0.08); }
 }
 function applyCamo(model) { model.traverse(o => { if (o.isMesh) o.material = camoMat(); }); return model; }
 
@@ -5193,7 +5304,7 @@ function equipModel(def) {
   weaponsState.model = buildWeaponModel(def);
   if (def.pap) applyCamo(weaponsState.model);
   else if (def.camo) tintModel(weaponsState.model, def.camo);        // F5.18: camuflaje de la carga
-  if (def.att) addAttachmentModels(weaponsState.model, def.att);      // F5.18: accesorios (cubos)
+  if (def.att) addAttachmentModels(weaponsState.model, def.att, def);      // F5.18: accesorios (cubos)
   weaponsState.group.add(weaponsState.model);
   const mz = weaponsState.model.userData.muzzle;
   weaponsState.muzzleSprite.position.copy(mz).add(new THREE.Vector3(0, 0, -0.04));
@@ -5294,9 +5405,10 @@ function meleeAttack() {
 
   const head = t === 'zombieHead';
   const z = h.object.userData.zombie;
-  const dmg = K.damage * (head ? K.headshotMul : 1);
+  const dmg = K.damage * (head ? K.headshotMul : 1) * (gumActive('sharpedge') ? 4 : 1);   // F5.18b: SHARP EDGE
   const wasAlive = z.alive;
   damageZombie(z, dmg, head, CONFIG.POINTS.meleeKill, undefined, h.object.userData.part);   // kill siempre da 130, headshot o no
+  gumMeleeHit(z);                                                // F5.18b: POP SHOCKS
   feelOnZombieHit(z, h, dir, dmg, head);
   onHitConfirm(head, wasAlive && !z.alive);
   // no toca state.shotsFired/shotsHit: munición infinita no debe inflar la precisión
@@ -5324,7 +5436,7 @@ function fireWeapon() {
   // fuego sostenido: el reloj avanza de a fireRate, no salta a "ahora". Si no, la cadencia se redondea
   // al frame siguiente (SMG 90ms -> 100ms a 60fps, -10% dps). Tras una pausa larga, arranca de cero.
   W.lastShot = now - W.lastShot < rate * 2 ? W.lastShot + rate : now;
-  s.mag--;
+  if (!gumActive('freefire')) s.mag--;                            // F5.18b: FREE FIRE
 
   // F5.11: bazooka: un cohete que vuela y explota (no es hitscan, no cuenta para precisión)
   if (def.rocket) {
@@ -5413,7 +5525,7 @@ function releaseBow(def) {
   const arrow = W.model && W.model.userData.arrow;
   if (arrow) arrow.position.z = -0.25;
   if (!s || s.mag <= 0) return null;
-  s.mag--;
+  if (!gumActive('freefire')) s.mag--;
   W.lastShot = performance.now();
   state.shotsFired++;
   const k = Math.min(1, W.charge / def.chargeTime);
@@ -6992,6 +7104,7 @@ function updateZombies(dt) {
     z.sx = z.sz = z.wantX = z.wantZ = 0;
     if (z.state !== 'walk') continue;
     if (DOWN.on) { fleeZombie(z, P); continue; }                // F5.18: tirado con Quick Revive, se alejan
+    if (gumActive('shadow') && !z.boss) { z.mode = 'direct'; continue; }   // F5.18b: SHADOW STEP, no te ven
     if (!lure) steerZombie(z, P);
     else if (!z.boss) steerZombie(z, lure, 0);                   // todos al langostino
     else { const d = FLOW.dist; FLOW.dist = FLOW.pdist; steerZombie(z, P); FLOW.dist = d; }   // el boss, al jugador
@@ -7088,7 +7201,7 @@ function updateZombies(dt) {
     const pl = playerLevel(), onTop = playerOnTop();
     // F5.6: si estás arriba de un mueble te agarra de las piernas desde el borde (si no, el medio de la cama era seguro)
     const reach = onTop !== undefined ? Math.max(K.attackRange, C.attackRangeOnTop) : K.attackRange;
-    if (DOWN.on) { /* F5.18: tirado: nadie pega */ }
+    if (DOWN.on || (gumActive('shadow') && !z.boss)) { /* F5.18: tirado (o SHADOW STEP): nadie pega */ }
     else if (z.boss) bossTryAttack(z, distP, pl, onTop);            // F5: golpe al piso con aviso
     else if ((z.level || 0) === pl && distP < reach && z.attackCd <= 0 &&
         segmentClear(z.px, z.pz, P.x, P.z, 0.02, false, onTop, pl)) {
@@ -8610,6 +8723,7 @@ function spawnMob() {
 function startRound(n) {
   if (n > 1 && n > state.round) { addXP(CONFIG.PROGRESSION.xp.round * (n - 1)); saveProfile(); }   // F5.18: XP por ronda terminada
   state.round = n;
+  GUMM.uses = 0;                       // F5.18b: la chiclera vuelve a 500
   roundState.phase = 'active';
   setSquidHead(n);                     // F5.13: la cabeza del calamar sube un poco por ronda
   clamsRound(n);                       // F5.14: las almejas que tocan cambian de color
@@ -8758,6 +8872,7 @@ function resetGame() {
   resetBunker();                       // F5.11: escotilla cerrada, estatuas de piedra
   resetClams();                        // F5.14
   resetMatchXP();                      // F5.18
+  resetGums();                         // F5.18b
   resetGibs();                         // F7b: sin pedazos en el piso: almejas vacías, fumigador en otro lugar (después de resetQuest)
   resetRockets();                      // F5.11: sin cohetes en vuelo ni arco cargando
   resetMonkeys();                      // F5.11: sin langostinos
@@ -8787,7 +8902,7 @@ function resetGame() {
 
 //=== 7. ECONOMY ==========================================================
 function addPoints(p) {
-  const amt = state.effects.doublePoints > 0 ? p * 2 : p;
+  const amt = state.effects.doublePoints > 0 || gumActive('beacon') ? p * 2 : p;   // F5.18b: BEACON
   state.points += amt;
   STATS.pointsEarned += amt;
   pendingPts += amt;
@@ -8959,6 +9074,7 @@ function refundBox() {
   pendingPts += n;
 }
 function spendPoints(cost) {
+  if (gumActive('freeall')) return true;                          // F5.18b: SHOPPING SPREE, todo gratis
   if (state.points < cost) return false;
   state.points -= cost;
   showSpend(cost);
@@ -8969,6 +9085,7 @@ function buyDoor(id) {
   const d = state.doors[id];
   if (!d || d.open || d.power || d.burning) return false;   // F5.7: el portón del sótano solo lo abre la energía
   if (!spendPoints(d.cost)) return false;
+  rollInk();                                                    // F5.18b: a veces cae una moneda de la tienda de chicles
   if (d.burn) return startBurn(d);                 // F5.12: el cerco arde y se abre al terminar (updateBurns lo cuenta)
   openDoor(id);
   STATS.doors++;
@@ -9203,11 +9320,14 @@ function rollBoxResult() {
 // F sobre la caja: pagar (idle) o agarrar (ready)
 function useBox() {
   if (BOX.phase === 'idle') {
-    if (!spendPoints(CONFIG.BOX.cost)) return false;
+    const lucky = gumActive('luckybox');                         // F5.18b: LUCKY BOX: gratis y sin oso
+    if (!lucky && !spendPoints(CONFIG.BOX.cost)) return false;
+    if (lucky) GUMM.fx.luckybox = 0; else rollInk();
     STATS.boxUses++;
     BOX.phase = 'rolling'; BOX.t = 0; BOX.nextCycle = 0;
     BOX.result = rollBoxResult();
-    BOX.paid = CONFIG.BOX.cost;                                  // F5.16: el oso devuelve lo pagado
+    if (lucky) for (let k = 0; k < 20 && BOX.result === 'teddy'; k++) BOX.result = rollBoxResult();
+    BOX.paid = lucky ? 0 : CONFIG.BOX.cost;                      // F5.16: el oso devuelve lo pagado
     return true;
   }
   if (BOX.phase === 'ready') {
@@ -9363,6 +9483,8 @@ function updateInteract() {
   if (pt) { bd = pt.dist; kind = 'portal'; target = pt.target; }
   const cl = clamNear(room, px, pz, bd);                          // F5.14: fumigador y almejas
   if (cl) { bd = cl.dist; kind = cl.kind; target = cl.target; }
+  const gm = gumNear(room, px, pz, bd);                           // F5.18b: chicleras
+  if (gm) { bd = gm.dist; kind = 'gum'; target = gm.target; }
   interactState.kind = kind; interactState.target = target;
 }
 function interact() {
@@ -9379,6 +9501,7 @@ function interact() {
   }
   if (it.kind === 'hatch') { const ok = useHatch(it.target); if (!ok) { sfxDeny(); denyPrompt(); } return ok; }   // F5.11
   if (it.kind === 'portal') { const ok = usePortal(it.target); if (!ok) { sfxDeny(); denyPrompt(); } return ok; }  // F5.16
+  if (it.kind === 'gum') { const ok = useGumMachine(it.target); if (ok) sfxBuy(); else { sfxDeny(); denyPrompt(); } return ok; }   // F5.18b
   const ok = it.kind === 'door' ? buyDoor(it.target.id)
            : it.kind === 'pap'  ? usePap()
            : it.kind === 'box'  ? useBox()
@@ -9389,6 +9512,13 @@ function interact() {
   if (ok) sfxBuy(); else { sfxDeny(); denyPrompt(); }
   updateInteract();
   return ok;
+}
+// F5.18b: moneda de la tienda de chicles (CONFIG.GUMS.currency), al azar al comprar puertas, lianas y la caja
+function rollInk() {
+  if (Math.random() >= CONFIG.GUMS.inkChance) return false;
+  addInk(1);
+  showBanner('+1 ' + CONFIG.GUMS.currency, 2);
+  return true;
 }
 function openDoor(id) {
   const d = state.doors[id];
@@ -9843,7 +9973,7 @@ function hasPerk(id) { return state.perks.indexOf(id) >= 0; }
 function maxHealth() { return hasPerk('jugg') ? CONFIG.PERKS.juggHealth : CONFIG.PLAYER.maxHealth; }
 function perkRate() { return hasPerk('dtap') ? CONFIG.PERKS.dtapRate : 1; }          // divide el intervalo entre disparos
 function perkDmg() { return hasPerk('dtap') ? CONFIG.PERKS.dtapDamage : 1; }
-function perkReload() { return hasPerk('speed') ? CONFIG.PERKS.speedReload : 1; }
+function perkReload() { return (hasPerk('speed') ? CONFIG.PERKS.speedReload : 1) * (gumActive('quickhands') ? 0.5 : 1); }   // F5.18b: QUICK HANDS
 function sprintMul() { return hasPerk('stamin') ? CONFIG.PERKS.staminSpeed : 1; }
 function staminaMul() { return hasPerk('stamin') ? CONFIG.PERKS.staminTime : 1; }
 
@@ -14004,23 +14134,68 @@ function resetClams() {
 // PROFILE se guarda en localStorage (CONFIG.PROGRESSION.key); si no hay (modo privado, tests) arranca de cero.
 // La carga: PROFILE.loadout[idArma] = { att: ['reflex', ...], camo: 'jungle' | null }. slotDef (weapons.js) aplica
 // los accesorios con attDef: un def cacheado por arma y combinación, CONFIG.WEAPONS no se toca
-const PROFILE = { name: 'SURVIVOR', xp: 0, loadout: {}, matchXP: 0, startLevel: 1 };
+const PROFILE = { name: 'SURVIVOR', xp: 0, loadout: {}, ink: 0, gums: {}, preset: [], matchXP: 0, startLevel: 1 };
 const ATT_DEFS = {};
-
+// F5.18b: cuentas locales. ACCOUNTS.list[nombre] = { xp, loadout, ink, gums, preset }; PROFILE es la activa.
+// DEV (solo con CONFIG.DEBUG_MODE): cuenta al máximo y todos los chicles, solo en memoria (no se guarda: al recargar vuelve)
+const ACCOUNTS = { current: 'SURVIVOR', list: {} };
+const DEV = { on: false };
+function blankAccount() { return { xp: 0, loadout: {}, ink: 0, gums: {}, preset: [] }; }
 function loadProfile() {
   try {
-    const raw = localStorage.getItem(CONFIG.PROGRESSION.key);
-    if (raw) { const p = JSON.parse(raw); PROFILE.name = String(p.name || 'SURVIVOR').slice(0, 16); PROFILE.xp = Math.max(0, +p.xp || 0); PROFILE.loadout = p.loadout || {}; }
+    const raw = localStorage.getItem(CONFIG.PROGRESSION.accountsKey);
+    if (raw) { const a = JSON.parse(raw); ACCOUNTS.list = a.list || {}; ACCOUNTS.current = a.current || Object.keys(ACCOUNTS.list)[0] || 'SURVIVOR'; }
+    else {                                                      // F5.18: la cuenta única de antes pasa a ser una cuenta
+      const old = localStorage.getItem(CONFIG.PROGRESSION.key);
+      if (old) { const p = JSON.parse(old), n = String(p.name || 'SURVIVOR').slice(0, 16); ACCOUNTS.list[n] = Object.assign(blankAccount(), { xp: +p.xp || 0, loadout: p.loadout || {} }); ACCOUNTS.current = n; }
+    }
   } catch (e) {}
-  sanitizeLoadout();
+  if (!ACCOUNTS.list[ACCOUNTS.current]) ACCOUNTS.list[ACCOUNTS.current] = blankAccount();
+  useAccount(ACCOUNTS.current);
+}
+function useAccount(name) {
+  const a = Object.assign(blankAccount(), ACCOUNTS.list[name] || {});
+  ACCOUNTS.list[name] = a; ACCOUNTS.current = name;
+  PROFILE.name = name; PROFILE.xp = Math.max(0, +a.xp || 0); PROFILE.loadout = a.loadout || {}; PROFILE.ink = Math.max(0, a.ink | 0);
+  PROFILE.gums = a.gums || {}; PROFILE.preset = Array.isArray(a.preset) ? a.preset.slice(0, CONFIG.GUMS.presetSize) : [];
+  sanitizeLoadout(); sanitizePreset();
 }
 function saveProfile() {
-  try { localStorage.setItem(CONFIG.PROGRESSION.key, JSON.stringify({ name: PROFILE.name, xp: PROFILE.xp, loadout: PROFILE.loadout })); } catch (e) {}
+  if (DEV.on) return;                                           // la cuenta de desarrollador no se guarda
+  ACCOUNTS.list[PROFILE.name] = { xp: PROFILE.xp, loadout: PROFILE.loadout, ink: PROFILE.ink, gums: PROFILE.gums, preset: PROFILE.preset };
+  try { localStorage.setItem(CONFIG.PROGRESSION.accountsKey, JSON.stringify({ current: ACCOUNTS.current, list: ACCOUNTS.list })); } catch (e) {}
+}
+function accountNames() { return Object.keys(ACCOUNTS.list); }
+function switchAccount(name) { if (!ACCOUNTS.list[name]) return false; saveProfile(); useAccount(name); saveProfile(); return true; }
+function createAccount(name) {
+  name = String(name || '').trim().toUpperCase().slice(0, 16);
+  if (!name || ACCOUNTS.list[name]) return false;
+  saveProfile(); ACCOUNTS.list[name] = blankAccount(); useAccount(name); saveProfile(); return true;
+}
+function renameAccount(name) {
+  name = String(name || '').trim().toUpperCase().slice(0, 16);
+  if (!name || (ACCOUNTS.list[name] && name !== PROFILE.name)) return false;
+  const a = ACCOUNTS.list[PROFILE.name]; delete ACCOUNTS.list[PROFILE.name];
+  ACCOUNTS.list[name] = a; ACCOUNTS.current = name; PROFILE.name = name; saveProfile(); return true;
+}
+function deleteAccount(name) {
+  if (!ACCOUNTS.list[name] || accountNames().length < 2) return false;
+  delete ACCOUNTS.list[name];
+  if (ACCOUNTS.current === name) useAccount(accountNames()[0]);
+  saveProfile(); return true;
+}
+// F5.18b: modo desarrollador: nivel máximo y todos los chicles, sin guardar (solo con CONFIG.DEBUG_MODE)
+function devMaxAccount() {
+  if (!CONFIG.DEBUG_MODE) return false;
+  saveProfile(); DEV.on = true;
+  for (const k in ATT_DEFS) delete ATT_DEFS[k];
+  if (typeof showBanner === 'function') showBanner('DEV ACCOUNT: MAX LEVEL + ALL GUMS (this session only)', 3);
+  return true;
 }
 // XP total para llegar al nivel L (nivel 1 = 0)
 function xpForLevel(L) { const P = CONFIG.PROGRESSION; let t = 0; for (let n = 1; n < L; n++) t += P.base + P.step * (n - 1); return t; }
 function levelOf(xp) { const P = CONFIG.PROGRESSION; let L = 1; while (L < P.maxLevel && xp >= xpForLevel(L + 1)) L++; return L; }
-function rankLevel() { return levelOf(PROFILE.xp); }
+function rankLevel() { return DEV.on ? CONFIG.PROGRESSION.maxLevel : levelOf(PROFILE.xp); }
 function tierName(L) { let n = ''; for (const [lv, name] of CONFIG.PROGRESSION.tiers) if (L >= lv) n = name; return n; }
 // progreso dentro del nivel: [xp en el nivel, xp que pide el nivel] (en el máximo, [0, 0])
 function levelProgress(xp) {
@@ -14032,6 +14207,10 @@ function levelProgress(xp) {
 function attUnlocked(key) { const A = CONFIG.PROGRESSION.attachments[key]; return !!A && rankLevel() >= A.level; }
 function camoUnlocked(id) { const C = CONFIG.PROGRESSION.camos.find(c => c.id === id); return !!C && rankLevel() >= C.level; }
 function canAttach(id) { return !!CONFIG.WEAPONS[id] && CONFIG.PROGRESSION.noAtt.indexOf(id) < 0; }
+// F5.18b: los accesorios que tiene sentido poner en esa arma, y cómo se llaman en ella
+const STD_ATT = ['quickdraw', 'fastmag', 'reflex', 'laser', 'barrel', 'stock'];
+function attsFor(id) { return CONFIG.PROGRESSION.weaponAtt[id] || STD_ATT; }
+function attName(id, key) { const a = CONFIG.PROGRESSION.attAlias[id]; return (a && a[key]) || CONFIG.PROGRESSION.attachments[key].name; }
 function loadoutOf(id) { return PROFILE.loadout[id] || (PROFILE.loadout[id] = { att: [], camo: null }); }
 // saca lo que no está desbloqueado o no existe, y respeta el tope de accesorios
 function sanitizeLoadout() {
@@ -14039,14 +14218,14 @@ function sanitizeLoadout() {
   for (const id in PROFILE.loadout) {
     const L = PROFILE.loadout[id];
     if (!canAttach(id) || !L) { delete PROFILE.loadout[id]; continue; }
-    L.att = (Array.isArray(L.att) ? L.att : []).filter((k, i, a) => a.indexOf(k) === i && attUnlocked(k)).slice(0, P.maxAtt);
+    L.att = (Array.isArray(L.att) ? L.att : []).filter((k, i, a) => a.indexOf(k) === i && attUnlocked(k) && attsFor(id).indexOf(k) >= 0).slice(0, P.maxAtt);
     if (L.camo && !camoUnlocked(L.camo)) L.camo = null;
   }
   for (const k in ATT_DEFS) delete ATT_DEFS[k];
 }
 // prende/apaga un accesorio en un arma (menú). Devuelve si quedó puesto
 function toggleAttachment(id, key) {
-  if (!canAttach(id) || !attUnlocked(key)) return false;
+  if (!canAttach(id) || !attUnlocked(key) || attsFor(id).indexOf(key) < 0) return false;
   const L = loadoutOf(id), i = L.att.indexOf(key);
   if (i >= 0) L.att.splice(i, 1);
   else if (L.att.length < CONFIG.PROGRESSION.maxAtt) L.att.push(key);
@@ -14070,6 +14249,9 @@ function attDef(b, id) {
   if (att.fastmag) d.reloadTime *= A.fastmag.reload;
   if (att.stock) d.recoil *= A.stock.recoil;
   if (att.reflex && !b.adsFov) d.adsFov = CONFIG.ADS.fov - A.reflex.zoom;
+  if (att.limbs && d.chargeTime) d.chargeTime *= A.limbs.charge;                          // F5.18b: arco
+  if (att.broadhead) d.damage *= A.broadhead.damage;
+  if (att.stabilizer) d.spread *= A.stabilizer.spread;
   d.att = att;
   const C = L.camo && CONFIG.PROGRESSION.camos.find(c => c.id === L.camo);
   d.camo = C ? C.color : null;
@@ -14080,12 +14262,13 @@ function curAtt(k) { const d = curDef(); return !!(d && d.att && d.att[k]); }
 // suma XP de la partida; avisa si subís de nivel (y qué se desbloqueó)
 function addXP(n) {
   if (!(n > 0)) return;
+  if (DEV.on) { PROFILE.matchXP += n; return; }                 // la cuenta dev no suma XP real
   const before = rankLevel();
   PROFILE.xp += n; PROFILE.matchXP += n;
   const after = rankLevel();
   if (after > before) {
     const P = CONFIG.PROGRESSION, un = [];
-    for (const k in P.attachments) if (P.attachments[k].level > before && P.attachments[k].level <= after) un.push(P.attachments[k].name);
+    for (const k in P.attachments) if (P.attachments[k].level > before && P.attachments[k].level <= after) un.push(P.attachments[k].name);   // (incluye los del arco)
     for (const c of P.camos) if (c.level > before && c.level <= after) un.push(c.name + ' CAMO');
     showBanner('LEVEL ' + after + ' · ' + tierName(after) + (un.length ? '  —  UNLOCKED: ' + un.join(', ') : ''), 3.5);
     if (typeof sfxRoundDrum === 'function') sfxRoundDrum(5);
@@ -14093,6 +14276,210 @@ function addXP(n) {
   }
 }
 function resetMatchXP() { PROFILE.matchXP = 0; PROFILE.startLevel = rankLevel(); }
+
+//--- F5.18b: chicles: inventario, preset y tienda (CONFIG.GUMS). Lo del juego (chiclera, efectos) va en gums.js ---
+function gumDef(id) { return CONFIG.GUMS.list[id]; }
+function gumClassic(id) { const g = gumDef(id); return !!g && g.rarity === 'classic'; }
+// cuántos tenés: ∞ (Infinity) si es clásico desbloqueado (o en modo dev), si no el inventario
+function gumCount(id) {
+  const g = gumDef(id);
+  if (!g) return 0;
+  if (DEV.on) return Infinity;
+  if (g.rarity === 'classic') return rankLevel() >= g.level ? Infinity : 0;
+  return PROFILE.gums[id] | 0;
+}
+function sanitizePreset() {
+  const n = CONFIG.GUMS.presetSize;
+  PROFILE.preset = (PROFILE.preset || []).filter((id, i, a) => gumDef(id) && a.indexOf(id) === i).slice(0, n);
+}
+// pone el chicle en el lugar i del preset (si ya estaba en otro lugar, se mueve). null = vaciar
+function setPresetSlot(i, id) {
+  const P = PROFILE.preset, n = CONFIG.GUMS.presetSize;
+  if (i < 0 || i >= n) return false;
+  if (id && (!gumDef(id) || gumCount(id) <= 0)) return false;
+  const j = id ? P.indexOf(id) : -1;
+  if (j >= 0) P[j] = null;
+  while (P.length < n) P.push(null);
+  P[i] = id || null;
+  PROFILE.preset = P;
+  saveProfile(); return true;
+}
+function presetGums() { return (PROFILE.preset || []).filter(id => id && gumCount(id) > 0); }
+// gasta uno (los clásicos no se gastan)
+function useGumItem(id) {
+  if (gumClassic(id) || DEV.on) return true;
+  if ((PROFILE.gums[id] | 0) <= 0) return false;
+  PROFILE.gums[id]--; saveProfile(); return true;
+}
+function addInk(n) { if (DEV.on) return; PROFILE.ink += n; saveProfile(); }
+// sorteo de la tienda: tiers 1..3 (monedas). Devuelve la lista de ids ganados (ya sumados al inventario)
+function rollGumPack(tier, rnd) {
+  const S = CONFIG.GUMS.shop[tier];
+  if (!S) return null;
+  if (!DEV.on) { if (PROFILE.ink < tier) return null; PROFILE.ink -= tier; }
+  rnd = rnd || Math.random;
+  const out = [];
+  for (let i = 0; i < S.count; i++) {
+    let r = rnd(), rar = 'rare';
+    for (const k of ['epic', 'ultra', 'rare']) { if (r < S.odds[k]) { rar = k; break; } r -= S.odds[k]; }
+    const pool = Object.keys(CONFIG.GUMS.list).filter(id => gumDef(id).rarity === rar);
+    const id = pool[Math.floor(rnd() * pool.length) % pool.length];
+    out.push(id);
+    if (!DEV.on) PROFILE.gums[id] = (PROFILE.gums[id] | 0) + 1;
+  }
+  saveProfile();
+  return out;
+}
+//=== 7k. CHICLES EN LA PARTIDA (V2 F5.18b) ==================================
+// Chicleras (CONFIG.GUMS.machine): pagás puntos (500, 1000, 2000 en la misma ronda, hasta maxPerRound) y sale uno al azar
+// de tu preset (progress.js presetGums). Queda `offer` s en la bandeja: F lo agarra (recién ahí se gasta, si no es
+// clásico); si no, se va y el chicle sigue en tu inventario. Al agarrarlo se activa según su tipo (instant, timed,
+// charges con T, melee, passive). GUMM.fx[id] = segundos que le quedan a un efecto; GUMM.held = el de cargas
+const GUMM = { machines: [], offer: null, held: null, fx: {}, uses: 0 };
+
+function buildGumMachines() {
+  const M = CONFIG.GUMS.machine, S = M.size;
+  for (const sp of M.spots) {
+    const mb = new MeshBuilder(), r = relicBody(mb, sp, S, 0x000000, 'gum', 'gum');
+    mb.p.length = mb.n.length = mb.uv.length = mb.c.length = mb.i.length = 0;   // (relicBody dibuja una caja: la cambiamos)
+    mb.setFrame(sp.x, 0, sp.z, sp.rot);
+    // cúbica: base roja, columna, globo de vidrio con chicles de colores, tapa, ranura de monedas y bandeja
+    mb.box(0, 0.12, 0, 0.9, 0.24, 0.7, 0x8a1a1a);
+    mb.box(0, 0.55, 0, 0.6, 0.62, 0.5, 0xc8282a);
+    mb.box(0, 0.86, 0, 0.66, 0.06, 0.56, 0xe8c030);
+    mb.box(0, 0.55, 0.26, 0.2, 0.14, 0.02, 0x2a2a2a);                     // bandeja
+    mb.box(0.18, 0.72, 0.26, 0.08, 0.1, 0.02, 0xd8d8d8);                  // ranura
+    mb.box(-0.18, 0.72, 0.26, 0.12, 0.12, 0.04, 0xb8b8c0);                // perilla
+    let s = 7; const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+    const cols = [0xff4a4a, 0x4aa8ff, 0x6ad86a, 0xffd23a, 0xd060ff, 0xff8a2a, 0xf0f0f0];
+    for (let i = 0; i < 26; i++) mb.box((rnd() - 0.5) * 0.44, 0.96 + rnd() * 0.42, (rnd() - 0.5) * 0.34, 0.08, 0.08, 0.08, cols[i % cols.length], 0, rnd() * 3, 0);
+    mb.box(0, 1.56, 0, 0.66, 0.08, 0.56, 0xc8282a); mb.box(0, 1.64, 0, 0.3, 0.08, 0.26, 0xe8c030);
+    mb.setFrame(null);
+    const body = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
+    if (body) { body.userData.theme = false; body.updateMatrix(); }
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.64, 0.48), new THREE.MeshLambertMaterial({ color: 0xcfe8ff, transparent: true, opacity: 0.28, depthWrite: false }));
+    glass.position.set(sp.x, 1.2, sp.z); glass.rotation.y = sp.rot; glass.userData.theme = false; scene.add(glass);
+    // el chicle que sale: un cubo que brilla en la bandeja, con el color del chicle (MeshBasic, sin luces)
+    const ball = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    const f = new THREE.Vector3(0, 0.66, 0.34).applyAxisAngle(new THREE.Vector3(0, 1, 0), sp.rot);
+    ball.position.set(sp.x + f.x, f.y, sp.z + f.z); ball.visible = false; ball.userData.theme = false; scene.add(ball);
+    GUMM.machines.push({ room: sp.room, x: sp.x, z: sp.z, col: r.col, ball, y0: f.y });
+  }
+}
+function gumActive(id) { return (GUMM.fx[id] || 0) > 0; }
+function gumCost() { const C = CONFIG.GUMS.machine.cost; return C[Math.min(GUMM.uses, C.length - 1)]; }
+function gumNear(room, px, pz, bd) {
+  let best = null;
+  for (const m of GUMM.machines) {
+    if (!room || room.id !== m.room) continue;
+    const d = colDist(m.col, px, pz);
+    if (d < bd) { bd = d; best = { dist: d, target: m }; }
+  }
+  return best;
+}
+function gumPrompt(m) {
+  const O = GUMM.offer, G = CONFIG.GUMS;
+  if (O && O.m === m) { const g = gumDef(O.id); return { text: '[F] Take ' + g.name + ' (' + G.rarities[g.rarity].name + ')', cost: 0 }; }
+  if (!presetGums().length) return { text: 'Gum machine - pick your gums in the menu', cost: 0 };
+  if (GUMM.uses >= G.machine.maxPerRound) return { text: 'Gum machine - come back next round', cost: 0 };
+  return { text: '[F] Gum machine (' + gumCost() + ')', cost: gumCost() };
+}
+function useGumMachine(m) {
+  const O = GUMM.offer, G = CONFIG.GUMS;
+  if (O && O.m === m) return takeGum();
+  if (O) return false;                                            // ya hay uno esperando en otra
+  const pool = presetGums();
+  if (!pool.length || GUMM.uses >= G.machine.maxPerRound) return false;
+  if (!spendPoints(gumCost())) return false;
+  GUMM.uses++;
+  const id = pool[Math.floor(Math.random() * pool.length)];
+  GUMM.offer = { id, m, t: G.machine.offer };
+  m.ball.material.color.set(gumDef(id).color); m.ball.visible = true;
+  showBanner(gumDef(id).icon + ' ' + gumDef(id).name + ' — [F] take', 2.2);
+  return true;
+}
+function takeGum() {
+  const O = GUMM.offer;
+  if (!O) return false;
+  if (!useGumItem(O.id)) { O.m.ball.visible = false; GUMM.offer = null; return false; }
+  O.m.ball.visible = false; GUMM.offer = null;
+  activateGum(O.id);
+  return true;
+}
+function activateGum(id) {
+  const g = gumDef(id);
+  if (!g) return false;
+  if (g.type === 'instant') applyGum(id);
+  else if (g.type === 'timed') GUMM.fx[id] = g.time;
+  else if (g.type === 'passive') GUMM.fx[id] = Infinity;
+  else GUMM.held = { id, charges: g.charges };                     // charges / melee
+  showBanner(g.icon + ' ' + g.name + (g.type === 'charges' ? ' — press T' : ''), 2);
+  updateGumHUD();
+  return true;
+}
+// T: usa una carga del chicle que tenés en la mano
+function useHeldGum() {
+  const H = GUMM.held;
+  if (!H || !state.running || DOWN.on || gumDef(H.id).type !== 'charges') return false;
+  applyGum(H.id);
+  if (--H.charges <= 0) GUMM.held = null;
+  updateGumHUD();
+  return true;
+}
+function applyGum(id) {
+  const P = player.pos;
+  if (id === 'restock') { const s = curSlot(); if (s) s.reserve = slotDef(s).reserveMax; updateAmmoHUD(); }
+  else if (id === 'pointrain') state.points += gumDef(id).points;
+  else if (id === 'insta3') state.effects.instakill = Math.max(state.effects.instakill, 15);
+  else if (id === 'secretsip') freePerk();
+  else if (id === 'sunburn') kaboom();
+  else if (id === 'powerdrop') {
+    const keys = POWERUP_KEYS.filter(k => k !== 'kaboom');
+    for (let i = 0; i < 2; i++) trySpawnPickup(P.x + (i ? 1.2 : -1.2), P.z + 1, keys[Math.floor(Math.random() * keys.length)]);
+  }
+  else if (id === 'crawlspace') { for (const z of state.zombies) if (z.alive && isHuman(z) && !z.crawl && Math.hypot(z.px - P.x, z.pz - P.z) < 20) startCrawl(z); }
+  else if (id === 'perkaholic') {
+    for (const k of PERK_KEYS) if (!hasPerk(k) && !(PERKM.machines[k] && PERKM.machines[k].gone)) state.perks.push(k);
+    state.health = maxHealth(); updatePerkHUD();
+  }
+  else if (id === 'blessing') {
+    const s = curSlot();
+    if (s && !s.pap && s.id !== 'wave') { s.pap = true; const d = slotDef(s); s.mag = d.magSize; s.reserve = d.reserveMax; equipModel(d); updateAmmoHUD(); }
+  }
+  sfxBuy();
+}
+// cuchillo con POP SHOCKS: la zona del golpe explota (sin daño propio)
+function gumMeleeHit(z) {
+  const H = GUMM.held;
+  if (!H || H.id !== 'popshock') return;
+  explodeAt(z.px, groundY(z.px, z.pz) + 1, z.pz, { damage: 300 + 50 * state.round, radius: 3.5, self: 0 });
+  if (--H.charges <= 0) GUMM.held = null;
+  updateGumHUD();
+}
+function updateGums(dt) {
+  for (const k in GUMM.fx) if (GUMM.fx[k] > 0 && GUMM.fx[k] !== Infinity) { GUMM.fx[k] = Math.max(0, GUMM.fx[k] - dt); if (!GUMM.fx[k]) updateGumHUD(); }
+  const O = GUMM.offer;
+  if (O) {
+    O.t -= dt;
+    O.m.ball.position.y = O.m.y0 + Math.sin(clock.elapsedTime * 6) * 0.02;
+    O.m.ball.rotation.y += dt * 3;
+    if (O.t <= 0) { O.m.ball.visible = false; GUMM.offer = null; }   // no lo agarraste: no se gastó
+  }
+  if (UI.gumhud && (GUMM.held || Object.keys(GUMM.fx).some(k => GUMM.fx[k] > 0))) updateGumHUD();
+}
+function updateGumHUD() {
+  if (!UI.gumhud) return;
+  let h = '';
+  const chip = (g, txt) => '<i style="border-color:' + CONFIG.GUMS.rarities[g.rarity].color + ';background:' + g.color + '">' + g.icon + '<b>' + txt + '</b></i>';
+  if (GUMM.held) h += chip(gumDef(GUMM.held.id), (gumDef(GUMM.held.id).type === 'charges' ? 'T ' : '') + '×' + GUMM.held.charges);
+  for (const k in GUMM.fx) if (GUMM.fx[k] > 0) h += chip(gumDef(k), GUMM.fx[k] === Infinity ? '' : Math.ceil(GUMM.fx[k]) + 's');
+  if (h !== UI.gumhud.innerHTML) UI.gumhud.innerHTML = h;
+}
+function resetGums() {
+  GUMM.offer = null; GUMM.held = null; GUMM.fx = {}; GUMM.uses = 0;
+  for (const m of GUMM.machines) m.ball.visible = false;
+  updateGumHUD();
+}
 //=== 8. UI ===============================================================
 const UI = {};
 function initUI() {
@@ -14125,7 +14512,8 @@ function initUI() {
   UI.lowhp = document.getElementById('lowhp');
   UI.dmgNums = document.getElementById('dmgNums');  // F5.11: ajuste "números de daño"
   UI.ink = document.getElementById('ink');          // F5.9: tinta de calamar
-  UI.fade = document.getElementById('fade');        // F5.11: fundido de la escotilla
+  UI.fade = document.getElementById('fade');
+  UI.gumhud = document.getElementById('gumhud');    // F5.18b: chicles activos        // F5.11: fundido de la escotilla
   UI.go = document.getElementById('gameover');
   UI.goRound = document.getElementById('goRound');
   UI.goKills = document.getElementById('goKills');
@@ -14133,7 +14521,7 @@ function initUI() {
   ['goTime', 'goHeads', 'goKnife', 'goFav', 'goPts', 'goDmg', 'goDoors', 'goBox', 'btnGoMenu', 'btnPlay', 'btnControls',
    'btnSettings', 'btnQuit', 'panelControls', 'panelSettings', 'sens', 'sensVal', 'vol', 'volVal', 'menuMsg',
    'btnMaps', 'btnWeapons', 'btnProfile', 'panelMaps', 'panelWeapons', 'panelProfile', 'mProfMini', 'menuSil', 'goXP', 'goLvl',   // F5.18
-   'mapCity', 'mapBeach', 'mapQ']
+   'mapCity', 'mapBeach', 'mapQ', 'btnGums', 'panelGums']
     .forEach(id => { UI[id] = document.getElementById(id); });
   UI.goBest = document.getElementById('goBest');
   UI.record = document.getElementById('record');
@@ -14168,6 +14556,7 @@ function promptFor(it) {
   if (it.kind === 'portal') return portalPrompt(it.target); // F5.16
   if (it.kind === 'fumigator' || it.kind === 'clam') return clamPrompt(it);   // F5.14
   if (it.kind === 'pap') return papPrompt();
+  if (it.kind === 'gum') return gumPrompt(it.target);   // F5.18b: chiclera
   if (it.kind === 'box') {
     if (BOX.phase === 'ready') return { text: '[F] Take ' + (BOX.result === 'monkey' ? CONFIG.MONKEY.name : CONFIG.WEAPONS[BOX.result].name), cost: 0 };
     return { text: '[F] Mystery Box - ' + CONFIG.BOX.cost, cost: CONFIG.BOX.cost };
@@ -14186,7 +14575,7 @@ function updatePromptUI(dt) {
   let text = '', poor = false;
   if (it.kind && state.running) {
     const p = promptFor(it);
-    text = p.text; poor = state.points < p.cost;
+    text = p.text; poor = state.points < p.cost && !gumActive('freeall');   // F5.18b: SHOPPING SPREE
   }
   if (text !== promptText) {
     promptText = text;
@@ -14271,7 +14660,7 @@ function showMenu(mode) {                  // 'main' | 'pause' | null (ocultar)
   UI.start.classList.remove('hidden');
 }
 const MENU_PANELS = { maps: ['panelMaps', 'btnMaps'], weapons: ['panelWeapons', 'btnWeapons'], profile: ['panelProfile', 'btnProfile'],
-                      settings: ['panelSettings', 'btnSettings'], controls: ['panelControls', 'btnControls'] };
+                      settings: ['panelSettings', 'btnSettings'], controls: ['panelControls', 'btnControls'], gums: ['panelGums', 'btnGums'] };
 function menuPanel(which) {                // abre uno, cierra los otros; clic de nuevo = cerrar
   for (const k in MENU_PANELS) {
     const p = UI[MENU_PANELS[k][0]], b = UI[MENU_PANELS[k][1]];
@@ -14281,6 +14670,7 @@ function menuPanel(which) {                // abre uno, cierra los otros; clic d
   }
   if (which === 'weapons') renderWeaponsPanel();
   if (which === 'profile') renderProfilePanel();
+  if (which === 'gums') renderGumsPanel();
 }
 function xpBarHTML(cls) {
   const [a, b] = levelProgress(PROFILE.xp), k = b ? a / b : 1;
@@ -14298,17 +14688,24 @@ function renderProfilePanel() {
   for (const k in P.attachments) if (P.attachments[k].level > L) next.push([P.attachments[k].level, P.attachments[k].name]);
   for (const c of P.camos) if (c.level > L) next.push([c.level, c.name + ' CAMO']);
   next.sort((x, y) => x[0] - y[0]);
-  UI.panelProfile.innerHTML = '<h3>PROFILE</h3><div class="prof"><div class="badge">' + L + '</div><div>' +
+  const opts = accountNames().map(n => '<option' + (n === PROFILE.name ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+  UI.panelProfile.innerHTML = '<h3>PROFILE</h3>' +
+    '<div class="acct">ACCOUNT <select id="acctSel">' + opts + '</select><input id="acctNew" maxlength="16" placeholder="NEW ACCOUNT"><button id="acctAdd">CREATE</button>' +
+    (accountNames().length > 1 ? '<button id="acctDel">DELETE</button>' : '') +
+    (CONFIG.DEBUG_MODE ? '<button id="devMax" class="dev">' + (DEV.on ? 'DEV ACCOUNT ON' : 'DEV: MAX ACCOUNT (this session)') + '</button>' : '') + '</div>' +
+    '<div class="prof"><div class="badge">' + L + '</div><div>' +
     '<input id="profName" maxlength="16" value="' + esc(PROFILE.name) + '">' +
     '<div class="tier">' + tierName(L) + '</div>' + xpBarHTML('pbar') +
     '<p class="dim">' + (b ? a + ' / ' + b + ' XP to level ' + (L + 1) : 'MAX LEVEL') + '</p></div></div>' +
     '<div class="pstats"><span>Level</span><span>' + L + ' / ' + P.maxLevel + '</span><span>Total XP</span><span>' + PROFILE.xp + '</span>' +
     '<span>Best round</span><span>' + loadHighScore() + '</span>' +
     '<span>Next unlock</span><span>' + (next.length ? next[0][1] + ' (level ' + next[0][0] + ')' : 'Everything unlocked') + '</span></div>';
-  const inp = document.getElementById('profName');
-  if (inp && inp.addEventListener) inp.addEventListener('change', () => {
-    PROFILE.name = (inp.value || 'SURVIVOR').toUpperCase().slice(0, 16); saveProfile(); renderProfileMini();
-  });
+  const inp = document.getElementById('profName'), on = (id, ev, f) => { const e = document.getElementById(id); if (e && e.addEventListener) e.addEventListener(ev, f); };
+  on('profName', 'change', () => { if (!renameAccount(inp.value)) UI.menuMsg.textContent = 'That name is taken.'; renderProfilePanel(); renderProfileMini(); });
+  on('acctSel', 'change', e => { switchAccount(e.target.value); renderProfilePanel(); renderProfileMini(); });
+  on('acctAdd', 'click', () => { const n = document.getElementById('acctNew').value; if (!createAccount(n)) UI.menuMsg.textContent = 'Pick a new name.'; renderProfilePanel(); renderProfileMini(); });
+  on('acctDel', 'click', () => { if (confirm('Delete account ' + PROFILE.name + '?')) deleteAccount(PROFILE.name); renderProfilePanel(); renderProfileMini(); });
+  on('devMax', 'click', () => { devMaxAccount(); renderProfilePanel(); renderProfileMini(); });
 }
 function renderWeaponsPanel() {
   const P = CONFIG.PROGRESSION, ids = Object.keys(CONFIG.WEAPONS).filter(canAttach);
@@ -14317,10 +14714,10 @@ function renderWeaponsPanel() {
   let h = '<h3>WEAPONS · ATTACHMENTS (' + L.att.length + '/' + P.maxAtt + ')</h3><div class="wgrid"><div class="wlist">';
   for (const w of ids) { const n = (PROFILE.loadout[w] && PROFILE.loadout[w].att.length) || 0;
     h += '<button data-w="' + w + '" class="' + (w === id ? 'on' : '') + '">' + CONFIG.WEAPONS[w].name + (n ? '<small>' + n + '</small>' : '') + '</button>'; }
-  h += '</div><div><b style="letter-spacing:3px">' + CONFIG.WEAPONS[id].name + '</b><div class="atts">';
-  for (const k in P.attachments) {
+  h += '</div><div><b style="letter-spacing:3px">' + CONFIG.WEAPONS[id].name + '</b><div id="wprev" class="wprev"></div><div class="atts">';
+  for (const k of attsFor(id)) {                     // F5.18b: solo los que tienen sentido en esa arma
     const A = P.attachments[k], lock = lv < A.level, on = L.att.indexOf(k) >= 0;
-    h += '<div class="att' + (on ? ' on' : '') + (lock ? ' locked' : '') + '" data-a="' + k + '"><b>' + A.name + '</b><span>' +
+    h += '<div class="att' + (on ? ' on' : '') + (lock ? ' locked' : '') + '" data-a="' + k + '"><b>' + attName(id, k) + '</b><span>' +
          (lock ? 'Unlocks at level ' + A.level : A.desc) + '</span></div>';
   }
   h += '</div><b style="letter-spacing:3px">CAMO</b><div class="camos" style="margin-top:8px">' +
@@ -14333,6 +14730,7 @@ function renderWeaponsPanel() {
   h += '</div></div></div>';
   UI.panelWeapons.innerHTML = h;
   if (!UI.panelWeapons.querySelectorAll) return;
+  weaponPreview(document.getElementById('wprev'), id);   // F5.18b: el arma con lo que le pusiste, girando
   UI.panelWeapons.querySelectorAll('[data-w]').forEach(b => b.addEventListener('click', () => { MENU.weapon = b.dataset.w; renderWeaponsPanel(); }));
   UI.panelWeapons.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.a;
@@ -14345,6 +14743,103 @@ function renderWeaponsPanel() {
     if (c && !camoUnlocked(c)) return;
     setCamo(id, c); renderWeaponsPanel();
   }));
+}
+// F5.18b: vista previa del arma en el menú de armas. Un renderer chico aparte (se crea la primera vez que se abre el
+// panel); el modelo se arma igual que en la mano (accesorios y camo) y gira despacio mientras el panel está abierto
+const WPREV = { r: null, scene: null, cam: null, model: null };
+function weaponPreview(host, id) {
+  if (!host) return;
+  if (!WPREV.r) {
+    try { WPREV.r = new THREE.WebGLRenderer({ antialias: true, alpha: true }); } catch (e) { return; }
+    WPREV.r.setPixelRatio(Math.min(devicePixelRatio, 2)); WPREV.r.setSize(440, 180);
+    WPREV.scene = new THREE.Scene();
+    WPREV.scene.add(new THREE.HemisphereLight(0xfff4e0, 0x404858, 1.15));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.9); dl.position.set(1.5, 2, 2); WPREV.scene.add(dl);
+    WPREV.cam = new THREE.PerspectiveCamera(28, 440 / 180, 0.01, 20);
+  }
+  host.appendChild(WPREV.r.domElement);
+  if (WPREV.model) WPREV.scene.remove(WPREV.model);
+  const def = slotDef({ id }), m = buildWeaponModel(def);
+  if (def.camo) tintModel(m, def.camo);
+  if (def.att) addAttachmentModels(m, def.att, def);
+  const beams = []; m.traverse(o => { if (o.userData.beam) beams.push(o); });
+  beams.forEach(o => o.parent.remove(o));                              // el haz del láser no entra en la vista (ni en la caja)
+  const w = Math.max(240, Math.min(560, host.clientWidth || 440));
+  WPREV.r.setSize(w, 180); WPREV.cam.aspect = w / 180; WPREV.cam.updateProjectionMatrix();
+  m.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(m), c = bb.getCenter(new THREE.Vector3()), sz = bb.getSize(new THREE.Vector3());
+  m.position.sub(c);
+  const g = new THREE.Group(); g.add(m); g.rotation.y = Math.PI / 2 + 0.35; WPREV.model = g; WPREV.scene.add(g);
+  const r = Math.max(sz.z * 0.62, sz.y, 0.25);
+  WPREV.cam.position.set(0, r * 0.2, r * 2.2); WPREV.cam.lookAt(0, 0, 0);
+  WPREV.r.render(WPREV.scene, WPREV.cam);
+}
+function updateWeaponPreview(dt) {
+  if (!WPREV.model || !UI.panelWeapons || !UI.panelWeapons.classList.contains('open')) return;
+  WPREV.model.rotation.y += dt * 0.6;
+  WPREV.r.render(WPREV.scene, WPREV.cam);
+}
+// F5.18b: pestaña de chicles: preset de 5, todos los chicles (con cuántos tenés) y la tienda con la moneda
+const GUMUI = { slot: 0, rolling: false };
+function gumChip(g, cls) { return '<i class="gum ' + (cls || '') + '" style="background:' + g.color + ';border-color:' + CONFIG.GUMS.rarities[g.rarity].color + '">' + g.icon + '</i>'; }
+function renderGumsPanel() {
+  const G = CONFIG.GUMS, n = G.presetSize, lv = rankLevel();
+  let h = '<h3>GUMS · ' + G.currency + ': ' + (DEV.on ? '∞' : PROFILE.ink) + '</h3><div class="dim">PRESET (click a slot, then a gum)</div><div class="preset">';
+  for (let i = 0; i < n; i++) {
+    const id = PROFILE.preset[i], g = id && gumDef(id);
+    h += '<div class="pslot' + (g ? '' : ' empty') + (GUMUI.slot === i ? ' sel' : '') + '" data-slot="' + i + '">' +
+         (g ? gumChip(g) + '<div>' + g.name + '</div>' : '<i class="gum">+</i><div>EMPTY</div>') + '</div>';
+  }
+  h += '</div><div class="gumgrid">';
+  for (const r of ['classic', 'rare', 'ultra', 'epic']) for (const id in G.list) {
+    const g = G.list[id];
+    if (g.rarity !== r) continue;
+    const c = gumCount(id), lock = r === 'classic' && lv < g.level && !DEV.on;
+    const tag = lock ? 'LOCKED · LV ' + g.level : c === Infinity ? G.rarities[r].name + ' · ∞' : G.rarities[r].name + ' · ×' + c;
+    h += '<div class="gcard' + (c > 0 ? '' : ' none') + '" data-gum="' + id + '" title="' + esc(g.desc) + '">' + gumChip(g) + '<div><b>' + g.name + '</b><span>' + tag + '</span><br><span>' + esc(g.desc) + '</span></div></div>';
+  }
+  h += '</div><div class="dim">SHOP — spend ' + G.currency + ' (drops from doors, vines and the Mystery Box)</div><div class="shop">';
+  for (let t = 1; t <= 3; t++) {
+    const o = G.shop[t].odds;
+    h += '<button data-shop="' + t + '"' + ((PROFILE.ink >= t || DEV.on) && !GUMUI.rolling ? '' : ' disabled') + '>' + t + ' INK · ' + G.shop[t].count + ' GUM' + (t > 1 ? 'S' : '') +
+         '<br><small>' + Math.round(o.rare * 100) + '/' + Math.round(o.ultra * 100) + '/' + Math.round(o.epic * 100) + '%</small></button>';
+  }
+  h += '</div><div id="gumRoll"></div>';
+  UI.panelGums.innerHTML = h;
+  if (!UI.panelGums.querySelectorAll) return;
+  UI.panelGums.querySelectorAll('[data-slot]').forEach(e => e.addEventListener('click', () => {
+    const i = +e.dataset.slot;
+    if (GUMUI.slot === i && PROFILE.preset[i]) setPresetSlot(i, null);
+    GUMUI.slot = i; renderGumsPanel();
+  }));
+  UI.panelGums.querySelectorAll('[data-gum]').forEach(e => e.addEventListener('click', () => {
+    if (!setPresetSlot(GUMUI.slot, e.dataset.gum)) return;
+    GUMUI.slot = Math.min(n - 1, GUMUI.slot + 1); renderGumsPanel();
+  }));
+  UI.panelGums.querySelectorAll('[data-shop]').forEach(e => e.addEventListener('click', () => gumShop(+e.dataset.shop)));
+}
+// sorteo con animación: los chicles pasan rápido 1.6 s y quedan los ganados
+function gumShop(tier) {
+  if (GUMUI.rolling) return;
+  const won = rollGumPack(tier);
+  if (!won) { UI.menuMsg.textContent = 'Not enough ' + CONFIG.GUMS.currency + '.'; return; }
+  GUMUI.rolling = true; renderGumsPanel();
+  const box = document.getElementById('gumRoll'), all = Object.keys(CONFIG.GUMS.list).filter(id => !gumClassic(id));
+  let t = 0;
+  const tick = () => {
+    t += 80;
+    if (t < 1600) {
+      box.innerHTML = won.map(() => gumChip(gumDef(all[Math.floor(Math.random() * all.length)]))).join('');
+      setTimeout(tick, 80);
+      return;
+    }
+    GUMUI.rolling = false; renderGumsPanel();
+    const b2 = document.getElementById('gumRoll');
+    if (b2) b2.innerHTML = won.map(id => { const g = gumDef(id), R = CONFIG.GUMS.rarities[g.rarity];
+      return '<div class="won">' + gumChip(g) + '<div style="color:' + R.color + '">' + R.name + '</div><div>' + g.name + '</div></div>'; }).join('');
+    if (typeof sfxBuy === 'function') sfxBuy();
+  };
+  tick();
 }
 // mapas: solo la playa; los otros dos, bloqueados
 function pickMap(key) {
@@ -15546,6 +16041,7 @@ function debugKey(code, repeat) {
   if (code === 'KeyK') { roundState.nextDog = state.round + 1; debugRound(state.round + 1); return true; }
   if (code === 'KeyJ') { roundState.forceBoss = state.round + 1; debugRound(state.round + 1); return true; }
   if (code === 'KeyO') { debugUnlockAll(); return true; }
+  if (code === 'KeyX') { devMaxAccount(); return true; }            // F5.18b: cuenta al máximo y todos los chicles (solo la sesión)
   if (code === 'KeyB') { toggleNavDebug(); return true; }
   if (code === 'KeyH') { UI.debug.style.display = UI.debug.style.display === 'none' ? '' : 'none'; return true; }
   return false;
@@ -15655,6 +16151,7 @@ function init() {
   buildBox();
   buildRelics();
   buildPerks();
+  buildGumMachines();                    // F5.18b: chicleras
   buildShield();
   buildQuest();                         // F5.5
   buildGarden();                        // F5.6: plantas carnívoras del techo
@@ -15719,6 +16216,7 @@ function bindInput() {
   UI.btnMaps.addEventListener('click', () => menuPanel('maps'));           // F5.18
   UI.btnWeapons.addEventListener('click', () => menuPanel('weapons'));
   UI.btnProfile.addEventListener('click', () => menuPanel('profile'));
+  UI.btnGums.addEventListener('click', () => menuPanel('gums'));        // F5.18b
   UI.mapCity.addEventListener('click', () => pickMap('city'));
   UI.mapBeach.addEventListener('click', () => pickMap('beach'));
   UI.mapQ.addEventListener('click', () => pickMap('q'));
@@ -15801,6 +16299,7 @@ function bindInput() {
     if (e.code === 'KeyV') meleeAttack();
     if (e.code === 'KeyG' && !e.repeat) startCook();   // soltar G la tira (updateGrenades mira keys.KeyG)
     if (e.code === 'Digit4' && !e.repeat) throwMonkey();   // F5.11: langostino bailarín
+    if (e.code === 'KeyT' && !e.repeat) useHeldGum();  // F5.18b: chicle con cargas
     if (e.code === 'KeyF' && !e.repeat) interact();   // sin repeat: mantener F no compra dos veces
     debugKey(e.code, e.repeat);                        // P, N, [, ], O, B, H: solo con CONFIG.DEBUG_MODE (debug.js)
   });
@@ -15833,6 +16332,7 @@ function animate() {
     updateRelics(dt);
     updatePerks(dt);
     updateDown(dt);                     // F5.18: tirado con Quick Revive
+    updateGums(dt);                     // F5.18b: chicles
     updateShield(dt);
     updateQuest(dt);                    // F5.5: después de updateShield (comparten la barra de armado)
     updateClams(dt);                    // F5.14: almejas (también usa la barra)
@@ -15863,8 +16363,8 @@ function animate() {
   if (dmgT > 0) { dmgT -= dt; UI.dmg.style.opacity = Math.max(0, dmgT / CONFIG.FEEL.hurtFlash).toFixed(2); }
   updateDebug(dt);
 
-  if (!state.running && MENU.mode === 'main') menuCamera();   // F5.18: el mundo detrás del menú
-  weaponScene.visible = MENU.mode !== 'main';
+  if (!state.running && MENU.mode === 'main') { menuCamera(); updateWeaponPreview(dt); }   // F5.18: el mundo detrás del menú
+  weaponScene.visible = state.running || MENU.mode === 'pause';
   if (renderer.info) renderer.info.reset();
   renderer.clear();
   renderer.render(scene, camera);

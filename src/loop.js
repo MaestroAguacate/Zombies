@@ -45,6 +45,7 @@ function init() {
   buildBox();
   buildRelics();
   buildPerks();
+  buildGumMachines();                    // F5.18b: chicleras
   buildShield();
   buildQuest();                         // F5.5
   buildGarden();                        // F5.6: plantas carnívoras del techo
@@ -109,6 +110,7 @@ function bindInput() {
   UI.btnMaps.addEventListener('click', () => menuPanel('maps'));           // F5.18
   UI.btnWeapons.addEventListener('click', () => menuPanel('weapons'));
   UI.btnProfile.addEventListener('click', () => menuPanel('profile'));
+  UI.btnGums.addEventListener('click', () => menuPanel('gums'));        // F5.18b
   UI.mapCity.addEventListener('click', () => pickMap('city'));
   UI.mapBeach.addEventListener('click', () => pickMap('beach'));
   UI.mapQ.addEventListener('click', () => pickMap('q'));
@@ -191,6 +193,7 @@ function bindInput() {
     if (e.code === 'KeyV') meleeAttack();
     if (e.code === 'KeyG' && !e.repeat) startCook();   // soltar G la tira (updateGrenades mira keys.KeyG)
     if (e.code === 'Digit4' && !e.repeat) throwMonkey();   // F5.11: langostino bailarín
+    if (e.code === 'KeyT' && !e.repeat) useHeldGum();  // F5.18b: chicle con cargas
     if (e.code === 'KeyF' && !e.repeat) interact();   // sin repeat: mantener F no compra dos veces
     debugKey(e.code, e.repeat);                        // P, N, [, ], O, B, H: solo con CONFIG.DEBUG_MODE (debug.js)
   });
@@ -223,6 +226,7 @@ function animate() {
     updateRelics(dt);
     updatePerks(dt);
     updateDown(dt);                     // F5.18: tirado con Quick Revive
+    updateGums(dt);                     // F5.18b: chicles
     updateShield(dt);
     updateQuest(dt);                    // F5.5: después de updateShield (comparten la barra de armado)
     updateClams(dt);                    // F5.14: almejas (también usa la barra)
@@ -253,8 +257,8 @@ function animate() {
   if (dmgT > 0) { dmgT -= dt; UI.dmg.style.opacity = Math.max(0, dmgT / CONFIG.FEEL.hurtFlash).toFixed(2); }
   updateDebug(dt);
 
-  if (!state.running && MENU.mode === 'main') menuCamera();   // F5.18: el mundo detrás del menú
-  weaponScene.visible = MENU.mode !== 'main';
+  if (!state.running && MENU.mode === 'main') { menuCamera(); updateWeaponPreview(dt); }   // F5.18: el mundo detrás del menú
+  weaponScene.visible = state.running || MENU.mode === 'pause';
   if (renderer.info) renderer.info.reset();
   renderer.clear();
   renderer.render(scene, camera);

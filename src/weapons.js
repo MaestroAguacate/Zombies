@@ -31,7 +31,7 @@ function adsSpread() {
 function updateAds(dt) {
   const A = CONFIG.ADS, def = curDef();
   const want = ADS.on && def && weaponsState.phase === 'idle' && !player.sprinting;
-  const at = A.time * (def && def.att && def.att.quickdraw ? CONFIG.PROGRESSION.attachments.quickdraw.adsTime : 1);   // F5.18: quickdraw
+  const at = A.time * (def && def.att && def.att.quickdraw ? CONFIG.PROGRESSION.attachments.quickdraw.adsTime : 1) * (gumActive('quickhands') ? 0.5 : 1);   // F5.18: quickdraw, QUICK HANDS
   ADS.k = want ? Math.min(1, ADS.k + dt / at) : Math.max(0, ADS.k - dt / at);
   const fov = A.baseFov - (A.baseFov - ((def && def.adsFov) || A.fov)) * ADS.k;
   if (Math.abs(camera.fov - fov) > 1e-4) { camera.fov = fov; camera.updateProjectionMatrix(); }
@@ -342,26 +342,43 @@ function tintModel(model, hex) {
   const c = new THREE.Color(hex);
   model.traverse(o => { if (o.isMesh && o.material && o.material.color) { o.material = o.material.clone(); o.material.color.lerp(c, 0.55); } });
 }
-function addAttachmentModels(model, att) {
-  model.updateMatrixWorld(true);
-  const bb = new THREE.Box3().setFromObject(model), mz = model.userData.muzzle, cx = (bb.min.x + bb.max.x) / 2;
+// F5.18b: cada accesorio se ubica respecto del cañón (muzzle), no de la caja del modelo (que incluye la mano y, en el
+// arco, las palas). pistola = las de mano (el cargador va en la empuñadura)
+function addAttachmentModels(model, att, def) {
+  model.updateMatrixWorld(true); def = def || {};
+  const bb = new THREE.Box3().setFromObject(model), mz = model.userData.muzzle || new THREE.Vector3(0, 0.03, bb.min.z);
+  const pistol = def.reloadAnim === 'pistol' || def.reloadAnim === 'revolver' || def.id === 'raygun';
   const dark = 0x1c1c1e, add = (w, h, d, col, x, y, z) => { const m = box(w, h, d, col, x, y, z); model.add(m); return m; };
-  const mid = (bb.min.z + bb.max.z) / 2;
+  const len = bb.max.z - mz.z, top = def.id === 'bow' ? mz.y + 0.03 : Math.min(bb.max.y, mz.y + 0.08), rear = bb.max.z;
   if (att.reflex) {
-    add(0.03, 0.018, 0.07, dark, cx, bb.max.y + 0.009, mid - 0.02);
-    add(0.034, 0.036, 0.006, dark, cx, bb.max.y + 0.03, mid - 0.055);
+    const z = pistol ? mz.z + len * 0.45 : mz.z + len * 0.55;
+    add(0.028, 0.016, 0.07, dark, 0, top + 0.008, z);
+    add(0.034, 0.036, 0.006, dark, 0, top + 0.03, z - 0.032);
+    add(0.004, 0.036, 0.03, dark, 0.015, top + 0.03, z - 0.02); add(0.004, 0.036, 0.03, dark, -0.015, top + 0.03, z - 0.02);
     const dot = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.004, 0.002), new THREE.MeshBasicMaterial({ color: 0xff2020 }));
-    dot.position.set(cx, bb.max.y + 0.032, mid - 0.058); model.add(dot);
+    dot.position.set(0, top + 0.032, z - 0.036); model.add(dot);
   }
   if (att.laser) {
-    add(0.018, 0.018, 0.06, 0x2a3a2a, cx + 0.022, bb.min.y + 0.03, bb.min.z + 0.08);
+    const lz = mz.z + Math.min(0.14, len * 0.25), ly = mz.y - 0.045;
+    add(0.02, 0.02, 0.07, 0x2a3a2a, 0, ly, lz);
+    add(0.008, 0.008, 0.004, 0xff3030, 0, ly, lz - 0.036);
     const beam = new THREE.Mesh(new THREE.BoxGeometry(0.0015, 0.0015, 4), new THREE.MeshBasicMaterial({ color: 0xff2020, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
-    beam.position.set(cx + 0.022, bb.min.y + 0.03, bb.min.z + 0.05 - 2); model.add(beam);
+    beam.position.set(0, ly, lz - 2.04); beam.userData.beam = true; model.add(beam);
   }
-  if (att.barrel && mz) { add(0.024, 0.024, 0.12, dark, mz.x, mz.y, mz.z - 0.05); mz.z -= 0.11; }
-  if (att.stock) { add(0.028, 0.06, 0.16, 0x2a2622, cx, (bb.min.y + bb.max.y) / 2 - 0.01, bb.max.z + 0.07); add(0.034, 0.08, 0.02, dark, cx, (bb.min.y + bb.max.y) / 2 - 0.015, bb.max.z + 0.15); }
-  if (att.fastmag) { add(0.022, 0.09, 0.04, dark, cx + 0.026, bb.min.y - 0.02, mid); add(0.05, 0.015, 0.045, 0xd8b020, cx + 0.013, bb.min.y - 0.005, mid); }
-  if (att.quickdraw) add(0.046, 0.03, 0.05, 0x3a3a3a, cx, bb.min.y + 0.025, bb.max.z - 0.07);
+  if (att.barrel) { add(0.026, 0.026, 0.12, dark, mz.x, mz.y, mz.z - 0.055); add(0.03, 0.03, 0.02, 0x3a3a3a, mz.x, mz.y, mz.z - 0.11); mz.z -= 0.12; }
+  if (att.stock) {
+    add(0.03, 0.05, 0.16, 0x2a2622, 0, mz.y - 0.03, rear + 0.07);
+    add(0.034, 0.085, 0.022, dark, 0, mz.y - 0.045, rear + 0.155);
+  }
+  if (att.fastmag) {
+    if (pistol) { add(0.03, 0.06, 0.04, dark, 0, bb.min.y - 0.02, rear - 0.07); add(0.036, 0.012, 0.046, 0xd8b020, 0, bb.min.y + 0.005, rear - 0.07); }
+    else { const z = mz.z + len * 0.6; add(0.024, 0.1, 0.045, dark, 0.013, mz.y - 0.1, z); add(0.024, 0.1, 0.045, dark, -0.013, mz.y - 0.1, z); add(0.05, 0.014, 0.05, 0xd8b020, 0, mz.y - 0.1, z); }
+  }
+  if (att.quickdraw) add(0.044, 0.035, 0.05, 0x3a3a3a, 0, pistol ? bb.min.y + 0.06 : mz.y - 0.11, pistol ? rear - 0.07 : rear - 0.13);
+  // arco: palas pintadas, punta ancha en la flecha y estabilizador adelante
+  if (att.limbs) { add(0.03, 0.08, 0.03, 0xc8a040, 0, bb.max.y - 0.05, bb.min.z + 0.3); add(0.03, 0.08, 0.03, 0xc8a040, 0, bb.min.y + 0.05, bb.min.z + 0.3); }
+  if (att.broadhead) { add(0.03, 0.012, 0.03, 0x2a2a2a, mz.x, mz.y, mz.z - 0.01); add(0.012, 0.03, 0.03, 0x2a2a2a, mz.x, mz.y, mz.z - 0.01); }
+  if (att.stabilizer) { add(0.012, 0.012, 0.26, dark, 0, mz.y - 0.07, mz.z + 0.05); add(0.03, 0.03, 0.04, 0x3a3a3a, 0, mz.y - 0.07, mz.z - 0.08); }
 }
 function applyCamo(model) { model.traverse(o => { if (o.isMesh) o.material = camoMat(); }); return model; }
 
@@ -372,7 +389,7 @@ function equipModel(def) {
   weaponsState.model = buildWeaponModel(def);
   if (def.pap) applyCamo(weaponsState.model);
   else if (def.camo) tintModel(weaponsState.model, def.camo);        // F5.18: camuflaje de la carga
-  if (def.att) addAttachmentModels(weaponsState.model, def.att);      // F5.18: accesorios (cubos)
+  if (def.att) addAttachmentModels(weaponsState.model, def.att, def);      // F5.18: accesorios (cubos)
   weaponsState.group.add(weaponsState.model);
   const mz = weaponsState.model.userData.muzzle;
   weaponsState.muzzleSprite.position.copy(mz).add(new THREE.Vector3(0, 0, -0.04));
@@ -473,9 +490,10 @@ function meleeAttack() {
 
   const head = t === 'zombieHead';
   const z = h.object.userData.zombie;
-  const dmg = K.damage * (head ? K.headshotMul : 1);
+  const dmg = K.damage * (head ? K.headshotMul : 1) * (gumActive('sharpedge') ? 4 : 1);   // F5.18b: SHARP EDGE
   const wasAlive = z.alive;
   damageZombie(z, dmg, head, CONFIG.POINTS.meleeKill, undefined, h.object.userData.part);   // kill siempre da 130, headshot o no
+  gumMeleeHit(z);                                                // F5.18b: POP SHOCKS
   feelOnZombieHit(z, h, dir, dmg, head);
   onHitConfirm(head, wasAlive && !z.alive);
   // no toca state.shotsFired/shotsHit: munición infinita no debe inflar la precisión
@@ -503,7 +521,7 @@ function fireWeapon() {
   // fuego sostenido: el reloj avanza de a fireRate, no salta a "ahora". Si no, la cadencia se redondea
   // al frame siguiente (SMG 90ms -> 100ms a 60fps, -10% dps). Tras una pausa larga, arranca de cero.
   W.lastShot = now - W.lastShot < rate * 2 ? W.lastShot + rate : now;
-  s.mag--;
+  if (!gumActive('freefire')) s.mag--;                            // F5.18b: FREE FIRE
 
   // F5.11: bazooka: un cohete que vuela y explota (no es hitscan, no cuenta para precisión)
   if (def.rocket) {
@@ -592,7 +610,7 @@ function releaseBow(def) {
   const arrow = W.model && W.model.userData.arrow;
   if (arrow) arrow.position.z = -0.25;
   if (!s || s.mag <= 0) return null;
-  s.mag--;
+  if (!gumActive('freefire')) s.mag--;
   W.lastShot = performance.now();
   state.shotsFired++;
   const k = Math.min(1, W.charge / def.chargeTime);

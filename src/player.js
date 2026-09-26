@@ -45,7 +45,7 @@ function updatePlayer(dt) {
   player.sprinting = sprinting;                 // F3b: el ADS no entra corriendo
   if (sprinting) {
     stamina.idleT = 0;
-    stamina.v = Math.max(0, stamina.v - dt / (ST.sprintTime * staminaMul()));
+    if (!gumActive('ironlungs')) stamina.v = Math.max(0, stamina.v - dt / (ST.sprintTime * staminaMul()));   // F5.18b: IRON LUNGS
     if (stamina.v === 0) { stamina.exhausted = true; sfxBreath(); }
   } else {
     stamina.idleT += dt;
@@ -373,6 +373,7 @@ function damagePlayer(dmg, fromX, fromZ, ignoreIframe) {
   if (state.gameOver || DOWN.on) return;                          // F5.18: tirado sos invulnerable
   const t = clock.elapsedTime;
   if (!ignoreIframe && t - state.lastDamageTime < CONFIG.PLAYER.hitIframe) return;   // i-frame
+  if (gumActive('hardskin')) dmg *= 0.5;                          // F5.18b: HARD SKIN
   STATS.damageTaken += Math.min(dmg, state.health);
   state.health = Math.max(0, state.health - dmg);
   state.lastDamageTime = t;

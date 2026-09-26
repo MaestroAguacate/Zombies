@@ -48,7 +48,7 @@ fs.mkdirSync(out, { recursive: true });
         v.yaw = Math.atan2(-dx, -dz); v.pitch = Math.atan2(dy, Math.hypot(dx, dz));
       }
       const st = document.getElementById('start');
-      if (v.menu) { st.style.display = ''; showMenu('main'); menuPanel(v.panel || null); }   // F5.18: el menú de inicio
+      if (v.menu) { st.style.display = ''; showMenu('main'); menuPanel(null); if (v.panel) menuPanel(v.panel); }   // F5.18: el menú de inicio
       else { st.style.display = 'none'; MENU.mode = null; gfxApplyFilter(); }
       camera.position.set(v.x, v.y, v.z);
       camera.rotation.set(v.pitch || 0, v.yaw || 0, 0, 'YXZ');

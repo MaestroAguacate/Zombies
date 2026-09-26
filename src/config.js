@@ -285,15 +285,34 @@ const CONFIG = {
       reflex:    { name: 'REFLEX SIGHT', level: 6,  desc: 'Red dot: more zoom, 30% tighter aim', adsSpread: 0.7, zoom: 8 },
       laser:     { name: 'LASER SIGHT',  level: 9,  desc: 'Hip fire 40% tighter', hipSpread: 0.6 },
       barrel:    { name: 'LONG BARREL',  level: 12, desc: '+15% damage, 15% tighter', damage: 1.15, spread: 0.85 },
-      stock:     { name: 'STOCK',        level: 15, desc: 'Move faster aiming, 25% less recoil', adsMove: 0.5, recoil: 0.75 }
+      stock:     { name: 'STOCK',        level: 15, desc: 'Move faster aiming, 25% less recoil', adsMove: 0.5, recoil: 0.75 },
+      // F5.18b: solo del arco
+      limbs:      { name: 'LIGHT LIMBS', level: 5,  desc: 'Draw the bow 35% faster', charge: 0.65 },
+      broadhead:  { name: 'BROADHEAD',   level: 10, desc: '+25% arrow damage', damage: 1.25 },
+      stabilizer: { name: 'STABILIZER',  level: 16, desc: 'Arrows 50% tighter', spread: 0.5 }
     },
+    // F5.18b: qué accesorios tiene sentido poner en cada arma (el resto no se ofrece). Sin entrada = los 6 de siempre
+    weaponAtt: {
+      m1911: ['quickdraw', 'fastmag', 'reflex', 'laser', 'barrel'], deagle: ['quickdraw', 'fastmag', 'reflex', 'laser', 'barrel'],
+      revolver: ['quickdraw', 'fastmag', 'reflex', 'laser', 'barrel'], raygun: ['quickdraw', 'fastmag', 'reflex', 'laser'],
+      shotgun: ['quickdraw', 'fastmag', 'laser', 'barrel', 'stock'], spas: ['quickdraw', 'fastmag', 'laser', 'barrel', 'stock'],
+      doublebarrel: ['quickdraw', 'laser', 'barrel', 'stock'], sniper: ['quickdraw', 'fastmag', 'barrel', 'stock'],
+      crossbow: ['quickdraw', 'fastmag', 'laser', 'stock'], bow: ['quickdraw', 'limbs', 'broadhead', 'stabilizer'],
+      bazooka: ['quickdraw', 'fastmag', 'laser']
+    },
+    // nombre del accesorio en un arma puntual (el efecto es el mismo)
+    attAlias: { revolver: { fastmag: 'SPEED LOADER' }, shotgun: { fastmag: 'SHELL CARRIER', barrel: 'CHOKE' },
+                spas: { fastmag: 'SHELL CARRIER', barrel: 'CHOKE' }, doublebarrel: { barrel: 'CHOKE' },
+                crossbow: { fastmag: 'BOLT QUIVER' }, bazooka: { fastmag: 'ROCKET RACK' }, sniper: { barrel: 'SUPPRESSOR' } },
     camos: [
       { id: 'jungle',  name: 'JUNGLE',  color: 0x4a6a32, level: 3 },
       { id: 'sand',    name: 'DESERT',  color: 0xc8a868, level: 10 },
       { id: 'arctic',  name: 'ARCTIC',  color: 0xdce6ee, level: 20 },
       { id: 'crimson', name: 'CRIMSON', color: 0xa01c1c, level: 30 }
     ],
-    noAtt: ['wave', 'flamethrower']                                     // sin accesorios (la Ola y el lanzallamas)
+    noAtt: ['wave', 'flamethrower'],
+    // F5.18b: cuentas locales (varias en la misma compu), todas en una sola clave
+    accountsKey: 'bhz_accounts_v1'                                     // sin accesorios (la Ola y el lanzallamas)
   },
 
   POINTS: { hit: 10, kill: 60, headshotKill: 130, meleeKill: 130 },
@@ -652,6 +671,43 @@ const CONFIG = {
   // se compra en su tablón (WALLBUYS)
   // F5.15: en la playa oeste (-27, -20), más larga (w a lo largo de x) y de estilo rancho: 6 patas, techo de palma
   LIFEGUARD: { x: -27, z: -20, w: 6, d: 3.4, h: 2.6 },
+  // F5.18b: chicles (como las Gobble Gums de BO3). CLASSIC: se desbloquean por nivel y no se gastan. RARE, ULTRA y EPIC
+  // se ganan en la tienda (con `currency`, que cae al comprar puertas, lianas y la caja con chance `inkChance`) y se
+  // gastan al agarrarlos. Antes de la partida se eligen `presetSize` para el preset; la chiclera del mapa da uno al azar
+  // del preset (que tengas). type: instant (al agarrarlo), timed (dura `time` s), charges (T usa una carga), melee
+  // (cargas que gasta el cuchillo), passive (hasta que se usa)
+  GUMS: {
+    currency: 'KRAKEN INK', inkChance: 0.14, presetSize: 5,
+    machine: { cost: [500, 1000, 2000], maxPerRound: 3, offer: 6, size: { w: 0.9, h: 1.7, d: 0.7 },
+               spots: [{ room: 'R1', x: 5.45, z: 2.7, rot: -Math.PI / 2 }, { room: 'R14', x: -46.5, z: 39.45, rot: Math.PI },
+                       { room: 'R20', x: 55.45, z: 71, rot: Math.PI / 2 }, { room: 'R19', x: -74.55, z: -40, rot: Math.PI / 2 }] },
+    shop: [null, { count: 1, odds: { rare: 0.72, ultra: 0.23, epic: 0.05 } },
+                 { count: 2, odds: { rare: 0.55, ultra: 0.33, epic: 0.12 } },
+                 { count: 3, odds: { rare: 0.38, ultra: 0.42, epic: 0.2 } }],
+    rarities: { classic: { name: 'CLASSIC', color: '#4aa8ff' }, rare: { name: 'RARE', color: '#6ad86a' },
+                ultra: { name: 'ULTRA RARE', color: '#ffb347' }, epic: { name: 'EPIC', color: '#d060ff' } },
+    list: {
+      shadow:     { name: 'SHADOW STEP',     rarity: 'classic', level: 1,  icon: '👻', color: '#7a8a9a', type: 'timed', time: 10,  desc: 'Zombies ignore you for 10 s' },
+      beacon:     { name: 'BEACON',          rarity: 'classic', level: 1,  icon: '📣', color: '#e8c030', type: 'timed', time: 10,  desc: 'Every zombie rushes you for 10 s. Double points' },
+      quickhands: { name: 'QUICK HANDS',     rarity: 'classic', level: 3,  icon: '✋', color: '#4ac8c8', type: 'timed', time: 180, desc: 'Reload and aim 50% faster for 3 min' },
+      ironlungs:  { name: 'IRON LUNGS',      rarity: 'classic', level: 6,  icon: '💨', color: '#8ad8ff', type: 'timed', time: 120, desc: 'Unlimited sprint for 2 min' },
+      sharpedge:  { name: 'SHARP EDGE',      rarity: 'classic', level: 9,  icon: '🔪', color: '#c8c8d0', type: 'timed', time: 120, desc: 'Knife does 4x damage for 2 min' },
+      restock:    { name: 'RESTOCK',         rarity: 'classic', level: 12, icon: '📦', color: '#a8844a', type: 'instant',          desc: 'Refills the reserve ammo of your weapon' },
+      hardskin:   { name: 'HARD SKIN',       rarity: 'classic', level: 15, icon: '🛡️', color: '#6a7ab8', type: 'timed', time: 60,  desc: 'Take 50% less damage for 1 min' },
+      insta3:     { name: 'TRIPLE THREAT',   rarity: 'rare',  icon: '💀', color: '#e8e8e8', type: 'charges', charges: 3, desc: '3 Insta-Kills: press T to trigger one (15 s each)' },
+      freefire:   { name: 'FREE FIRE',       rarity: 'rare',  icon: '♾️', color: '#ff8a4a', type: 'timed', time: 30, desc: 'No ammo used for 30 s' },
+      popshock:   { name: 'POP SHOCKS',      rarity: 'rare',  icon: '⚡', color: '#f0e040', type: 'melee', charges: 5, desc: 'Your next 5 knife hits explode' },
+      luckybox:   { name: 'LUCKY BOX',       rarity: 'rare',  icon: '🎁', color: '#e84a8a', type: 'passive', desc: 'Next Mystery Box is free and never the teddy' },
+      pointrain:  { name: 'POINT RAIN',      rarity: 'rare',  icon: '💰', color: '#6ad86a', type: 'instant', points: 2500, desc: '+2500 points' },
+      secretsip:  { name: 'SECRET SIP',      rarity: 'ultra', icon: '🥤', color: '#4aa8ff', type: 'charges', charges: 1, desc: 'Press T: a random perk you do not have' },
+      sunburn:    { name: 'SUNBURN',         rarity: 'ultra', icon: '☀️', color: '#ff6a1a', type: 'charges', charges: 1, desc: 'Press T: Kaboom, every zombie burns' },
+      powerdrop:  { name: 'POWER DROP',      rarity: 'ultra', icon: '🎲', color: '#ffd23a', type: 'charges', charges: 1, desc: 'Press T: 2 random power-ups at your feet' },
+      crawlspace: { name: 'CRAWL SPACE',     rarity: 'ultra', icon: '🐛', color: '#8a6a4a', type: 'charges', charges: 1, desc: 'Press T: every zombie near you crawls' },
+      freeall:    { name: 'SHOPPING SPREE',  rarity: 'epic',  icon: '🛒', color: '#ff4ad0', type: 'timed', time: 60, desc: 'Everything is free for 60 s' },
+      perkaholic: { name: 'PERKAHOLIC',      rarity: 'epic',  icon: '🍾', color: '#c060ff', type: 'instant', desc: 'Every perk' },
+      blessing:   { name: "KRAKEN'S BLESSING", rarity: 'epic', icon: '🐙', color: '#8a3ac8', type: 'instant', desc: 'Pack-a-Punch your weapon for free' }
+    }
+  },
   // F5.18: choque en la jungla al oeste del templo (parte de R20, `area`), abierto al anexo por el borde x 55 (z gap).
   // cars: [x, z, ry, color, arde, vuelco ('roof' | 'side')]: sólidos (PROPS 'autoN', caja del vuelco girado).
   // squid: calamar muerto del tamaño de un auto (sólido). boss: Sombrerón muerto con la guitarra atravesada (sólido).
