@@ -100,6 +100,7 @@ state.perks.push('mule');
 G.giveWeapon('lmg');
 check(state.weapons.length === 3 && G.maxWeapons() === 3, 'con Mule Kick: 3 armas');
 state.perks = ['mule', 'revive']; state.lastDamageTime = -99; G.damagePlayer(9999, 0, 0);
+if (G.DOWN.on) G.updateDown(CONFIG.PERKS.lastStand.time + 0.1);   // F5.18: 10 s tirado con la Ray Gun
 check(!state.gameOver && state.weapons.length === 2, 'Quick Revive: sin perks, la 3ra arma se pierde');
 check(CONFIG.WALLBUYS.some(w => w.weapon === 'bazooka' && w.room === 'R16'), 'la bazooka está en la pared del búnker');
 G.resetGame();

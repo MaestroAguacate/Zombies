@@ -23,6 +23,8 @@ Leer primero `CLAUDE.md` (manda) y `ROADMAP-V2.md`. Esto es el resumen corto del
 
 ## Pendiente
 - Playtest de Diego: FPS (sobre todo Alto con sombras y el follaje), el caparazón, el rancho.
+- F5.18 hecho: vuelta a cubos (personajes, plantas), cráneo en el caparazón, agacharse, last stand con QR, choque al
+  oeste del templo, XP/niveles/accesorios/camos (progress.js), menú nuevo. Ver CLAUDE.md F5.18.
 - F5.17b/c hecho: cielo (domo), rayo de la caja, pared playa-calamar con H8, formas curvas en personajes, casa, muelle,
   cabeza del calamar y playa. Sigue de cajas: estatuas del calamar, perks, PaP, armas en primera persona.
 - Diego está juntando sonidos para implementar (esperar su lista).

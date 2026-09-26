@@ -270,6 +270,31 @@ const CONFIG = {
     interactRange: 3      // m al borde de la puerta / al punto del wall buy para mostrar el prompt
   },
   HIGHSCORE_KEY: 'bhz_highscore',
+  // F5.18 (pedido de Diego, como BO3): XP que se acumula entre partidas y sube de nivel; cada nivel desbloquea
+  // accesorios y camuflajes para las armas. Se guarda en localStorage (`key`; se levantó la regla de "solo el récord").
+  // XP para pasar del nivel n al n+1 = base + step × (n − 1). tiers: [desde nivel, nombre]
+  PROGRESSION: {
+    key: 'bhz_profile_v1', maxLevel: 55, base: 600, step: 90, maxAtt: 3,
+    xp: { kill: 10, headshot: 6, round: 40, boss: 500 },       // round: × la ronda que terminaste
+    tiers: [[1, 'RECRUIT'], [4, 'PRIVATE'], [8, 'CORPORAL'], [12, 'SERGEANT'], [17, 'STAFF SERGEANT'], [22, 'LIEUTENANT'],
+            [28, 'CAPTAIN'], [34, 'MAJOR'], [40, 'COLONEL'], [46, 'BRIGADIER'], [51, 'GENERAL'], [55, 'COMMANDER']],
+    // accesorios: nivel en que se desbloquean y efecto (lo aplican progress.js attDef y weapons.js)
+    attachments: {
+      quickdraw: { name: 'QUICKDRAW',    level: 2,  desc: 'Aim down sights 50% faster', adsTime: 0.5 },
+      fastmag:   { name: 'FAST MAG',     level: 4,  desc: 'Reload 30% faster', reload: 0.7 },
+      reflex:    { name: 'REFLEX SIGHT', level: 6,  desc: 'Red dot: more zoom, 30% tighter aim', adsSpread: 0.7, zoom: 8 },
+      laser:     { name: 'LASER SIGHT',  level: 9,  desc: 'Hip fire 40% tighter', hipSpread: 0.6 },
+      barrel:    { name: 'LONG BARREL',  level: 12, desc: '+15% damage, 15% tighter', damage: 1.15, spread: 0.85 },
+      stock:     { name: 'STOCK',        level: 15, desc: 'Move faster aiming, 25% less recoil', adsMove: 0.5, recoil: 0.75 }
+    },
+    camos: [
+      { id: 'jungle',  name: 'JUNGLE',  color: 0x4a6a32, level: 3 },
+      { id: 'sand',    name: 'DESERT',  color: 0xc8a868, level: 10 },
+      { id: 'arctic',  name: 'ARCTIC',  color: 0xdce6ee, level: 20 },
+      { id: 'crimson', name: 'CRIMSON', color: 0xa01c1c, level: 30 }
+    ],
+    noAtt: ['wave', 'flamethrower']                                     // sin accesorios (la Ola y el lanzallamas)
+  },
 
   POINTS: { hit: 10, kill: 60, headshotKill: 130, meleeKill: 130 },
 

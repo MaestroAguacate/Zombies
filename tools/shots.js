@@ -1,5 +1,6 @@
 // Capturas del juego sin navegador a mano: node tools/shots.js vistas.json [carpeta]
-// vistas.json = [{ name, x, y, z, yaw, pitch, look?: [x, y, z], fog?, round?, open?, eval? }]
+// vistas.json = [{ name, x, y, z, yaw, pitch, look?: [x, y, z], fog?, round?, open?, eval?, menu?, panel? }]
+//   menu: muestra el menú de inicio (panel: 'maps' | 'weapons' | 'profile' | 'settings' | 'controls')
 //   yaw 0 mira a -z, PI/2 mira a -x, PI mira a +z, -PI/2 mira a +x · pitch negativo mira abajo
 //   y es la altura de la cámara (ojos a 1.7 sobre el piso) · open: abre todas las puertas (y el portal)
 // Usa el Playwright global y el Chromium de /opt/pw-browsers (WebGL por SwiftShader, lento pero sirve).
@@ -46,6 +47,9 @@ fs.mkdirSync(out, { recursive: true });
         const dx = v.look[0] - v.x, dy = v.look[1] - v.y, dz = v.look[2] - v.z;
         v.yaw = Math.atan2(-dx, -dz); v.pitch = Math.atan2(dy, Math.hypot(dx, dz));
       }
+      const st = document.getElementById('start');
+      if (v.menu) { st.style.display = ''; showMenu('main'); menuPanel(v.panel || null); }   // F5.18: el menú de inicio
+      else { st.style.display = 'none'; MENU.mode = null; gfxApplyFilter(); }
       camera.position.set(v.x, v.y, v.z);
       camera.rotation.set(v.pitch || 0, v.yaw || 0, 0, 'YXZ');
       if (v.eval) console.log('eval:', JSON.stringify(eval(v.eval)));

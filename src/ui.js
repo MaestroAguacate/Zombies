@@ -36,7 +36,9 @@ function initUI() {
   UI.goKills = document.getElementById('goKills');
   UI.goAcc = document.getElementById('goAcc');
   ['goTime', 'goHeads', 'goKnife', 'goFav', 'goPts', 'goDmg', 'goDoors', 'goBox', 'btnGoMenu', 'btnPlay', 'btnControls',
-   'btnSettings', 'btnQuit', 'panelControls', 'panelSettings', 'sens', 'sensVal', 'vol', 'volVal', 'menuMsg']
+   'btnSettings', 'btnQuit', 'panelControls', 'panelSettings', 'sens', 'sensVal', 'vol', 'volVal', 'menuMsg',
+   'btnMaps', 'btnWeapons', 'btnProfile', 'panelMaps', 'panelWeapons', 'panelProfile', 'mProfMini', 'menuSil', 'goXP', 'goLvl',   // F5.18
+   'mapCity', 'mapBeach', 'mapQ']
     .forEach(id => { UI[id] = document.getElementById(id); });
   UI.goBest = document.getElementById('goBest');
   UI.record = document.getElementById('record');
@@ -159,18 +161,128 @@ function showBanner(text, secs) {
 }
 //--- menú de inicio y pausa: el mismo overlay (#start) con data-mode main | pause ---
 // Esc lo maneja el navegador (suelta el pointer lock); pointerlockchange decide qué mostrar.
-const MENU = { started: false };
+// F5.18: menú a la izquierda (mapas, armas, perfil, ajustes, controles), el mundo en gris detrás (gfxFilter) con una
+// cámara que recorre la playa (menuCamera, loop.js) y siluetas de mobs en cubos
+const MENU = { started: false, mode: null, map: 'beach', weapon: null };
 function showMenu(mode) {                  // 'main' | 'pause' | null (ocultar)
+  MENU.mode = mode;
+  if (typeof gfxApplyFilter === 'function') gfxApplyFilter();
   if (!mode) { UI.start.classList.add('hidden'); return; }
   UI.start.setAttribute('data-mode', mode);
   UI.btnPlay.textContent = mode === 'pause' ? 'RESUME' : 'PLAY';
   UI.best.textContent = 'Best: round ' + loadHighScore();
+  if (mode === 'main') { renderProfileMini(); if (UI.menuSil && !UI.menuSil.childElementCount) buildSilhouettes(); }
+  else menuPanel(null);
   UI.start.classList.remove('hidden');
 }
-function menuPanel(which) {                // abre uno, cierra el otro; clic de nuevo = cerrar
-  const c = UI.panelControls.classList, s = UI.panelSettings.classList;
-  const openC = which === 'controls' && !c.contains('open'), openS = which === 'settings' && !s.contains('open');
-  c.toggle('open', openC); s.toggle('open', openS);
+const MENU_PANELS = { maps: ['panelMaps', 'btnMaps'], weapons: ['panelWeapons', 'btnWeapons'], profile: ['panelProfile', 'btnProfile'],
+                      settings: ['panelSettings', 'btnSettings'], controls: ['panelControls', 'btnControls'] };
+function menuPanel(which) {                // abre uno, cierra los otros; clic de nuevo = cerrar
+  for (const k in MENU_PANELS) {
+    const p = UI[MENU_PANELS[k][0]], b = UI[MENU_PANELS[k][1]];
+    if (!p) continue;
+    const open = k === which && !p.classList.contains('open');
+    p.classList.toggle('open', open); if (b) b.classList.toggle('on', open);
+  }
+  if (which === 'weapons') renderWeaponsPanel();
+  if (which === 'profile') renderProfilePanel();
+}
+function xpBarHTML(cls) {
+  const [a, b] = levelProgress(PROFILE.xp), k = b ? a / b : 1;
+  return '<div class="' + cls + '"><i style="width:' + (k * 100).toFixed(1) + '%"></i></div>';
+}
+function renderProfileMini() {
+  if (!UI.mProfMini) return;
+  const L = rankLevel();
+  UI.mProfMini.innerHTML = esc(PROFILE.name) + ' · LV ' + L + ' · ' + tierName(L) + xpBarHTML('bar');
+}
+function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
+function renderProfilePanel() {
+  const L = rankLevel(), [a, b] = levelProgress(PROFILE.xp), P = CONFIG.PROGRESSION;
+  const next = [];
+  for (const k in P.attachments) if (P.attachments[k].level > L) next.push([P.attachments[k].level, P.attachments[k].name]);
+  for (const c of P.camos) if (c.level > L) next.push([c.level, c.name + ' CAMO']);
+  next.sort((x, y) => x[0] - y[0]);
+  UI.panelProfile.innerHTML = '<h3>PROFILE</h3><div class="prof"><div class="badge">' + L + '</div><div>' +
+    '<input id="profName" maxlength="16" value="' + esc(PROFILE.name) + '">' +
+    '<div class="tier">' + tierName(L) + '</div>' + xpBarHTML('pbar') +
+    '<p class="dim">' + (b ? a + ' / ' + b + ' XP to level ' + (L + 1) : 'MAX LEVEL') + '</p></div></div>' +
+    '<div class="pstats"><span>Level</span><span>' + L + ' / ' + P.maxLevel + '</span><span>Total XP</span><span>' + PROFILE.xp + '</span>' +
+    '<span>Best round</span><span>' + loadHighScore() + '</span>' +
+    '<span>Next unlock</span><span>' + (next.length ? next[0][1] + ' (level ' + next[0][0] + ')' : 'Everything unlocked') + '</span></div>';
+  const inp = document.getElementById('profName');
+  if (inp && inp.addEventListener) inp.addEventListener('change', () => {
+    PROFILE.name = (inp.value || 'SURVIVOR').toUpperCase().slice(0, 16); saveProfile(); renderProfileMini();
+  });
+}
+function renderWeaponsPanel() {
+  const P = CONFIG.PROGRESSION, ids = Object.keys(CONFIG.WEAPONS).filter(canAttach);
+  if (!MENU.weapon || ids.indexOf(MENU.weapon) < 0) MENU.weapon = ids[0];
+  const id = MENU.weapon, L = loadoutOf(id), lv = rankLevel();
+  let h = '<h3>WEAPONS · ATTACHMENTS (' + L.att.length + '/' + P.maxAtt + ')</h3><div class="wgrid"><div class="wlist">';
+  for (const w of ids) { const n = (PROFILE.loadout[w] && PROFILE.loadout[w].att.length) || 0;
+    h += '<button data-w="' + w + '" class="' + (w === id ? 'on' : '') + '">' + CONFIG.WEAPONS[w].name + (n ? '<small>' + n + '</small>' : '') + '</button>'; }
+  h += '</div><div><b style="letter-spacing:3px">' + CONFIG.WEAPONS[id].name + '</b><div class="atts">';
+  for (const k in P.attachments) {
+    const A = P.attachments[k], lock = lv < A.level, on = L.att.indexOf(k) >= 0;
+    h += '<div class="att' + (on ? ' on' : '') + (lock ? ' locked' : '') + '" data-a="' + k + '"><b>' + A.name + '</b><span>' +
+         (lock ? 'Unlocks at level ' + A.level : A.desc) + '</span></div>';
+  }
+  h += '</div><b style="letter-spacing:3px">CAMO</b><div class="camos" style="margin-top:8px">' +
+       '<div class="camo' + (!L.camo ? ' on' : '') + '" data-c=""><i style="background:#3a3a3a"></i>NONE</div>';
+  for (const c of P.camos) {
+    const lock = lv < c.level, col = '#' + c.color.toString(16).padStart(6, '0');
+    h += '<div class="camo' + (L.camo === c.id ? ' on' : '') + (lock ? ' locked' : '') + '" data-c="' + c.id + '"><i style="background:' +
+         'repeating-linear-gradient(45deg,' + col + ' 0 8px,rgba(0,0,0,.35) 8px 12px)"></i>' + (lock ? 'LV ' + c.level : c.name) + '</div>';
+  }
+  h += '</div></div></div>';
+  UI.panelWeapons.innerHTML = h;
+  if (!UI.panelWeapons.querySelectorAll) return;
+  UI.panelWeapons.querySelectorAll('[data-w]').forEach(b => b.addEventListener('click', () => { MENU.weapon = b.dataset.w; renderWeaponsPanel(); }));
+  UI.panelWeapons.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.a;
+    if (!attUnlocked(k)) return;
+    if (L.att.indexOf(k) < 0 && L.att.length >= P.maxAtt) { UI.menuMsg.textContent = 'Max ' + P.maxAtt + ' attachments per weapon.'; return; }
+    toggleAttachment(id, k); UI.menuMsg.textContent = ''; renderWeaponsPanel();
+  }));
+  UI.panelWeapons.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', () => {
+    const c = b.dataset.c;
+    if (c && !camoUnlocked(c)) return;
+    setCamo(id, c); renderWeaponsPanel();
+  }));
+}
+// mapas: solo la playa; los otros dos, bloqueados
+function pickMap(key) {
+  const card = { city: UI.mapCity, beach: UI.mapBeach, q: UI.mapQ }[key];
+  if (key !== 'beach') {
+    UI.menuMsg.textContent = 'Locked. Coming soon.';
+    if (card) { card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); }
+    return false;
+  }
+  MENU.map = key; UI.menuMsg.textContent = '';
+  return true;
+}
+// siluetas de mobs en cubos negros, con ojos rojos: zombies, perros y un Sombrerón. [x, y desde abajo, ancho, alto, giro]
+const SIL_SHAPES = {
+  zombie: [[20, 0, 22, 86, 4], [46, 0, 22, 86, -6], [16, 82, 58, 84, 0], [28, 164, 40, 40, 0], [60, 150, 70, 16, -8], [54, 134, 66, 16, -4],
+           [52, 184, 5, 4, 0, 1], [62, 184, 5, 4, 0, 1]],
+  dog: [[10, 0, 12, 46, 8], [30, 0, 12, 46, -6], [86, 0, 12, 46, 6], [104, 0, 12, 46, -8], [6, 40, 112, 40, 0], [108, 58, 44, 34, 0],
+        [140, 60, 24, 16, 0], [114, 88, 10, 16, 14], [-12, 66, 26, 8, -30], [138, 80, 5, 4, 0, 1]],
+  boss: [[26, 0, 30, 120, 3], [64, 0, 30, 120, -4], [14, 116, 94, 120, 0], [36, 234, 50, 50, 0], [-18, 282, 158, 12, 0], [30, 292, 62, 42, 0],
+         [94, 214, 90, 22, -10], [-40, 150, 30, 110, 30], [52, 262, 6, 5, 0, 1], [66, 262, 6, 5, 0, 1]]
+};
+function buildSilhouettes() {
+  const list = [['zombie', 44, 1.15, 1, 0], ['dog', 55, 0.9, 1, 0.4], ['zombie', 62, 0.95, -1, 1.1], ['boss', 72, 1.05, -1, 0.2],
+                ['zombie', 84, 1.3, -1, 0.7], ['dog', 91, 0.8, -1, 1.5], ['zombie', 52, 0.7, 1, 1.9], ['zombie', 97, 1.1, -1, 0.9]];
+  let h = '';
+  for (const [kind, x, s, flip, delay] of list) {
+    h += '<div class="sil" style="left:' + x + '%;transform:scale(' + s + ');animation-delay:-' + delay + 's;animation-duration:' + (2.2 + delay) + 's">' +
+         '<div style="position:relative;transform:scaleX(' + flip + ')">';
+    for (const [px, py, w, hh, rot, eye] of SIL_SHAPES[kind])
+      h += '<i class="' + (eye ? 'eye' : '') + '" style="left:' + px + 'px;bottom:' + py + 'px;width:' + w + 'px;height:' + hh + 'px;transform:rotate(' + (rot || 0) + 'deg)"></i>';
+    h += '</div></div>';
+  }
+  UI.menuSil.innerHTML = h;
 }
 function setSensitivity(mult) {
   const I = CONFIG.INPUT;
@@ -191,6 +303,8 @@ function showGameOver(isNew, best) {
   UI.goDoors.textContent = STATS.doors + ' / ' + Object.keys(state.doors).length;
   UI.goBox.textContent = STATS.boxUses;
   UI.goBest.textContent = best;
+  if (UI.goXP) UI.goXP.textContent = '+' + PROFILE.matchXP;                                   // F5.18
+  if (UI.goLvl) { const L = rankLevel(); UI.goLvl.textContent = L + ' · ' + tierName(L) + (L > PROFILE.startLevel ? '  (LEVEL UP!)' : ''); }
   UI.record.textContent = isNew ? 'NEW RECORD' : '';
   UI.go.classList.add('show');
 }

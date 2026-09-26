@@ -283,6 +283,7 @@ function knockHat(z) {
 function bossDeath(z) {
   const B = CONFIG.BOSS;
   STATS.bosses++;
+  addXP(CONFIG.PROGRESSION.xp.boss);        // F5.18
   trySpawnPickup(z.px, z.pz, 'maxammo');
   dropString(z);                                                  // F5.5: la cuerda de guitarra (una vez)
   z.gun = 'idle'; z.gunModel.visible = false;                     // los cocos en vuelo terminan su recorrido

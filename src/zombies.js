@@ -387,6 +387,7 @@ function damageZombie(z, dmg, headshot, killPoints, hitPoints, part) {
     state.kills++;
     STATS.killsBy[STATS.src] = (STATS.killsBy[STATS.src] || 0) + 1;
     if (headshot) STATS.headshots++;
+    addXP(CONFIG.PROGRESSION.xp.kill + (headshot ? CONFIG.PROGRESSION.xp.headshot : 0));   // F5.18
     addPoints(killPoints !== undefined ? killPoints : (headshot ? CONFIG.POINTS.headshotKill : CONFIG.POINTS.kill));
     onZombieDeath(z);
   } else {

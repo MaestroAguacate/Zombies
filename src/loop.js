@@ -24,6 +24,7 @@ function init() {
   buildMap();
   buildTheme();
 
+  loadProfile();                        // F5.18: XP y accesorios guardados
   initUI();
   initPlayer();
   initWeaponLayer();
@@ -59,6 +60,7 @@ function init() {
   resetGame();
 
   bindInput();
+  showMenu('main');                     // F5.18: menú nuevo (el mundo en gris detrás, siluetas)
   window.addEventListener('resize', onResize);
   animate();
 }
@@ -92,12 +94,24 @@ function onResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+// F5.18: cámara del menú de inicio: recorre despacio la playa mirando la casa (el filtro gris lo pone gfxFilter)
+function menuCamera() {
+  const t = clock.elapsedTime * 0.04;
+  camera.position.set(-10 + Math.sin(t) * 12, 3.2 + Math.sin(t * 1.7) * 0.4, -16 + Math.cos(t * 0.8) * 3);
+  camera.lookAt(Math.sin(t) * 4, 1.8, 6);
+}
 function bindInput() {
   const el = renderer.domElement;
   const lock = () => { initAudio(); UI.menuMsg.textContent = ''; el.requestPointerLock(); };
   UI.btnPlay.addEventListener('click', lock);                      // JUGAR / CONTINUAR
   UI.btnControls.addEventListener('click', () => menuPanel('controls'));
   UI.btnSettings.addEventListener('click', () => menuPanel('settings'));
+  UI.btnMaps.addEventListener('click', () => menuPanel('maps'));           // F5.18
+  UI.btnWeapons.addEventListener('click', () => menuPanel('weapons'));
+  UI.btnProfile.addEventListener('click', () => menuPanel('profile'));
+  UI.mapCity.addEventListener('click', () => pickMap('city'));
+  UI.mapBeach.addEventListener('click', () => pickMap('beach'));
+  UI.mapQ.addEventListener('click', () => pickMap('q'));
   UI.btnQuit.addEventListener('click', () => { resetGame(); MENU.started = false; showMenu('main'); });
   UI.btnGoMenu.addEventListener('click', () => { resetGame(); MENU.started = false; showMenu('main'); });
   UI.sens.addEventListener('input', () => setSensitivity(UI.sens.value / 100));
@@ -239,6 +253,8 @@ function animate() {
   if (dmgT > 0) { dmgT -= dt; UI.dmg.style.opacity = Math.max(0, dmgT / CONFIG.FEEL.hurtFlash).toFixed(2); }
   updateDebug(dt);
 
+  if (!state.running && MENU.mode === 'main') menuCamera();   // F5.18: el mundo detrás del menú
+  weaponScene.visible = MENU.mode !== 'main';
   if (renderer.info) renderer.info.reset();
   renderer.clear();
   renderer.render(scene, camera);

@@ -159,6 +159,7 @@ function gfxFilter() {
          (P.warm * warm).toFixed(3) + ') hue-rotate(' + (-P.cold * k).toFixed(1) + 'deg)';
   }
   if (typeof DOWN !== 'undefined' && DOWN.on) f += (f ? ' ' : '') + 'grayscale(1) brightness(0.8)';   // F5.18: tirado
+  else if (typeof MENU !== 'undefined' && MENU.mode === 'main' && !state.running) f += (f ? ' ' : '') + 'grayscale(1) brightness(0.75) contrast(1.15)';   // F5.18: menú
   return f;
 }
 function gfxApplyFilter() {

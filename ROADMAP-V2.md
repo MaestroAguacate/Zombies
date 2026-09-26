@@ -718,6 +718,15 @@ claro (que crece).
   (superficie curva con túnel en arco, pico, ojos, tentáculos) y la playa (sombrillas, castillo, botes, troncos).
 - Sigue siendo "de cajas": las estatuas de la cámara del calamar, los perks y el PaP, las armas en primera persona.
 
+### F5.18 — Pedidos del 2026-09-26 — HECHO (falta playtest)
+- Zombies, mobs, bosses y plantas de vuelta a cubos (la cabeza del calamar curva queda).
+- Cráneo de tortuga sobre la boca del caparazón. Agacharse (C). Quick Revive con 10 s tirado, gris, Ray Gun, zombies
+  que se alejan.
+- Choque al oeste del templo: autos volcados en llamas con humo, cadáveres, calamar y Sombrerón muertos.
+- XP entre partidas, 55 niveles con rangos, 6 accesorios y 4 camos que se desbloquean y se ven en el arma.
+- Menú nuevo: mundo en gris con siluetas, menú a la izquierda, mapas (City y ??? bloqueados), armas, perfil, ajustes.
+- Diego subirá una carpeta `sonidos/` para implementar.
+
 ### Tanda E — Calamar y embarcadero
 - Embarcadero amplio y oscuro, sobre la arena al costado de la cabeza del calamar.
 - Cadáveres de animales de mar, algunos medio alienígenas.

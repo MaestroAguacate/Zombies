@@ -38,7 +38,8 @@ viejos (`v1-final`…`v2-f5.5` solo existen en la copia local de Diego). F5.6–
 Falta el playtest de Diego (sobre todo FPS con sombras). **F5.16 (5 áreas, ver ROADMAP-V2): tandas A, B, C y D hechas**, sigue E (calamar y embarcadero) y después F8. **Todo el juego está en inglés** (textos visibles); el código y los comentarios siguen en español.
 **F5.17 (estilo BO2, "menos Minecraft"):** formas curvas y hojas con alfa en el `MeshBuilder`, jungla nueva por celdas,
 rancho, cueva, templo y jardines rediseñados, y el **caparazón de tortuga gigante** en lugar de la estación de policía
-(ver la sección F5.17). **F5.17b/c:** cielo visible, rayo de la caja, pared playa-calamar con H8, y formas curvas en
+(ver la sección F5.17). **F5.18:** personajes y plantas de vuelta a cubos, agacharse, Quick Revive con 10 s tirado, XP y
+accesorios estilo BO3, menú nuevo, choque al oeste del templo, cráneo en el caparazón (ver la sección F5.18). **F5.17b/c:** cielo visible, rayo de la caja, pared playa-calamar con H8, y formas curvas en
 personajes, casa, muelle, cabeza del calamar y playa. Para mirar el juego sin navegador: `node tools/shots.js vistas.json [carpeta]` (capturas headless).
 
 ## Reglas no negociables
@@ -48,7 +49,7 @@ personajes, casa, muelle, cabeza del calamar y playa. Para mirar el juego sin na
 - Three.js **r128** por `<script>` UMD desde cdnjs. Nada de ES modules ni bundlers: `src/*.js` son pedazos
   de UN script clásico que comparten scope.
 - Sin assets externos. Texturas por canvas en código.
-- `localStorage` solo para high score (`CONFIG.HIGHSCORE_KEY`).
+- `localStorage` solo para high score (`CONFIG.HIGHSCORE_KEY`) y, desde F5.18, el perfil (XP, nombre, accesorios: `CONFIG.PROGRESSION.key`).
 - Español. Directo. Si algo es mala idea técnica, decirlo antes de codear.
 - Al editar: decir SOLO qué cambió. Al final: 3 bugs probables y cómo probarlos.
 
@@ -74,6 +75,7 @@ personajes, casa, muelle, cabeza del calamar y playa. Para mirar el juego sin na
 | `src/traps.js` | 7g TRAMPAS | tiburón del muelle, cortadora del jardín oeste (V2 F5.9), tortugas del rancho (F5.10) |
 | `src/bunker.js` | 7h BÚNKER | búnker bajo tierra, escotilla, estatuas de plantas, caballito de mar (V2 F5.11) |
 | `src/clams.js` | 7i ALMEJAS | fumigador, 9 almejas que cambian de color, premios (V2 F5.14) |
+| `src/progress.js` | 7j PROGRESO | XP, niveles y rangos, accesorios y camos de armas, perfil guardado (V2 F5.18) |
 | `src/ui.js` | 8 UI | HUD, menús, prompt, feel de UI, overlay de debug |
 | `src/gfx.js` | 8c GRÁFICOS | calidad, sombras, post-proceso CSS, sol y luna (V2 F7), después de audio.js |
 | `src/audio.js` | 8b AUDIO | audio procedural |
@@ -196,6 +198,12 @@ Nombres agregados en V2 (tampoco se renombran):
 · F5.17b/c: `SKYDOME` · `buildSkyDome()` · `updateSkyDome()` · `CONFIG.GFX.sky` · `CONFIG.BOX.beamColor/beamWidth/beamHeight`
 · `WORLD.beachWall` · `beachWall(on)` · `CONFIG.SHELL.jump` · `MeshBuilder.geometry/rbox/ring` · `zShapes()` · `dogShapes()`
 · `squidShapes()` · `bossShapes()` · `trimRun()`
+· F5.18: `player.crouch/crouchK/downK` · `eyeDrop()` · `CONFIG.PLAYER.crouch` · `DOWN{on,t,saved,cur}` · `startDown()` · `endDown()`
+· `updateDown(dt)` · `fleeZombie(z, P)` · `CONFIG.PERKS.lastStand` · `CONFIG.CRASH` · `crashFrame(c)` · `crashBox(M, b)` · `CRASH` · `buildCrash()`
+· `updateCrash(dt, t)` · `PROFILE` · `CONFIG.PROGRESSION` · `loadProfile/saveProfile` · `xpForLevel` · `levelOf` · `rankLevel` · `tierName`
+· `levelProgress` · `addXP` · `resetMatchXP` · `attUnlocked/camoUnlocked/canAttach` · `loadoutOf` · `toggleAttachment` · `setCamo` · `attDef(b, id)`
+· `curAtt(k)` · `def.att/def.camo` · `tintModel` · `addAttachmentModels` · `MENU.mode/map/weapon` · `menuPanel(k)` · `pickMap` · `buildSilhouettes`
+· `renderWeaponsPanel/renderProfilePanel/renderProfileMini` · `menuCamera()`
 
 ## Mapa canónico (1 u = 1 m, grid 1x1, pared alto 4)
 | | Cuarto | [xMin,xMax,zMin,zMax] |
@@ -1263,6 +1271,39 @@ nombró (rancho, cueva, templo, jardines, estación → caparazón). La casa y l
   todo. Salida en `shots/` (ignorada por git).
 - Tests: `f516.js` (sección 9: el caparazón). Se adaptaron `roof.js` (la escalera del caparazón y sus barandas),
   `props.js` (cuartos con bordes no enteros).
+
+## Cubos otra vez, agacharse, last stand, XP y menú (V2 F5.18) — manda sobre F5.17c donde se contradice
+- **De vuelta a cubos** (pedido de Diego): zombies, perros, calamares, bosses y plantas carnívoras (tallo, mandíbulas y
+  maceta) volvieron a como estaban antes de F5.17c (`zombies.js`, `enemies.js`, `boss.js` de `5cf629f`). **La cabeza del
+  calamar curva se queda**, igual que la casa, el muelle y la playa de F5.17c. Las armas nunca cambiaron.
+- **Cráneo de la tortuga** (bunker.js `buildShell`): montado sobre la boca del caparazón, mirando afuera, sin collider (arriba
+  de 3.4 m).
+- **Agacharse** (mantener C, `CONFIG.PLAYER.crouch`): solo baja los ojos y la bala (`eyeDrop`, `feel.eye`); el cuerpo y las
+  colisiones no cambian. ×0.5 de velocidad, sin sprint ni salto, dispersión ×0.75.
+- **Quick Revive = last stand** (`CONFIG.PERKS.lastStand`, perks.js `DOWN`): el golpe letal con QR te deja 10 s tirado:
+  - pantalla gris (`gfxFilter`) y la vista a 0.5 m del piso;
+  - te arrastrás a ×0.25, con la Ray Gun (munición llena) y tus armas guardadas (`DOWN.saved`);
+  - invulnerable (`damagePlayer` sale), sin cuchillo, granadas, langostino, escudo, cambio de arma ni F;
+  - los zombies (y los bosses) se alejan en línea recta hasta 16 m (`fleeZombie`) y nadie pega ni cuenta atasco.
+  Después: vida llena, tus armas, 2 s de invulnerabilidad. Se pierden los perks, la Ola y la 3ra arma como antes.
+- **Choque al oeste del templo** (`CONFIG.CRASH`, parte de R20 x 36..55, z 75..92, abierto al anexo por un hueco en x 55,
+  z 78..88; espesura alrededor): 5 autos volcados (sólidos, `crashFrame`/`crashBox`; 3 en llamas con humo: un mesh de
+  llamas por auto y un `Points`), 7 cadáveres, un calamar muerto del tamaño de un auto y el Sombrerón muerto con la
+  guitarra atravesada (los dos sólidos). Todo en cubos y sin luces.
+- **XP y niveles estilo BO3** (`src/progress.js`, `CONFIG.PROGRESSION`): 10 por kill, +6 headshot, 40 × ronda terminada,
+  500 por boss. 55 niveles, rangos RECRUIT … COMMANDER. Guardado en localStorage (`bhz_profile_v1`): nombre, XP, carga.
+  Subir de nivel muestra el cartel con lo desbloqueado. La pantalla final muestra la XP ganada y el nivel.
+- **Accesorios** (hasta 3 por arma, no en la Ola ni el lanzallamas): quickdraw (LV 2, ADS ×0.5 de tiempo), fast mag (LV 4,
+  recarga ×0.7), mira réflex (LV 6, más zoom y ADS ×0.7 de dispersión), láser (LV 9, cadera ×0.6), long barrel (LV 12,
+  daño ×1.15, dispersión ×0.85), culata (LV 15, retroceso ×0.75 y se camina más rápido apuntando). **4 camos** (jungle LV 3,
+  desert LV 10, arctic LV 20, crimson LV 30). `slotDef` pasa por `attDef` (def cacheado por combinación; CONFIG.WEAPONS
+  intacto). En el arma se ven como cubos (`addAttachmentModels`) y el camo tiñe el modelo (`tintModel`; el PaP manda).
+- **Menú nuevo** (shell.html `#start`, ui.js): menú a la izquierda (PLAY, MAPS, WEAPONS, PROFILE, SETTINGS, CONTROLS; en
+  pausa solo RESUME, SETTINGS, CONTROLS, QUIT), el mundo detrás en gris (`gfxFilter`, cámara `menuCamera` que recorre la
+  playa) y siluetas de mobs en cubos negros con ojos rojos (`buildSilhouettes`). Mapas: CITY y ??? bloqueados, BEACH.
+  WEAPONS: accesorios y camo por arma. PROFILE: nombre editable, nivel, rango, barra de XP, próximo desbloqueo.
+- `tools/shots.js`: `menu: true` (y `panel`) muestra el menú en la captura.
+- Test: `f518.js` (agacharse, last stand, choque, XP y accesorios, menú). `perks.js` adaptado al last stand.
 
 ## Cielo, rayo de la caja y formas curvas en todo (V2 F5.17b/c) — manda sobre lo de arriba donde se contradice
 - **Cielo** (`SKYDOME`, `buildSkyDome`, `updateSkyDome` en gfx.js, `CONFIG.GFX.sky`): domo `ShaderMaterial` que sigue a

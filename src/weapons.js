@@ -22,11 +22,17 @@ const decals = { pool: [], i: 0 };
 // Solo con arma en la mano, en 'idle' y sin correr. Baja el FOV de la cámara del mundo (el arma tiene la
 // suya), la dispersión (fireWeapon), la velocidad (updatePlayer) y la sensibilidad (lookInput)
 const ADS = { on: false, k: 0 };
-function adsSpread() { return (1 - (1 - CONFIG.ADS.spreadMul) * ADS.k) * (player.crouch ? CONFIG.PLAYER.crouch.spreadMul : 1); }   // F5.18: agachado
+// F5.18: agachado, y los accesorios: láser (cadera) y mira réflex (apuntando)
+function adsSpread() {
+  const A = CONFIG.PROGRESSION.attachments, d = curDef(), att = (d && d.att) || {};
+  const hip = att.laser ? A.laser.hipSpread : 1, ads = CONFIG.ADS.spreadMul * (att.reflex ? A.reflex.adsSpread : 1);
+  return (hip * (1 - ADS.k) + ads * ADS.k) * (player.crouch ? CONFIG.PLAYER.crouch.spreadMul : 1);
+}
 function updateAds(dt) {
   const A = CONFIG.ADS, def = curDef();
   const want = ADS.on && def && weaponsState.phase === 'idle' && !player.sprinting;
-  ADS.k = want ? Math.min(1, ADS.k + dt / A.time) : Math.max(0, ADS.k - dt / A.time);
+  const at = A.time * (def && def.att && def.att.quickdraw ? CONFIG.PROGRESSION.attachments.quickdraw.adsTime : 1);   // F5.18: quickdraw
+  ADS.k = want ? Math.min(1, ADS.k + dt / at) : Math.max(0, ADS.k - dt / at);
   const fov = A.baseFov - (A.baseFov - ((def && def.adsFov) || A.fov)) * ADS.k;
   if (Math.abs(camera.fov - fov) > 1e-4) { camera.fov = fov; camera.updateProjectionMatrix(); }
 }
@@ -314,7 +320,8 @@ function papDef(id) {
   return (PAP_DEFS[id] = d);
 }
 // el def que rige un slot del inventario (mejorado o no). Todo lo que lee munición o daño pasa por acá
-function slotDef(s) { return s ? (s.pap ? papDef(s.id) : CONFIG.WEAPONS[s.id]) : null; }
+// F5.18: con los accesorios de la carga del jugador (attDef, progress.js)
+function slotDef(s) { return s ? attDef(s.pap ? papDef(s.id) : CONFIG.WEAPONS[s.id], s.id) : null; }
 let CAMO_MAT = null;
 function camoMat() {
   if (CAMO_MAT) return CAMO_MAT;
@@ -330,6 +337,32 @@ function camoMat() {
   CAMO_MAT = new THREE.MeshLambertMaterial({ map: tex, emissive: 0x3a1a5a, emissiveIntensity: 0.6 });
   return CAMO_MAT;
 }
+// F5.18: camuflaje de color (mezcla el color de cada pieza con el del camo) y accesorios en el modelo, en cubos
+function tintModel(model, hex) {
+  const c = new THREE.Color(hex);
+  model.traverse(o => { if (o.isMesh && o.material && o.material.color) { o.material = o.material.clone(); o.material.color.lerp(c, 0.55); } });
+}
+function addAttachmentModels(model, att) {
+  model.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(model), mz = model.userData.muzzle, cx = (bb.min.x + bb.max.x) / 2;
+  const dark = 0x1c1c1e, add = (w, h, d, col, x, y, z) => { const m = box(w, h, d, col, x, y, z); model.add(m); return m; };
+  const mid = (bb.min.z + bb.max.z) / 2;
+  if (att.reflex) {
+    add(0.03, 0.018, 0.07, dark, cx, bb.max.y + 0.009, mid - 0.02);
+    add(0.034, 0.036, 0.006, dark, cx, bb.max.y + 0.03, mid - 0.055);
+    const dot = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.004, 0.002), new THREE.MeshBasicMaterial({ color: 0xff2020 }));
+    dot.position.set(cx, bb.max.y + 0.032, mid - 0.058); model.add(dot);
+  }
+  if (att.laser) {
+    add(0.018, 0.018, 0.06, 0x2a3a2a, cx + 0.022, bb.min.y + 0.03, bb.min.z + 0.08);
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.0015, 0.0015, 4), new THREE.MeshBasicMaterial({ color: 0xff2020, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
+    beam.position.set(cx + 0.022, bb.min.y + 0.03, bb.min.z + 0.05 - 2); model.add(beam);
+  }
+  if (att.barrel && mz) { add(0.024, 0.024, 0.12, dark, mz.x, mz.y, mz.z - 0.05); mz.z -= 0.11; }
+  if (att.stock) { add(0.028, 0.06, 0.16, 0x2a2622, cx, (bb.min.y + bb.max.y) / 2 - 0.01, bb.max.z + 0.07); add(0.034, 0.08, 0.02, dark, cx, (bb.min.y + bb.max.y) / 2 - 0.015, bb.max.z + 0.15); }
+  if (att.fastmag) { add(0.022, 0.09, 0.04, dark, cx + 0.026, bb.min.y - 0.02, mid); add(0.05, 0.015, 0.045, 0xd8b020, cx + 0.013, bb.min.y - 0.005, mid); }
+  if (att.quickdraw) add(0.046, 0.03, 0.05, 0x3a3a3a, cx, bb.min.y + 0.025, bb.max.z - 0.07);
+}
 function applyCamo(model) { model.traverse(o => { if (o.isMesh) o.material = camoMat(); }); return model; }
 
 function equipModel(def) {
@@ -338,6 +371,8 @@ function equipModel(def) {
   if (!def) return;                                   // manos vacías (el arma está en el Pack-a-Punch)
   weaponsState.model = buildWeaponModel(def);
   if (def.pap) applyCamo(weaponsState.model);
+  else if (def.camo) tintModel(weaponsState.model, def.camo);        // F5.18: camuflaje de la carga
+  if (def.att) addAttachmentModels(weaponsState.model, def.att);      // F5.18: accesorios (cubos)
   weaponsState.group.add(weaponsState.model);
   const mz = weaponsState.model.userData.muzzle;
   weaponsState.muzzleSprite.position.copy(mz).add(new THREE.Vector3(0, 0, -0.04));

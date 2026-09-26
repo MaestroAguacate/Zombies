@@ -45,6 +45,7 @@ function spawnMob() {
 
 // arranca la ronda n: cantidad y stats salen de CONFIG.ZOMBIE (health/speed los lee resetZombie)
 function startRound(n) {
+  if (n > 1 && n > state.round) { addXP(CONFIG.PROGRESSION.xp.round * (n - 1)); saveProfile(); }   // F5.18: XP por ronda terminada
   state.round = n;
   roundState.phase = 'active';
   setSquidHead(n);                     // F5.13: la cabeza del calamar sube un poco por ronda
@@ -156,6 +157,7 @@ function gameOver() {
   if (state.gameOver) return;
   state.gameOver = true;
   state.running = false;
+  saveProfile();                       // F5.18
   roundState.phase = 'over';
   const best = loadHighScore();
   const isNew = state.round > best;
@@ -192,6 +194,7 @@ function resetGame() {
   resetTraps();                        // F5.9: trampas apagadas y listas
   resetBunker();                       // F5.11: escotilla cerrada, estatuas de piedra
   resetClams();                        // F5.14
+  resetMatchXP();                      // F5.18
   resetGibs();                         // F7b: sin pedazos en el piso: almejas vacías, fumigador en otro lugar (después de resetQuest)
   resetRockets();                      // F5.11: sin cohetes en vuelo ni arco cargando
   resetMonkeys();                      // F5.11: sin langostinos

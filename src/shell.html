@@ -163,36 +163,107 @@
   #prompt.deny{animation:deny .35s}
   @keyframes deny{20%,60%{transform:translateX(calc(-50% - 6px))}40%,80%{transform:translateX(calc(-50% + 6px))}}
 
-  /* ---- overlay de inicio ---- */
-  #start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
-         justify-content:center;gap:16px;background:radial-gradient(ellipse at 50% 40%,#1b2030,#07080c);
-         text-align:center;padding:24px;overflow-y:auto}
-  #start[data-mode="pause"]{background:rgba(7,8,12,.78)}
+  /* ---- overlay de inicio (F5.18: el mundo en gris detrás, menú a la izquierda, siluetas de mobs) ---- */
+  #start{position:fixed;inset:0;display:flex;flex-direction:row;align-items:stretch;gap:0;
+         background:linear-gradient(90deg,rgba(4,5,8,.94) 0,rgba(4,5,8,.72) 340px,rgba(4,5,8,.2) 70%,rgba(4,5,8,.45) 100%);
+         text-align:left;overflow:hidden}
+  #start[data-mode="pause"]{background:linear-gradient(90deg,rgba(4,5,8,.95) 0,rgba(4,5,8,.8) 340px,rgba(4,5,8,.6) 100%)}
   #start[data-mode="main"] .pause-only{display:none}
-  #start .sub{margin-top:-10px;letter-spacing:4px;font-size:12px}
+  #start[data-mode="pause"] .main-only{display:none}
+  #start[data-mode="pause"] #menuSil{display:none}
+  .mside{position:relative;z-index:2;width:320px;min-width:260px;padding:48px 28px calc(24px + var(--safe-b));display:flex;
+         flex-direction:column;gap:14px;overflow-y:auto}
+  .mmain{position:relative;z-index:2;flex:1;padding:48px 28px 24px 8px;overflow-y:auto}
+  #start .sub{letter-spacing:3px;font-size:11px}
   #start h2{margin:0;letter-spacing:8px;color:var(--ink)}
-  .menu-btns{display:flex;flex-direction:column;gap:10px;min-width:240px}
+  #start h3{margin:0 0 12px;letter-spacing:5px;color:var(--accent);font-size:14px}
+  .menu-btns{display:flex;flex-direction:column;gap:8px;min-width:220px}
   .menu-btns.row{flex-direction:row;justify-content:center}
-  .menu-btns button{cursor:pointer;background:rgba(255,255,255,.06);color:var(--ink);
-           border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:12px 26px;
-           font:600 15px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:3px}
-  .menu-btns button:hover{background:rgba(255,179,71,.16);border-color:var(--accent)}
-  .menu-btns button.primary{background:#d33a2c;border-color:#d33a2c;color:#fff}
-  .menu-btns button.primary:hover{background:#e84a3b}
-  .panel{display:none;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);border-radius:8px;
-         padding:14px 18px;max-width:560px;text-align:left}
+  .menu-btns button{cursor:pointer;background:rgba(255,255,255,.05);color:var(--ink);text-align:left;
+           border:1px solid rgba(255,255,255,.14);border-left:3px solid transparent;border-radius:4px;padding:12px 18px;
+           font:600 15px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:3px;transition:all .12s}
+  .menu-btns.row button{text-align:center}
+  .menu-btns button:hover,.menu-btns button.on{background:rgba(255,179,71,.14);border-left-color:var(--accent);padding-left:24px}
+  .menu-btns button.primary{background:#b8281e;border-color:#d33a2c;color:#fff}
+  .menu-btns button.primary:hover{background:#d8382a}
+  .panel{display:none;background:rgba(6,7,11,.72);border:1px solid rgba(255,255,255,.1);border-radius:8px;
+         padding:16px 20px;max-width:560px;text-align:left;backdrop-filter:blur(3px)}
+  .panel.wide{max-width:760px}
   .panel.open{display:block}
-  .panel label{display:grid;grid-template-columns:110px 1fr 56px;align-items:center;gap:12px;margin:8px 0}
+  .panel label{display:grid;grid-template-columns:130px 1fr 56px;align-items:center;gap:12px;margin:8px 0}
   .panel input[type=range]{accent-color:#ffb347;width:100%}
   .ctl{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;align-items:center}
   .dim{color:var(--dim)}
   #menuMsg{color:var(--accent);min-height:1.2em}
-  #start h1{margin:0;font-size:clamp(26px,6vw,46px);letter-spacing:6px;font-weight:700;
+  #start h1{margin:0;font-size:clamp(26px,3.6vw,40px);line-height:1.05;letter-spacing:5px;font-weight:800;
             color:var(--accent);text-shadow:0 0 30px rgba(255,179,71,.3)}
-  #start p{margin:0;color:var(--dim);max-width:460px;line-height:1.8}
+  #start p{margin:0;color:var(--dim);line-height:1.6}
   #start kbd{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
              border-radius:4px;padding:1px 6px;color:var(--ink)}
   #start.hidden{display:none}
+  /* perfil chico debajo del título */
+  #mProfMini{font-size:12px;letter-spacing:2px;color:var(--ink)}
+  #mProfMini .bar,.pbar{height:5px;background:rgba(255,255,255,.12);border-radius:3px;margin-top:6px;overflow:hidden}
+  #mProfMini .bar i,.pbar i{display:block;height:100%;background:linear-gradient(90deg,#ffb347,#ff6a2a)}
+  /* mapas */
+  .maps{display:grid;grid-template-columns:repeat(3,minmax(140px,1fr));gap:14px}
+  .mapcard{cursor:pointer;border:2px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;background:#0c0e14;
+           display:flex;flex-direction:column;gap:4px;padding-bottom:10px;transition:transform .12s}
+  .mapcard:hover{transform:translateY(-3px)}
+  .mapcard b{padding:0 12px;letter-spacing:4px;font-size:15px}
+  .mapcard span{padding:0 12px;font-size:11px;color:var(--dim);letter-spacing:1px}
+  .mapcard.sel{border-color:var(--accent);box-shadow:0 0 18px rgba(255,179,71,.25)}
+  .mapcard.locked{filter:grayscale(1) brightness(.55)}
+  .mapcard.locked span:before{content:'\1F512  '}
+  .mapcard .art{height:120px;position:relative}
+  .art.beach{background:linear-gradient(180deg,#ff8a4a 0,#c8503a 38%,#3a5a6a 52%,#2a4452 62%,#d8b878 64%,#b89a5a 100%)}
+  .art.beach:after{content:'';position:absolute;left:18%;bottom:34%;width:34px;height:26px;background:#2a1a14;
+                   box-shadow:40px -6px 0 -4px #2a1a14,70px 2px 0 -6px #1a1210}
+  .art.city{background:linear-gradient(180deg,#4a5a7a 0,#2a3040 60%,#1a1c22 100%)}
+  .art.city:after{content:'';position:absolute;left:10%;right:10%;bottom:0;height:70%;
+                  background:repeating-linear-gradient(90deg,#111 0 22px,transparent 22px 30px,#1a1a1a 30px 46px,transparent 46px 52px)}
+  .art.qq{background:radial-gradient(circle at 50% 55%,#6a1a8a 0,#1a0a24 60%,#050308 100%)}
+  .art.qq:after{content:'?';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+                font:800 56px/1 ui-monospace,monospace;color:rgba(200,120,255,.5)}
+  .shake{animation:deny .35s}
+  /* armas */
+  .wgrid{display:grid;grid-template-columns:190px 1fr;gap:16px}
+  .wlist{display:flex;flex-direction:column;gap:4px;max-height:52vh;overflow-y:auto}
+  .wlist button{cursor:pointer;text-align:left;background:rgba(255,255,255,.04);color:var(--ink);border:1px solid transparent;
+                border-radius:4px;padding:7px 10px;font:600 12px ui-monospace,monospace;letter-spacing:1px}
+  .wlist button.on{border-color:var(--accent);background:rgba(255,179,71,.12)}
+  .wlist button small{color:var(--accent);float:right}
+  .atts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:8px 0 14px}
+  .att{cursor:pointer;border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:9px 11px;background:rgba(255,255,255,.03)}
+  .att b{display:block;letter-spacing:2px;font-size:12px}
+  .att span{font-size:11px;color:var(--dim)}
+  .att.on{border-color:#6ad86a;background:rgba(106,216,106,.12)}
+  .att.locked{opacity:.45;cursor:default}
+  .att.locked b:after{content:'  \1F512'}
+  .camos{display:flex;gap:10px;flex-wrap:wrap}
+  .camo{cursor:pointer;width:62px;text-align:center;font-size:10px;letter-spacing:1px;color:var(--dim)}
+  .camo i{display:block;height:36px;border-radius:5px;border:2px solid rgba(255,255,255,.15);margin-bottom:4px}
+  .camo.on i{border-color:var(--accent)}
+  .camo.locked{opacity:.4;cursor:default}
+  /* perfil */
+  .prof{display:grid;grid-template-columns:120px 1fr;gap:18px;align-items:center}
+  .badge{width:110px;height:110px;display:flex;align-items:center;justify-content:center;font:800 40px ui-monospace,monospace;
+         color:#1a1206;background:linear-gradient(135deg,#ffd27a,#ff8a2a);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+  .prof input{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:var(--ink);
+              font:700 18px ui-monospace,monospace;letter-spacing:3px;padding:6px 10px;width:100%;max-width:320px}
+  .tier{color:var(--accent);letter-spacing:4px;font-weight:700;margin:6px 0}
+  .pstats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin-top:14px;font-size:12px}
+  .pstats span:nth-child(odd){color:var(--dim)}
+  /* siluetas de mobs (cubos negros con ojos rojos) */
+  #menuSil{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+  .sil{position:absolute;bottom:-6px;transform-origin:50% 100%;animation:shamble 2.6s ease-in-out infinite;filter:blur(.6px)}
+  .sil i{position:absolute;background:#040406;box-shadow:0 0 18px rgba(0,0,0,.6)}
+  .sil i.eye{background:#ff2a1a;box-shadow:0 0 8px 2px rgba(255,40,20,.8)}
+  @keyframes shamble{0%,100%{transform:translateX(0) rotate(-2deg)}50%{transform:translateX(6px) rotate(2.5deg)}}
+  #menuSil:after{content:'';position:absolute;left:0;right:0;bottom:0;height:34%;
+                 background:linear-gradient(0deg,rgba(10,10,14,.8),rgba(10,10,14,0))}
+  @media (max-width:760px){ #start{flex-direction:column;overflow-y:auto} .mside{width:auto} .mmain{padding:0 16px 24px}
+    .maps{grid-template-columns:1fr} .wgrid{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
@@ -243,6 +314,8 @@
     <span>Doors opened</span><span id="goDoors">0</span>
     <span>Mystery box</span><span id="goBox">0</span>
     <span>Best</span><span id="goBest">0</span>
+    <span>XP earned</span><span id="goXP">0</span>
+    <span>Level</span><span id="goLvl">1</span>
   </div>
   <div id="record"></div>
   <div class="menu-btns row">
@@ -253,15 +326,35 @@
 
 <!-- menú de inicio y pausa: mismo overlay, data-mode="main" | "pause" -->
 <div id="start" data-mode="main">
-  <h1>BEACH HOUSE ZOMBIES</h1>
-  <p class="sub">MARENA · 34B · SOUTH COAST, GUATEMALA</p>
-  <h2 class="pause-only">PAUSED</h2>
-  <div class="menu-btns">
-    <button id="btnPlay" class="primary">PLAY</button>
-    <button id="btnControls">CONTROLS</button>
-    <button id="btnSettings">SETTINGS</button>
-    <button id="btnQuit" class="pause-only">QUIT TO MENU</button>
+  <div id="menuSil"></div>
+  <div class="mside">
+    <h1>BEACH HOUSE<br>ZOMBIES</h1>
+    <p class="sub">MARENA · 34B · SOUTH COAST</p>
+    <h2 class="pause-only">PAUSED</h2>
+    <div id="mProfMini" class="main-only"></div>
+    <div class="menu-btns">
+      <button id="btnPlay" class="primary">PLAY</button>
+      <button id="btnMaps" class="main-only">MAPS</button>
+      <button id="btnWeapons" class="main-only">WEAPONS</button>
+      <button id="btnProfile" class="main-only">PROFILE</button>
+      <button id="btnSettings">SETTINGS</button>
+      <button id="btnControls">CONTROLS</button>
+      <button id="btnQuit" class="pause-only">QUIT TO MENU</button>
+    </div>
+    <p id="best"></p>
+    <p id="menuMsg"></p>
   </div>
+  <div class="mmain">
+  <div id="panelMaps" class="panel wide">
+    <h3>SELECT MAP</h3>
+    <div class="maps">
+      <div class="mapcard locked" id="mapCity"><div class="art city"></div><b>CITY</b><span>LOCKED</span></div>
+      <div class="mapcard sel" id="mapBeach"><div class="art beach"></div><b>BEACH</b><span>Beach House · Marena</span></div>
+      <div class="mapcard locked" id="mapQ"><div class="art qq"></div><b>???</b><span>LOCKED</span></div>
+    </div>
+  </div>
+  <div id="panelWeapons" class="panel wide"></div>
+  <div id="panelProfile" class="panel wide"></div>
   <div id="panelControls" class="panel">
     <div class="ctl">
       <span><kbd>WASD</kbd></span><span>move</span>
@@ -292,8 +385,7 @@
     <p class="dim">⚠ Less fog = draws farther = lower FPS.</p>
     <p class="dim">Settings last for this session.</p>
   </div>
-  <p id="best"></p>
-  <p id="menuMsg"></p>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

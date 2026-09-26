@@ -52,7 +52,8 @@ function updatePlayer(dt) {
     if (stamina.idleT > ST.delay) stamina.v = Math.min(1, stamina.v + dt / ST.rechargeTime);
     if (stamina.exhausted && stamina.v >= ST.minToSprint) stamina.exhausted = false;
   }
-  const spd = (sprinting ? P.sprint * sprintMul() : P.speed) * (1 - (1 - CONFIG.ADS.moveMul) * ADS.k)   // F3b: apuntando ×0.7
+  const adsMove = (1 - CONFIG.ADS.moveMul) * (curAtt('stock') ? CONFIG.PROGRESSION.attachments.stock.adsMove : 1);   // F5.18: culata
+  const spd = (sprinting ? P.sprint * sprintMul() : P.speed) * (1 - adsMove * ADS.k)   // F3b: apuntando ×0.7
             * (player.dazeT > 0 ? CONFIG.BOSS.dazeMul : 1)    // F5: silbido del Sombrerón
             * (playerLevel() === 0 ? wetSandMul(player.pos.x, player.pos.z) : 1)    // F5.8: arena mojada
             * (player.crouch ? CR.speedMul : 1)                                     // F5.18: agachado

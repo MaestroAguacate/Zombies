@@ -30,6 +30,7 @@ const ORDER = [
   'traps.js',    // 7g trampas: tiburón del muelle y cortadora del jardín oeste (V2 F5.9)
   'bunker.js',   // 7h búnker, escotilla y estatuas de plantas (V2 F5.11)
   'clams.js',    // 7i almejas y fumigador (V2 F5.14)
+  'progress.js', // 7j XP, niveles, accesorios de armas, perfil (V2 F5.18)
   'ui.js',       // 8 UI: HUD, menús, overlay de debug
   'audio.js',    // 8b audio procedural
   'gfx.js',      // 8c calidad, sombras, post-proceso CSS, sol y luna (V2 F7a)

@@ -263,6 +263,7 @@ const slot = G.curSlot(), magLeft = slot.mag;
 state.perks = ['revive'];
 G.damagePlayer(9999, 0, -12);
 check(!state.gameOver && !state.weapons.some(w => w.id === 'wave') && !G.haveWave(), 'al revivir la perdés');
+if (G.DOWN.on) G.updateDown(CONFIG.PERKS.lastStand.time + 0.1);   // F5.18: 10 s tirado
 G.updateQuest(dt);
 check(QUEST.shopModel.visible, 'queda arriba de la mesa del taller');
 atShop();

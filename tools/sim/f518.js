@@ -60,5 +60,45 @@ player.pos.set(58, 1.7, 83); G.updateFlowField(true);
 check(G.flowAt(44, 77) > 0 && G.flowAt(52, 86) > 0, 'se llega desde el anexo del templo (hueco en x 55)');
 check(G.CRASH.flames.length === CC.cars.filter(c => c[4]).length && G.CRASH.smoke, 'llamas en los autos que arden y humo');
 
+// 4) XP, niveles y accesorios
+fresh();
+const PR = CONFIG.PROGRESSION;
+G.PROFILE.xp = 0; G.PROFILE.loadout = {}; G.sanitizeLoadout(); G.resetMatchXP();
+check(G.xpForLevel(1) === 0 && G.xpForLevel(2) === PR.base && G.xpForLevel(3) === 2 * PR.base + PR.step, 'curva de XP');
+check(G.levelOf(G.xpForLevel(12)) === 12 && G.levelOf(G.xpForLevel(12) - 1) === 11 && G.levelOf(1e12) === PR.maxLevel, 'nivel por XP (tope ' + PR.maxLevel + ')');
+check(G.tierName(1) === 'RECRUIT' && G.tierName(PR.maxLevel) === 'COMMANDER', 'rangos');
+check(!G.attUnlocked('quickdraw') && !G.toggleAttachment('m1911', 'quickdraw'), 'nivel 1: nada desbloqueado');
+G.addXP(PR.base);
+check(G.rankLevel() === 2 && G.attUnlocked('quickdraw') && G.PROFILE.matchXP === PR.base, 'subir de nivel desbloquea quickdraw');
+G.PROFILE.xp = G.xpForLevel(PR.maxLevel);
+const base = CONFIG.WEAPONS.m1911;
+check(G.toggleAttachment('m1911', 'fastmag') && G.toggleAttachment('m1911', 'barrel') && G.toggleAttachment('m1911', 'stock'), 'poner 3 accesorios');
+check(!G.toggleAttachment('m1911', 'laser') && G.PROFILE.loadout.m1911.att.length === PR.maxAtt, 'tope de ' + PR.maxAtt);
+state.weapons = [{ id: 'm1911', mag: 8, reserve: 80 }]; state.currentWeapon = 0;
+const d = G.curDef();
+check(Math.abs(d.reloadTime - base.reloadTime * PR.attachments.fastmag.reload) < 1e-9, 'fast mag: recarga ×' + PR.attachments.fastmag.reload);
+check(Math.abs(d.damage - base.damage * PR.attachments.barrel.damage) < 1e-9 && d.spread < base.spread, 'long barrel: más daño y menos dispersión');
+check(Math.abs(d.recoil - base.recoil * PR.attachments.stock.recoil) < 1e-9, 'culata: menos retroceso');
+check(CONFIG.WEAPONS.m1911.damage === base.damage && G.slotDef({ id: 'shotgun' }) === CONFIG.WEAPONS.shotgun, 'CONFIG.WEAPONS intacto; sin carga, el def de siempre');
+G.toggleAttachment('m1911', 'stock'); G.toggleAttachment('m1911', 'laser');
+G.ADS.k = 0; const hipL = G.adsSpread(); G.toggleAttachment('m1911', 'laser'); const hip0 = G.adsSpread();
+check(Math.abs(hipL / hip0 - PR.attachments.laser.hipSpread) < 1e-9, 'láser: cadera ×' + PR.attachments.laser.hipSpread);
+check(G.setCamo('m1911', 'crimson') && G.curDef().camo === PR.camos.find(c => c.id === 'crimson').color, 'camuflaje');
+G.PROFILE.xp = 0; G.sanitizeLoadout();
+check(G.PROFILE.loadout.m1911.att.length === 0 && !G.PROFILE.loadout.m1911.camo, 'sin nivel, se sacan los accesorios');
+const x0 = G.PROFILE.xp;
+G.startRound(2);
+check(G.PROFILE.xp === x0 + PR.xp.round, 'terminar la ronda 1 da ' + PR.xp.round + ' XP');
+const z = G.spawnZombie(); z.state = 'walk'; const x1 = G.PROFILE.xp;
+G.damageZombie(z, 1e6, true);
+check(G.PROFILE.xp === x1 + PR.xp.kill + PR.xp.headshot, 'kill con headshot: ' + (PR.xp.kill + PR.xp.headshot) + ' XP');
+
+// 5) menú
+G.showMenu('main');
+check(G.MENU.mode === 'main' && G.UI.btnPlay.textContent === 'PLAY', 'menú de inicio');
+check(!G.pickMap('city') && !G.pickMap('q') && G.pickMap('beach') && G.MENU.map === 'beach', 'City y ??? bloqueados, Beach sí');
+state.running = false; check(G.gfxFilter().includes('grayscale'), 'el mundo en gris detrás del menú');
+G.showMenu(null); check(!G.gfxFilter().includes('grayscale'), 'jugando, sin gris');
+
 console.log(fail ? `\n${fail} FALLAS` : '\nPASA');
 process.exit(fail ? 1 : 0);

@@ -163,36 +163,107 @@
   #prompt.deny{animation:deny .35s}
   @keyframes deny{20%,60%{transform:translateX(calc(-50% - 6px))}40%,80%{transform:translateX(calc(-50% + 6px))}}
 
-  /* ---- overlay de inicio ---- */
-  #start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
-         justify-content:center;gap:16px;background:radial-gradient(ellipse at 50% 40%,#1b2030,#07080c);
-         text-align:center;padding:24px;overflow-y:auto}
-  #start[data-mode="pause"]{background:rgba(7,8,12,.78)}
+  /* ---- overlay de inicio (F5.18: el mundo en gris detrás, menú a la izquierda, siluetas de mobs) ---- */
+  #start{position:fixed;inset:0;display:flex;flex-direction:row;align-items:stretch;gap:0;
+         background:linear-gradient(90deg,rgba(4,5,8,.94) 0,rgba(4,5,8,.72) 340px,rgba(4,5,8,.2) 70%,rgba(4,5,8,.45) 100%);
+         text-align:left;overflow:hidden}
+  #start[data-mode="pause"]{background:linear-gradient(90deg,rgba(4,5,8,.95) 0,rgba(4,5,8,.8) 340px,rgba(4,5,8,.6) 100%)}
   #start[data-mode="main"] .pause-only{display:none}
-  #start .sub{margin-top:-10px;letter-spacing:4px;font-size:12px}
+  #start[data-mode="pause"] .main-only{display:none}
+  #start[data-mode="pause"] #menuSil{display:none}
+  .mside{position:relative;z-index:2;width:320px;min-width:260px;padding:48px 28px calc(24px + var(--safe-b));display:flex;
+         flex-direction:column;gap:14px;overflow-y:auto}
+  .mmain{position:relative;z-index:2;flex:1;padding:48px 28px 24px 8px;overflow-y:auto}
+  #start .sub{letter-spacing:3px;font-size:11px}
   #start h2{margin:0;letter-spacing:8px;color:var(--ink)}
-  .menu-btns{display:flex;flex-direction:column;gap:10px;min-width:240px}
+  #start h3{margin:0 0 12px;letter-spacing:5px;color:var(--accent);font-size:14px}
+  .menu-btns{display:flex;flex-direction:column;gap:8px;min-width:220px}
   .menu-btns.row{flex-direction:row;justify-content:center}
-  .menu-btns button{cursor:pointer;background:rgba(255,255,255,.06);color:var(--ink);
-           border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:12px 26px;
-           font:600 15px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:3px}
-  .menu-btns button:hover{background:rgba(255,179,71,.16);border-color:var(--accent)}
-  .menu-btns button.primary{background:#d33a2c;border-color:#d33a2c;color:#fff}
-  .menu-btns button.primary:hover{background:#e84a3b}
-  .panel{display:none;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);border-radius:8px;
-         padding:14px 18px;max-width:560px;text-align:left}
+  .menu-btns button{cursor:pointer;background:rgba(255,255,255,.05);color:var(--ink);text-align:left;
+           border:1px solid rgba(255,255,255,.14);border-left:3px solid transparent;border-radius:4px;padding:12px 18px;
+           font:600 15px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:3px;transition:all .12s}
+  .menu-btns.row button{text-align:center}
+  .menu-btns button:hover,.menu-btns button.on{background:rgba(255,179,71,.14);border-left-color:var(--accent);padding-left:24px}
+  .menu-btns button.primary{background:#b8281e;border-color:#d33a2c;color:#fff}
+  .menu-btns button.primary:hover{background:#d8382a}
+  .panel{display:none;background:rgba(6,7,11,.72);border:1px solid rgba(255,255,255,.1);border-radius:8px;
+         padding:16px 20px;max-width:560px;text-align:left;backdrop-filter:blur(3px)}
+  .panel.wide{max-width:760px}
   .panel.open{display:block}
-  .panel label{display:grid;grid-template-columns:110px 1fr 56px;align-items:center;gap:12px;margin:8px 0}
+  .panel label{display:grid;grid-template-columns:130px 1fr 56px;align-items:center;gap:12px;margin:8px 0}
   .panel input[type=range]{accent-color:#ffb347;width:100%}
   .ctl{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;align-items:center}
   .dim{color:var(--dim)}
   #menuMsg{color:var(--accent);min-height:1.2em}
-  #start h1{margin:0;font-size:clamp(26px,6vw,46px);letter-spacing:6px;font-weight:700;
+  #start h1{margin:0;font-size:clamp(26px,3.6vw,40px);line-height:1.05;letter-spacing:5px;font-weight:800;
             color:var(--accent);text-shadow:0 0 30px rgba(255,179,71,.3)}
-  #start p{margin:0;color:var(--dim);max-width:460px;line-height:1.8}
+  #start p{margin:0;color:var(--dim);line-height:1.6}
   #start kbd{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
              border-radius:4px;padding:1px 6px;color:var(--ink)}
   #start.hidden{display:none}
+  /* perfil chico debajo del título */
+  #mProfMini{font-size:12px;letter-spacing:2px;color:var(--ink)}
+  #mProfMini .bar,.pbar{height:5px;background:rgba(255,255,255,.12);border-radius:3px;margin-top:6px;overflow:hidden}
+  #mProfMini .bar i,.pbar i{display:block;height:100%;background:linear-gradient(90deg,#ffb347,#ff6a2a)}
+  /* mapas */
+  .maps{display:grid;grid-template-columns:repeat(3,minmax(140px,1fr));gap:14px}
+  .mapcard{cursor:pointer;border:2px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;background:#0c0e14;
+           display:flex;flex-direction:column;gap:4px;padding-bottom:10px;transition:transform .12s}
+  .mapcard:hover{transform:translateY(-3px)}
+  .mapcard b{padding:0 12px;letter-spacing:4px;font-size:15px}
+  .mapcard span{padding:0 12px;font-size:11px;color:var(--dim);letter-spacing:1px}
+  .mapcard.sel{border-color:var(--accent);box-shadow:0 0 18px rgba(255,179,71,.25)}
+  .mapcard.locked{filter:grayscale(1) brightness(.55)}
+  .mapcard.locked span:before{content:'\1F512  '}
+  .mapcard .art{height:120px;position:relative}
+  .art.beach{background:linear-gradient(180deg,#ff8a4a 0,#c8503a 38%,#3a5a6a 52%,#2a4452 62%,#d8b878 64%,#b89a5a 100%)}
+  .art.beach:after{content:'';position:absolute;left:18%;bottom:34%;width:34px;height:26px;background:#2a1a14;
+                   box-shadow:40px -6px 0 -4px #2a1a14,70px 2px 0 -6px #1a1210}
+  .art.city{background:linear-gradient(180deg,#4a5a7a 0,#2a3040 60%,#1a1c22 100%)}
+  .art.city:after{content:'';position:absolute;left:10%;right:10%;bottom:0;height:70%;
+                  background:repeating-linear-gradient(90deg,#111 0 22px,transparent 22px 30px,#1a1a1a 30px 46px,transparent 46px 52px)}
+  .art.qq{background:radial-gradient(circle at 50% 55%,#6a1a8a 0,#1a0a24 60%,#050308 100%)}
+  .art.qq:after{content:'?';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+                font:800 56px/1 ui-monospace,monospace;color:rgba(200,120,255,.5)}
+  .shake{animation:deny .35s}
+  /* armas */
+  .wgrid{display:grid;grid-template-columns:190px 1fr;gap:16px}
+  .wlist{display:flex;flex-direction:column;gap:4px;max-height:52vh;overflow-y:auto}
+  .wlist button{cursor:pointer;text-align:left;background:rgba(255,255,255,.04);color:var(--ink);border:1px solid transparent;
+                border-radius:4px;padding:7px 10px;font:600 12px ui-monospace,monospace;letter-spacing:1px}
+  .wlist button.on{border-color:var(--accent);background:rgba(255,179,71,.12)}
+  .wlist button small{color:var(--accent);float:right}
+  .atts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:8px 0 14px}
+  .att{cursor:pointer;border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:9px 11px;background:rgba(255,255,255,.03)}
+  .att b{display:block;letter-spacing:2px;font-size:12px}
+  .att span{font-size:11px;color:var(--dim)}
+  .att.on{border-color:#6ad86a;background:rgba(106,216,106,.12)}
+  .att.locked{opacity:.45;cursor:default}
+  .att.locked b:after{content:'  \1F512'}
+  .camos{display:flex;gap:10px;flex-wrap:wrap}
+  .camo{cursor:pointer;width:62px;text-align:center;font-size:10px;letter-spacing:1px;color:var(--dim)}
+  .camo i{display:block;height:36px;border-radius:5px;border:2px solid rgba(255,255,255,.15);margin-bottom:4px}
+  .camo.on i{border-color:var(--accent)}
+  .camo.locked{opacity:.4;cursor:default}
+  /* perfil */
+  .prof{display:grid;grid-template-columns:120px 1fr;gap:18px;align-items:center}
+  .badge{width:110px;height:110px;display:flex;align-items:center;justify-content:center;font:800 40px ui-monospace,monospace;
+         color:#1a1206;background:linear-gradient(135deg,#ffd27a,#ff8a2a);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+  .prof input{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:var(--ink);
+              font:700 18px ui-monospace,monospace;letter-spacing:3px;padding:6px 10px;width:100%;max-width:320px}
+  .tier{color:var(--accent);letter-spacing:4px;font-weight:700;margin:6px 0}
+  .pstats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin-top:14px;font-size:12px}
+  .pstats span:nth-child(odd){color:var(--dim)}
+  /* siluetas de mobs (cubos negros con ojos rojos) */
+  #menuSil{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+  .sil{position:absolute;bottom:-6px;transform-origin:50% 100%;animation:shamble 2.6s ease-in-out infinite;filter:blur(.6px)}
+  .sil i{position:absolute;background:#040406;box-shadow:0 0 18px rgba(0,0,0,.6)}
+  .sil i.eye{background:#ff2a1a;box-shadow:0 0 8px 2px rgba(255,40,20,.8)}
+  @keyframes shamble{0%,100%{transform:translateX(0) rotate(-2deg)}50%{transform:translateX(6px) rotate(2.5deg)}}
+  #menuSil:after{content:'';position:absolute;left:0;right:0;bottom:0;height:34%;
+                 background:linear-gradient(0deg,rgba(10,10,14,.8),rgba(10,10,14,0))}
+  @media (max-width:760px){ #start{flex-direction:column;overflow-y:auto} .mside{width:auto} .mmain{padding:0 16px 24px}
+    .maps{grid-template-columns:1fr} .wgrid{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
@@ -243,6 +314,8 @@
     <span>Doors opened</span><span id="goDoors">0</span>
     <span>Mystery box</span><span id="goBox">0</span>
     <span>Best</span><span id="goBest">0</span>
+    <span>XP earned</span><span id="goXP">0</span>
+    <span>Level</span><span id="goLvl">1</span>
   </div>
   <div id="record"></div>
   <div class="menu-btns row">
@@ -253,15 +326,35 @@
 
 <!-- menú de inicio y pausa: mismo overlay, data-mode="main" | "pause" -->
 <div id="start" data-mode="main">
-  <h1>BEACH HOUSE ZOMBIES</h1>
-  <p class="sub">MARENA · 34B · SOUTH COAST, GUATEMALA</p>
-  <h2 class="pause-only">PAUSED</h2>
-  <div class="menu-btns">
-    <button id="btnPlay" class="primary">PLAY</button>
-    <button id="btnControls">CONTROLS</button>
-    <button id="btnSettings">SETTINGS</button>
-    <button id="btnQuit" class="pause-only">QUIT TO MENU</button>
+  <div id="menuSil"></div>
+  <div class="mside">
+    <h1>BEACH HOUSE<br>ZOMBIES</h1>
+    <p class="sub">MARENA · 34B · SOUTH COAST</p>
+    <h2 class="pause-only">PAUSED</h2>
+    <div id="mProfMini" class="main-only"></div>
+    <div class="menu-btns">
+      <button id="btnPlay" class="primary">PLAY</button>
+      <button id="btnMaps" class="main-only">MAPS</button>
+      <button id="btnWeapons" class="main-only">WEAPONS</button>
+      <button id="btnProfile" class="main-only">PROFILE</button>
+      <button id="btnSettings">SETTINGS</button>
+      <button id="btnControls">CONTROLS</button>
+      <button id="btnQuit" class="pause-only">QUIT TO MENU</button>
+    </div>
+    <p id="best"></p>
+    <p id="menuMsg"></p>
   </div>
+  <div class="mmain">
+  <div id="panelMaps" class="panel wide">
+    <h3>SELECT MAP</h3>
+    <div class="maps">
+      <div class="mapcard locked" id="mapCity"><div class="art city"></div><b>CITY</b><span>LOCKED</span></div>
+      <div class="mapcard sel" id="mapBeach"><div class="art beach"></div><b>BEACH</b><span>Beach House · Marena</span></div>
+      <div class="mapcard locked" id="mapQ"><div class="art qq"></div><b>???</b><span>LOCKED</span></div>
+    </div>
+  </div>
+  <div id="panelWeapons" class="panel wide"></div>
+  <div id="panelProfile" class="panel wide"></div>
   <div id="panelControls" class="panel">
     <div class="ctl">
       <span><kbd>WASD</kbd></span><span>move</span>
@@ -292,8 +385,7 @@
     <p class="dim">⚠ Less fog = draws farther = lower FPS.</p>
     <p class="dim">Settings last for this session.</p>
   </div>
-  <p id="best"></p>
-  <p id="menuMsg"></p>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -570,6 +662,31 @@ const CONFIG = {
     interactRange: 3      // m al borde de la puerta / al punto del wall buy para mostrar el prompt
   },
   HIGHSCORE_KEY: 'bhz_highscore',
+  // F5.18 (pedido de Diego, como BO3): XP que se acumula entre partidas y sube de nivel; cada nivel desbloquea
+  // accesorios y camuflajes para las armas. Se guarda en localStorage (`key`; se levantó la regla de "solo el récord").
+  // XP para pasar del nivel n al n+1 = base + step × (n − 1). tiers: [desde nivel, nombre]
+  PROGRESSION: {
+    key: 'bhz_profile_v1', maxLevel: 55, base: 600, step: 90, maxAtt: 3,
+    xp: { kill: 10, headshot: 6, round: 40, boss: 500 },       // round: × la ronda que terminaste
+    tiers: [[1, 'RECRUIT'], [4, 'PRIVATE'], [8, 'CORPORAL'], [12, 'SERGEANT'], [17, 'STAFF SERGEANT'], [22, 'LIEUTENANT'],
+            [28, 'CAPTAIN'], [34, 'MAJOR'], [40, 'COLONEL'], [46, 'BRIGADIER'], [51, 'GENERAL'], [55, 'COMMANDER']],
+    // accesorios: nivel en que se desbloquean y efecto (lo aplican progress.js attDef y weapons.js)
+    attachments: {
+      quickdraw: { name: 'QUICKDRAW',    level: 2,  desc: 'Aim down sights 50% faster', adsTime: 0.5 },
+      fastmag:   { name: 'FAST MAG',     level: 4,  desc: 'Reload 30% faster', reload: 0.7 },
+      reflex:    { name: 'REFLEX SIGHT', level: 6,  desc: 'Red dot: more zoom, 30% tighter aim', adsSpread: 0.7, zoom: 8 },
+      laser:     { name: 'LASER SIGHT',  level: 9,  desc: 'Hip fire 40% tighter', hipSpread: 0.6 },
+      barrel:    { name: 'LONG BARREL',  level: 12, desc: '+15% damage, 15% tighter', damage: 1.15, spread: 0.85 },
+      stock:     { name: 'STOCK',        level: 15, desc: 'Move faster aiming, 25% less recoil', adsMove: 0.5, recoil: 0.75 }
+    },
+    camos: [
+      { id: 'jungle',  name: 'JUNGLE',  color: 0x4a6a32, level: 3 },
+      { id: 'sand',    name: 'DESERT',  color: 0xc8a868, level: 10 },
+      { id: 'arctic',  name: 'ARCTIC',  color: 0xdce6ee, level: 20 },
+      { id: 'crimson', name: 'CRIMSON', color: 0xa01c1c, level: 30 }
+    ],
+    noAtt: ['wave', 'flamethrower']                                     // sin accesorios (la Ola y el lanzallamas)
+  },
 
   POINTS: { hit: 10, kill: 60, headshotKill: 130, meleeKill: 130 },
 
@@ -4372,7 +4489,8 @@ function updatePlayer(dt) {
     if (stamina.idleT > ST.delay) stamina.v = Math.min(1, stamina.v + dt / ST.rechargeTime);
     if (stamina.exhausted && stamina.v >= ST.minToSprint) stamina.exhausted = false;
   }
-  const spd = (sprinting ? P.sprint * sprintMul() : P.speed) * (1 - (1 - CONFIG.ADS.moveMul) * ADS.k)   // F3b: apuntando ×0.7
+  const adsMove = (1 - CONFIG.ADS.moveMul) * (curAtt('stock') ? CONFIG.PROGRESSION.attachments.stock.adsMove : 1);   // F5.18: culata
+  const spd = (sprinting ? P.sprint * sprintMul() : P.speed) * (1 - adsMove * ADS.k)   // F3b: apuntando ×0.7
             * (player.dazeT > 0 ? CONFIG.BOSS.dazeMul : 1)    // F5: silbido del Sombrerón
             * (playerLevel() === 0 ? wetSandMul(player.pos.x, player.pos.z) : 1)    // F5.8: arena mojada
             * (player.crouch ? CR.speedMul : 1)                                     // F5.18: agachado
@@ -4725,11 +4843,17 @@ const decals = { pool: [], i: 0 };
 // Solo con arma en la mano, en 'idle' y sin correr. Baja el FOV de la cámara del mundo (el arma tiene la
 // suya), la dispersión (fireWeapon), la velocidad (updatePlayer) y la sensibilidad (lookInput)
 const ADS = { on: false, k: 0 };
-function adsSpread() { return (1 - (1 - CONFIG.ADS.spreadMul) * ADS.k) * (player.crouch ? CONFIG.PLAYER.crouch.spreadMul : 1); }   // F5.18: agachado
+// F5.18: agachado, y los accesorios: láser (cadera) y mira réflex (apuntando)
+function adsSpread() {
+  const A = CONFIG.PROGRESSION.attachments, d = curDef(), att = (d && d.att) || {};
+  const hip = att.laser ? A.laser.hipSpread : 1, ads = CONFIG.ADS.spreadMul * (att.reflex ? A.reflex.adsSpread : 1);
+  return (hip * (1 - ADS.k) + ads * ADS.k) * (player.crouch ? CONFIG.PLAYER.crouch.spreadMul : 1);
+}
 function updateAds(dt) {
   const A = CONFIG.ADS, def = curDef();
   const want = ADS.on && def && weaponsState.phase === 'idle' && !player.sprinting;
-  ADS.k = want ? Math.min(1, ADS.k + dt / A.time) : Math.max(0, ADS.k - dt / A.time);
+  const at = A.time * (def && def.att && def.att.quickdraw ? CONFIG.PROGRESSION.attachments.quickdraw.adsTime : 1);   // F5.18: quickdraw
+  ADS.k = want ? Math.min(1, ADS.k + dt / at) : Math.max(0, ADS.k - dt / at);
   const fov = A.baseFov - (A.baseFov - ((def && def.adsFov) || A.fov)) * ADS.k;
   if (Math.abs(camera.fov - fov) > 1e-4) { camera.fov = fov; camera.updateProjectionMatrix(); }
 }
@@ -5017,7 +5141,8 @@ function papDef(id) {
   return (PAP_DEFS[id] = d);
 }
 // el def que rige un slot del inventario (mejorado o no). Todo lo que lee munición o daño pasa por acá
-function slotDef(s) { return s ? (s.pap ? papDef(s.id) : CONFIG.WEAPONS[s.id]) : null; }
+// F5.18: con los accesorios de la carga del jugador (attDef, progress.js)
+function slotDef(s) { return s ? attDef(s.pap ? papDef(s.id) : CONFIG.WEAPONS[s.id], s.id) : null; }
 let CAMO_MAT = null;
 function camoMat() {
   if (CAMO_MAT) return CAMO_MAT;
@@ -5033,6 +5158,32 @@ function camoMat() {
   CAMO_MAT = new THREE.MeshLambertMaterial({ map: tex, emissive: 0x3a1a5a, emissiveIntensity: 0.6 });
   return CAMO_MAT;
 }
+// F5.18: camuflaje de color (mezcla el color de cada pieza con el del camo) y accesorios en el modelo, en cubos
+function tintModel(model, hex) {
+  const c = new THREE.Color(hex);
+  model.traverse(o => { if (o.isMesh && o.material && o.material.color) { o.material = o.material.clone(); o.material.color.lerp(c, 0.55); } });
+}
+function addAttachmentModels(model, att) {
+  model.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(model), mz = model.userData.muzzle, cx = (bb.min.x + bb.max.x) / 2;
+  const dark = 0x1c1c1e, add = (w, h, d, col, x, y, z) => { const m = box(w, h, d, col, x, y, z); model.add(m); return m; };
+  const mid = (bb.min.z + bb.max.z) / 2;
+  if (att.reflex) {
+    add(0.03, 0.018, 0.07, dark, cx, bb.max.y + 0.009, mid - 0.02);
+    add(0.034, 0.036, 0.006, dark, cx, bb.max.y + 0.03, mid - 0.055);
+    const dot = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.004, 0.002), new THREE.MeshBasicMaterial({ color: 0xff2020 }));
+    dot.position.set(cx, bb.max.y + 0.032, mid - 0.058); model.add(dot);
+  }
+  if (att.laser) {
+    add(0.018, 0.018, 0.06, 0x2a3a2a, cx + 0.022, bb.min.y + 0.03, bb.min.z + 0.08);
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.0015, 0.0015, 4), new THREE.MeshBasicMaterial({ color: 0xff2020, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
+    beam.position.set(cx + 0.022, bb.min.y + 0.03, bb.min.z + 0.05 - 2); model.add(beam);
+  }
+  if (att.barrel && mz) { add(0.024, 0.024, 0.12, dark, mz.x, mz.y, mz.z - 0.05); mz.z -= 0.11; }
+  if (att.stock) { add(0.028, 0.06, 0.16, 0x2a2622, cx, (bb.min.y + bb.max.y) / 2 - 0.01, bb.max.z + 0.07); add(0.034, 0.08, 0.02, dark, cx, (bb.min.y + bb.max.y) / 2 - 0.015, bb.max.z + 0.15); }
+  if (att.fastmag) { add(0.022, 0.09, 0.04, dark, cx + 0.026, bb.min.y - 0.02, mid); add(0.05, 0.015, 0.045, 0xd8b020, cx + 0.013, bb.min.y - 0.005, mid); }
+  if (att.quickdraw) add(0.046, 0.03, 0.05, 0x3a3a3a, cx, bb.min.y + 0.025, bb.max.z - 0.07);
+}
 function applyCamo(model) { model.traverse(o => { if (o.isMesh) o.material = camoMat(); }); return model; }
 
 function equipModel(def) {
@@ -5041,6 +5192,8 @@ function equipModel(def) {
   if (!def) return;                                   // manos vacías (el arma está en el Pack-a-Punch)
   weaponsState.model = buildWeaponModel(def);
   if (def.pap) applyCamo(weaponsState.model);
+  else if (def.camo) tintModel(weaponsState.model, def.camo);        // F5.18: camuflaje de la carga
+  if (def.att) addAttachmentModels(weaponsState.model, def.att);      // F5.18: accesorios (cubos)
   weaponsState.group.add(weaponsState.model);
   const mz = weaponsState.model.userData.muzzle;
   weaponsState.muzzleSprite.position.copy(mz).add(new THREE.Vector3(0, 0, -0.04));
@@ -6477,6 +6630,7 @@ function damageZombie(z, dmg, headshot, killPoints, hitPoints, part) {
     state.kills++;
     STATS.killsBy[STATS.src] = (STATS.killsBy[STATS.src] || 0) + 1;
     if (headshot) STATS.headshots++;
+    addXP(CONFIG.PROGRESSION.xp.kill + (headshot ? CONFIG.PROGRESSION.xp.headshot : 0));   // F5.18
     addPoints(killPoints !== undefined ? killPoints : (headshot ? CONFIG.POINTS.headshotKill : CONFIG.POINTS.kill));
     onZombieDeath(z);
   } else {
@@ -7975,6 +8129,7 @@ function knockHat(z) {
 function bossDeath(z) {
   const B = CONFIG.BOSS;
   STATS.bosses++;
+  addXP(CONFIG.PROGRESSION.xp.boss);        // F5.18
   trySpawnPickup(z.px, z.pz, 'maxammo');
   dropString(z);                                                  // F5.5: la cuerda de guitarra (una vez)
   z.gun = 'idle'; z.gunModel.visible = false;                     // los cocos en vuelo terminan su recorrido
@@ -8453,6 +8608,7 @@ function spawnMob() {
 
 // arranca la ronda n: cantidad y stats salen de CONFIG.ZOMBIE (health/speed los lee resetZombie)
 function startRound(n) {
+  if (n > 1 && n > state.round) { addXP(CONFIG.PROGRESSION.xp.round * (n - 1)); saveProfile(); }   // F5.18: XP por ronda terminada
   state.round = n;
   roundState.phase = 'active';
   setSquidHead(n);                     // F5.13: la cabeza del calamar sube un poco por ronda
@@ -8564,6 +8720,7 @@ function gameOver() {
   if (state.gameOver) return;
   state.gameOver = true;
   state.running = false;
+  saveProfile();                       // F5.18
   roundState.phase = 'over';
   const best = loadHighScore();
   const isNew = state.round > best;
@@ -8600,6 +8757,7 @@ function resetGame() {
   resetTraps();                        // F5.9: trampas apagadas y listas
   resetBunker();                       // F5.11: escotilla cerrada, estatuas de piedra
   resetClams();                        // F5.14
+  resetMatchXP();                      // F5.18
   resetGibs();                         // F7b: sin pedazos en el piso: almejas vacías, fumigador en otro lugar (después de resetQuest)
   resetRockets();                      // F5.11: sin cohetes en vuelo ni arco cargando
   resetMonkeys();                      // F5.11: sin langostinos
@@ -13841,6 +13999,100 @@ function resetClams() {
     F.g.position.set(sp.x, groundY(sp.x, sp.z), sp.z); F.g.visible = true;
   }
 }
+//=== 7j. PROGRESO (V2 F5.18) ================================================
+// XP entre partidas, niveles con rango (tier), accesorios y camuflajes para las armas (CONFIG.PROGRESSION).
+// PROFILE se guarda en localStorage (CONFIG.PROGRESSION.key); si no hay (modo privado, tests) arranca de cero.
+// La carga: PROFILE.loadout[idArma] = { att: ['reflex', ...], camo: 'jungle' | null }. slotDef (weapons.js) aplica
+// los accesorios con attDef: un def cacheado por arma y combinación, CONFIG.WEAPONS no se toca
+const PROFILE = { name: 'SURVIVOR', xp: 0, loadout: {}, matchXP: 0, startLevel: 1 };
+const ATT_DEFS = {};
+
+function loadProfile() {
+  try {
+    const raw = localStorage.getItem(CONFIG.PROGRESSION.key);
+    if (raw) { const p = JSON.parse(raw); PROFILE.name = String(p.name || 'SURVIVOR').slice(0, 16); PROFILE.xp = Math.max(0, +p.xp || 0); PROFILE.loadout = p.loadout || {}; }
+  } catch (e) {}
+  sanitizeLoadout();
+}
+function saveProfile() {
+  try { localStorage.setItem(CONFIG.PROGRESSION.key, JSON.stringify({ name: PROFILE.name, xp: PROFILE.xp, loadout: PROFILE.loadout })); } catch (e) {}
+}
+// XP total para llegar al nivel L (nivel 1 = 0)
+function xpForLevel(L) { const P = CONFIG.PROGRESSION; let t = 0; for (let n = 1; n < L; n++) t += P.base + P.step * (n - 1); return t; }
+function levelOf(xp) { const P = CONFIG.PROGRESSION; let L = 1; while (L < P.maxLevel && xp >= xpForLevel(L + 1)) L++; return L; }
+function rankLevel() { return levelOf(PROFILE.xp); }
+function tierName(L) { let n = ''; for (const [lv, name] of CONFIG.PROGRESSION.tiers) if (L >= lv) n = name; return n; }
+// progreso dentro del nivel: [xp en el nivel, xp que pide el nivel] (en el máximo, [0, 0])
+function levelProgress(xp) {
+  const L = levelOf(xp), P = CONFIG.PROGRESSION;
+  if (L >= P.maxLevel) return [0, 0];
+  const a = xpForLevel(L), b = xpForLevel(L + 1);
+  return [xp - a, b - a];
+}
+function attUnlocked(key) { const A = CONFIG.PROGRESSION.attachments[key]; return !!A && rankLevel() >= A.level; }
+function camoUnlocked(id) { const C = CONFIG.PROGRESSION.camos.find(c => c.id === id); return !!C && rankLevel() >= C.level; }
+function canAttach(id) { return !!CONFIG.WEAPONS[id] && CONFIG.PROGRESSION.noAtt.indexOf(id) < 0; }
+function loadoutOf(id) { return PROFILE.loadout[id] || (PROFILE.loadout[id] = { att: [], camo: null }); }
+// saca lo que no está desbloqueado o no existe, y respeta el tope de accesorios
+function sanitizeLoadout() {
+  const P = CONFIG.PROGRESSION;
+  for (const id in PROFILE.loadout) {
+    const L = PROFILE.loadout[id];
+    if (!canAttach(id) || !L) { delete PROFILE.loadout[id]; continue; }
+    L.att = (Array.isArray(L.att) ? L.att : []).filter((k, i, a) => a.indexOf(k) === i && attUnlocked(k)).slice(0, P.maxAtt);
+    if (L.camo && !camoUnlocked(L.camo)) L.camo = null;
+  }
+  for (const k in ATT_DEFS) delete ATT_DEFS[k];
+}
+// prende/apaga un accesorio en un arma (menú). Devuelve si quedó puesto
+function toggleAttachment(id, key) {
+  if (!canAttach(id) || !attUnlocked(key)) return false;
+  const L = loadoutOf(id), i = L.att.indexOf(key);
+  if (i >= 0) L.att.splice(i, 1);
+  else if (L.att.length < CONFIG.PROGRESSION.maxAtt) L.att.push(key);
+  sanitizeLoadout(); saveProfile();
+  return L.att.indexOf(key) >= 0;
+}
+function setCamo(id, camo) {
+  if (!canAttach(id) || (camo && !camoUnlocked(camo))) return false;
+  loadoutOf(id).camo = camo || null; sanitizeLoadout(); saveProfile();
+  return true;
+}
+// el def con los accesorios del arma (o el mismo def si no tiene)
+function attDef(b, id) {
+  const L = PROFILE.loadout[id];
+  if (!b || !L || (!L.att.length && !L.camo) || !canAttach(id)) return b;
+  const key = id + (b.pap ? '*' : '') + ':' + L.att.slice().sort().join(',') + ':' + (L.camo || '');
+  if (ATT_DEFS[key]) return ATT_DEFS[key];
+  const A = CONFIG.PROGRESSION.attachments, d = Object.assign({}, b), att = {};
+  for (const k of L.att) att[k] = true;
+  if (att.barrel) { if (d.damage !== undefined) d.damage *= A.barrel.damage; if (d.dps !== undefined) d.dps *= A.barrel.damage; d.spread *= A.barrel.spread; }
+  if (att.fastmag) d.reloadTime *= A.fastmag.reload;
+  if (att.stock) d.recoil *= A.stock.recoil;
+  if (att.reflex && !b.adsFov) d.adsFov = CONFIG.ADS.fov - A.reflex.zoom;
+  d.att = att;
+  const C = L.camo && CONFIG.PROGRESSION.camos.find(c => c.id === L.camo);
+  d.camo = C ? C.color : null;
+  return (ATT_DEFS[key] = d);
+}
+function curAtt(k) { const d = curDef(); return !!(d && d.att && d.att[k]); }
+
+// suma XP de la partida; avisa si subís de nivel (y qué se desbloqueó)
+function addXP(n) {
+  if (!(n > 0)) return;
+  const before = rankLevel();
+  PROFILE.xp += n; PROFILE.matchXP += n;
+  const after = rankLevel();
+  if (after > before) {
+    const P = CONFIG.PROGRESSION, un = [];
+    for (const k in P.attachments) if (P.attachments[k].level > before && P.attachments[k].level <= after) un.push(P.attachments[k].name);
+    for (const c of P.camos) if (c.level > before && c.level <= after) un.push(c.name + ' CAMO');
+    showBanner('LEVEL ' + after + ' · ' + tierName(after) + (un.length ? '  —  UNLOCKED: ' + un.join(', ') : ''), 3.5);
+    if (typeof sfxRoundDrum === 'function') sfxRoundDrum(5);
+    saveProfile();
+  }
+}
+function resetMatchXP() { PROFILE.matchXP = 0; PROFILE.startLevel = rankLevel(); }
 //=== 8. UI ===============================================================
 const UI = {};
 function initUI() {
@@ -13879,7 +14131,9 @@ function initUI() {
   UI.goKills = document.getElementById('goKills');
   UI.goAcc = document.getElementById('goAcc');
   ['goTime', 'goHeads', 'goKnife', 'goFav', 'goPts', 'goDmg', 'goDoors', 'goBox', 'btnGoMenu', 'btnPlay', 'btnControls',
-   'btnSettings', 'btnQuit', 'panelControls', 'panelSettings', 'sens', 'sensVal', 'vol', 'volVal', 'menuMsg']
+   'btnSettings', 'btnQuit', 'panelControls', 'panelSettings', 'sens', 'sensVal', 'vol', 'volVal', 'menuMsg',
+   'btnMaps', 'btnWeapons', 'btnProfile', 'panelMaps', 'panelWeapons', 'panelProfile', 'mProfMini', 'menuSil', 'goXP', 'goLvl',   // F5.18
+   'mapCity', 'mapBeach', 'mapQ']
     .forEach(id => { UI[id] = document.getElementById(id); });
   UI.goBest = document.getElementById('goBest');
   UI.record = document.getElementById('record');
@@ -14002,18 +14256,128 @@ function showBanner(text, secs) {
 }
 //--- menú de inicio y pausa: el mismo overlay (#start) con data-mode main | pause ---
 // Esc lo maneja el navegador (suelta el pointer lock); pointerlockchange decide qué mostrar.
-const MENU = { started: false };
+// F5.18: menú a la izquierda (mapas, armas, perfil, ajustes, controles), el mundo en gris detrás (gfxFilter) con una
+// cámara que recorre la playa (menuCamera, loop.js) y siluetas de mobs en cubos
+const MENU = { started: false, mode: null, map: 'beach', weapon: null };
 function showMenu(mode) {                  // 'main' | 'pause' | null (ocultar)
+  MENU.mode = mode;
+  if (typeof gfxApplyFilter === 'function') gfxApplyFilter();
   if (!mode) { UI.start.classList.add('hidden'); return; }
   UI.start.setAttribute('data-mode', mode);
   UI.btnPlay.textContent = mode === 'pause' ? 'RESUME' : 'PLAY';
   UI.best.textContent = 'Best: round ' + loadHighScore();
+  if (mode === 'main') { renderProfileMini(); if (UI.menuSil && !UI.menuSil.childElementCount) buildSilhouettes(); }
+  else menuPanel(null);
   UI.start.classList.remove('hidden');
 }
-function menuPanel(which) {                // abre uno, cierra el otro; clic de nuevo = cerrar
-  const c = UI.panelControls.classList, s = UI.panelSettings.classList;
-  const openC = which === 'controls' && !c.contains('open'), openS = which === 'settings' && !s.contains('open');
-  c.toggle('open', openC); s.toggle('open', openS);
+const MENU_PANELS = { maps: ['panelMaps', 'btnMaps'], weapons: ['panelWeapons', 'btnWeapons'], profile: ['panelProfile', 'btnProfile'],
+                      settings: ['panelSettings', 'btnSettings'], controls: ['panelControls', 'btnControls'] };
+function menuPanel(which) {                // abre uno, cierra los otros; clic de nuevo = cerrar
+  for (const k in MENU_PANELS) {
+    const p = UI[MENU_PANELS[k][0]], b = UI[MENU_PANELS[k][1]];
+    if (!p) continue;
+    const open = k === which && !p.classList.contains('open');
+    p.classList.toggle('open', open); if (b) b.classList.toggle('on', open);
+  }
+  if (which === 'weapons') renderWeaponsPanel();
+  if (which === 'profile') renderProfilePanel();
+}
+function xpBarHTML(cls) {
+  const [a, b] = levelProgress(PROFILE.xp), k = b ? a / b : 1;
+  return '<div class="' + cls + '"><i style="width:' + (k * 100).toFixed(1) + '%"></i></div>';
+}
+function renderProfileMini() {
+  if (!UI.mProfMini) return;
+  const L = rankLevel();
+  UI.mProfMini.innerHTML = esc(PROFILE.name) + ' · LV ' + L + ' · ' + tierName(L) + xpBarHTML('bar');
+}
+function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
+function renderProfilePanel() {
+  const L = rankLevel(), [a, b] = levelProgress(PROFILE.xp), P = CONFIG.PROGRESSION;
+  const next = [];
+  for (const k in P.attachments) if (P.attachments[k].level > L) next.push([P.attachments[k].level, P.attachments[k].name]);
+  for (const c of P.camos) if (c.level > L) next.push([c.level, c.name + ' CAMO']);
+  next.sort((x, y) => x[0] - y[0]);
+  UI.panelProfile.innerHTML = '<h3>PROFILE</h3><div class="prof"><div class="badge">' + L + '</div><div>' +
+    '<input id="profName" maxlength="16" value="' + esc(PROFILE.name) + '">' +
+    '<div class="tier">' + tierName(L) + '</div>' + xpBarHTML('pbar') +
+    '<p class="dim">' + (b ? a + ' / ' + b + ' XP to level ' + (L + 1) : 'MAX LEVEL') + '</p></div></div>' +
+    '<div class="pstats"><span>Level</span><span>' + L + ' / ' + P.maxLevel + '</span><span>Total XP</span><span>' + PROFILE.xp + '</span>' +
+    '<span>Best round</span><span>' + loadHighScore() + '</span>' +
+    '<span>Next unlock</span><span>' + (next.length ? next[0][1] + ' (level ' + next[0][0] + ')' : 'Everything unlocked') + '</span></div>';
+  const inp = document.getElementById('profName');
+  if (inp && inp.addEventListener) inp.addEventListener('change', () => {
+    PROFILE.name = (inp.value || 'SURVIVOR').toUpperCase().slice(0, 16); saveProfile(); renderProfileMini();
+  });
+}
+function renderWeaponsPanel() {
+  const P = CONFIG.PROGRESSION, ids = Object.keys(CONFIG.WEAPONS).filter(canAttach);
+  if (!MENU.weapon || ids.indexOf(MENU.weapon) < 0) MENU.weapon = ids[0];
+  const id = MENU.weapon, L = loadoutOf(id), lv = rankLevel();
+  let h = '<h3>WEAPONS · ATTACHMENTS (' + L.att.length + '/' + P.maxAtt + ')</h3><div class="wgrid"><div class="wlist">';
+  for (const w of ids) { const n = (PROFILE.loadout[w] && PROFILE.loadout[w].att.length) || 0;
+    h += '<button data-w="' + w + '" class="' + (w === id ? 'on' : '') + '">' + CONFIG.WEAPONS[w].name + (n ? '<small>' + n + '</small>' : '') + '</button>'; }
+  h += '</div><div><b style="letter-spacing:3px">' + CONFIG.WEAPONS[id].name + '</b><div class="atts">';
+  for (const k in P.attachments) {
+    const A = P.attachments[k], lock = lv < A.level, on = L.att.indexOf(k) >= 0;
+    h += '<div class="att' + (on ? ' on' : '') + (lock ? ' locked' : '') + '" data-a="' + k + '"><b>' + A.name + '</b><span>' +
+         (lock ? 'Unlocks at level ' + A.level : A.desc) + '</span></div>';
+  }
+  h += '</div><b style="letter-spacing:3px">CAMO</b><div class="camos" style="margin-top:8px">' +
+       '<div class="camo' + (!L.camo ? ' on' : '') + '" data-c=""><i style="background:#3a3a3a"></i>NONE</div>';
+  for (const c of P.camos) {
+    const lock = lv < c.level, col = '#' + c.color.toString(16).padStart(6, '0');
+    h += '<div class="camo' + (L.camo === c.id ? ' on' : '') + (lock ? ' locked' : '') + '" data-c="' + c.id + '"><i style="background:' +
+         'repeating-linear-gradient(45deg,' + col + ' 0 8px,rgba(0,0,0,.35) 8px 12px)"></i>' + (lock ? 'LV ' + c.level : c.name) + '</div>';
+  }
+  h += '</div></div></div>';
+  UI.panelWeapons.innerHTML = h;
+  if (!UI.panelWeapons.querySelectorAll) return;
+  UI.panelWeapons.querySelectorAll('[data-w]').forEach(b => b.addEventListener('click', () => { MENU.weapon = b.dataset.w; renderWeaponsPanel(); }));
+  UI.panelWeapons.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.a;
+    if (!attUnlocked(k)) return;
+    if (L.att.indexOf(k) < 0 && L.att.length >= P.maxAtt) { UI.menuMsg.textContent = 'Max ' + P.maxAtt + ' attachments per weapon.'; return; }
+    toggleAttachment(id, k); UI.menuMsg.textContent = ''; renderWeaponsPanel();
+  }));
+  UI.panelWeapons.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', () => {
+    const c = b.dataset.c;
+    if (c && !camoUnlocked(c)) return;
+    setCamo(id, c); renderWeaponsPanel();
+  }));
+}
+// mapas: solo la playa; los otros dos, bloqueados
+function pickMap(key) {
+  const card = { city: UI.mapCity, beach: UI.mapBeach, q: UI.mapQ }[key];
+  if (key !== 'beach') {
+    UI.menuMsg.textContent = 'Locked. Coming soon.';
+    if (card) { card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); }
+    return false;
+  }
+  MENU.map = key; UI.menuMsg.textContent = '';
+  return true;
+}
+// siluetas de mobs en cubos negros, con ojos rojos: zombies, perros y un Sombrerón. [x, y desde abajo, ancho, alto, giro]
+const SIL_SHAPES = {
+  zombie: [[20, 0, 22, 86, 4], [46, 0, 22, 86, -6], [16, 82, 58, 84, 0], [28, 164, 40, 40, 0], [60, 150, 70, 16, -8], [54, 134, 66, 16, -4],
+           [52, 184, 5, 4, 0, 1], [62, 184, 5, 4, 0, 1]],
+  dog: [[10, 0, 12, 46, 8], [30, 0, 12, 46, -6], [86, 0, 12, 46, 6], [104, 0, 12, 46, -8], [6, 40, 112, 40, 0], [108, 58, 44, 34, 0],
+        [140, 60, 24, 16, 0], [114, 88, 10, 16, 14], [-12, 66, 26, 8, -30], [138, 80, 5, 4, 0, 1]],
+  boss: [[26, 0, 30, 120, 3], [64, 0, 30, 120, -4], [14, 116, 94, 120, 0], [36, 234, 50, 50, 0], [-18, 282, 158, 12, 0], [30, 292, 62, 42, 0],
+         [94, 214, 90, 22, -10], [-40, 150, 30, 110, 30], [52, 262, 6, 5, 0, 1], [66, 262, 6, 5, 0, 1]]
+};
+function buildSilhouettes() {
+  const list = [['zombie', 44, 1.15, 1, 0], ['dog', 55, 0.9, 1, 0.4], ['zombie', 62, 0.95, -1, 1.1], ['boss', 72, 1.05, -1, 0.2],
+                ['zombie', 84, 1.3, -1, 0.7], ['dog', 91, 0.8, -1, 1.5], ['zombie', 52, 0.7, 1, 1.9], ['zombie', 97, 1.1, -1, 0.9]];
+  let h = '';
+  for (const [kind, x, s, flip, delay] of list) {
+    h += '<div class="sil" style="left:' + x + '%;transform:scale(' + s + ');animation-delay:-' + delay + 's;animation-duration:' + (2.2 + delay) + 's">' +
+         '<div style="position:relative;transform:scaleX(' + flip + ')">';
+    for (const [px, py, w, hh, rot, eye] of SIL_SHAPES[kind])
+      h += '<i class="' + (eye ? 'eye' : '') + '" style="left:' + px + 'px;bottom:' + py + 'px;width:' + w + 'px;height:' + hh + 'px;transform:rotate(' + (rot || 0) + 'deg)"></i>';
+    h += '</div></div>';
+  }
+  UI.menuSil.innerHTML = h;
 }
 function setSensitivity(mult) {
   const I = CONFIG.INPUT;
@@ -14034,6 +14398,8 @@ function showGameOver(isNew, best) {
   UI.goDoors.textContent = STATS.doors + ' / ' + Object.keys(state.doors).length;
   UI.goBox.textContent = STATS.boxUses;
   UI.goBest.textContent = best;
+  if (UI.goXP) UI.goXP.textContent = '+' + PROFILE.matchXP;                                   // F5.18
+  if (UI.goLvl) { const L = rankLevel(); UI.goLvl.textContent = L + ' · ' + tierName(L) + (L > PROFILE.startLevel ? '  (LEVEL UP!)' : ''); }
   UI.record.textContent = isNew ? 'NEW RECORD' : '';
   UI.go.classList.add('show');
 }
@@ -15116,6 +15482,7 @@ function gfxFilter() {
          (P.warm * warm).toFixed(3) + ') hue-rotate(' + (-P.cold * k).toFixed(1) + 'deg)';
   }
   if (typeof DOWN !== 'undefined' && DOWN.on) f += (f ? ' ' : '') + 'grayscale(1) brightness(0.8)';   // F5.18: tirado
+  else if (typeof MENU !== 'undefined' && MENU.mode === 'main' && !state.running) f += (f ? ' ' : '') + 'grayscale(1) brightness(0.75) contrast(1.15)';   // F5.18: menú
   return f;
 }
 function gfxApplyFilter() {
@@ -15267,6 +15634,7 @@ function init() {
   buildMap();
   buildTheme();
 
+  loadProfile();                        // F5.18: XP y accesorios guardados
   initUI();
   initPlayer();
   initWeaponLayer();
@@ -15302,6 +15670,7 @@ function init() {
   resetGame();
 
   bindInput();
+  showMenu('main');                     // F5.18: menú nuevo (el mundo en gris detrás, siluetas)
   window.addEventListener('resize', onResize);
   animate();
 }
@@ -15335,12 +15704,24 @@ function onResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+// F5.18: cámara del menú de inicio: recorre despacio la playa mirando la casa (el filtro gris lo pone gfxFilter)
+function menuCamera() {
+  const t = clock.elapsedTime * 0.04;
+  camera.position.set(-10 + Math.sin(t) * 12, 3.2 + Math.sin(t * 1.7) * 0.4, -16 + Math.cos(t * 0.8) * 3);
+  camera.lookAt(Math.sin(t) * 4, 1.8, 6);
+}
 function bindInput() {
   const el = renderer.domElement;
   const lock = () => { initAudio(); UI.menuMsg.textContent = ''; el.requestPointerLock(); };
   UI.btnPlay.addEventListener('click', lock);                      // JUGAR / CONTINUAR
   UI.btnControls.addEventListener('click', () => menuPanel('controls'));
   UI.btnSettings.addEventListener('click', () => menuPanel('settings'));
+  UI.btnMaps.addEventListener('click', () => menuPanel('maps'));           // F5.18
+  UI.btnWeapons.addEventListener('click', () => menuPanel('weapons'));
+  UI.btnProfile.addEventListener('click', () => menuPanel('profile'));
+  UI.mapCity.addEventListener('click', () => pickMap('city'));
+  UI.mapBeach.addEventListener('click', () => pickMap('beach'));
+  UI.mapQ.addEventListener('click', () => pickMap('q'));
   UI.btnQuit.addEventListener('click', () => { resetGame(); MENU.started = false; showMenu('main'); });
   UI.btnGoMenu.addEventListener('click', () => { resetGame(); MENU.started = false; showMenu('main'); });
   UI.sens.addEventListener('input', () => setSensitivity(UI.sens.value / 100));
@@ -15482,6 +15863,8 @@ function animate() {
   if (dmgT > 0) { dmgT -= dt; UI.dmg.style.opacity = Math.max(0, dmgT / CONFIG.FEEL.hurtFlash).toFixed(2); }
   updateDebug(dt);
 
+  if (!state.running && MENU.mode === 'main') menuCamera();   // F5.18: el mundo detrás del menú
+  weaponScene.visible = MENU.mode !== 'main';
   if (renderer.info) renderer.info.reset();
   renderer.clear();
   renderer.render(scene, camera);

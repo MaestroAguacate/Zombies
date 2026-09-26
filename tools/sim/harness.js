@@ -76,7 +76,7 @@ js += `\n;globalThis.G={scene,state,player,camera,clock,CONFIG,NAV,WORLD,FLOW,ZP
  GREN,startCook,releaseGrenade,spawnGrenade,stepGrenade,explodeAt,updateGrenades,addRoundGrenades,resetGrenades,
  sfxPin,sfxGrenadeBounce,sfxExplosion,
  PERKM,PERK_KEYS,hasPerk,maxHealth,perkRate,perkDmg,perkReload,sprintMul,staminaMul,turnOnPower,perkStatus,buyPerk,
- tryRevive,CRASH,DOWN,updateDown,startDown,endDown,fleeZombie,eyeDrop,updatePerks,resetPerks,stamina,sfxPowerOn,sfxJingle,sfxPerkDrink,sfxRevive,sfxBreath,
+ tryRevive,CRASH,PROFILE,xpForLevel,levelOf,rankLevel,tierName,addXP,attDef,toggleAttachment,setCamo,attUnlocked,camoUnlocked,sanitizeLoadout,adsSpread,ADS,slotDef,resetMatchXP,levelProgress,showMenu,menuPanel,MENU,pickMap,DOWN,updateDown,startDown,endDown,fleeZombie,eyeDrop,updatePerks,resetPerks,stamina,sfxPowerOn,sfxJingle,sfxPerkDrink,sfxRevive,sfxBreath,
  PAPST,usePap,grabPap,papPrompt,papDef,slotDef,curSlot,sfxPapWork,sfxPapDone,
  SHIELDST,SHIELD_PARTS,rollShieldSpots,pickPart,benchPrompt,benchPress,toggleShield,unequipShield,shieldBlocks,
  shieldBash,updateShield,resetShield,selectWeapon,switchWeapon,sfxPartPickup,sfxShieldTake,sfxShieldHit,sfxShieldBreak,sfxShieldBash,
