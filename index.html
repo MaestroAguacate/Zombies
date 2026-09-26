@@ -1084,7 +1084,7 @@ const CONFIG = {
       { room: 'R17', x: -58, z: 64 }, { room: 'R15', x: 15, z: 50 },  { room: 'R20', x: 45, z: 64.5 },   // F5.15: áreas (F5.16: la del campamento, al sendero del templo)
       { room: 'R20', x: 80, z: 60 },  { room: 'R19', x: -48, z: -40 }, { room: 'R14', x: -45, z: 31 }
     ],
-    every: [3, 4], openTime: 1.5, range: 1.8,
+    every: [3, 4], openTime: 1.5, range: 1.8, offerTime: 10,   // F5.18b: el arma espera offerTime s a que la agarres
     colors: [0x8a8478, 0x4ad86a, 0xf0d040, 0xa04ae8],               // vacía, verde, amarilla, morada
     names: ['EMPTY', 'GREEN', 'YELLOW', 'PURPLE'],
     // premios por color: [tipo, peso]. 'piece' = pieza de la Ola (hasta que sale; si ya salió, su peso se reparte)
@@ -13923,11 +13923,18 @@ function buildClams() {
   const halo = radialTex('rgba(255,255,255,.9)', 'rgba(255,255,255,.25)');
   // F7: cada valva es UN mesh (media valva + 5 estrías fusionadas) y los 9 nidos van en uno solo: 4 draw calls
   // por almeja (valvas, premio y brillo) en vez de 15
-  const shellGeo = new THREE.CylinderGeometry(0.46, 0.5, 0.14, 14, 1, false, 0, Math.PI);   // media valva
+  // F5.18b: concha cúbica (como los personajes): capas de cajas que se angostan hacia la bisagra, con costillas en
+  // abanico y un borde festoneado de cubitos. Cada valva sigue siendo UN mesh
   const valve = up => {
-    const mb = new MeshBuilder();
-    mb.add(shellGeo, 0, up * 0.035, 0.22, 1, 1, 0.5, 0, Math.PI / 2, Math.PI / 2, 0xffffff);
-    for (let k = -2; k <= 2; k++) mb.box(k * 0.16, up * 0.1, 0.2, 0.04, 0.03, 0.46, 0xe8e8e8, 0, k * 0.28, 0);   // estrías
+    const mb = new MeshBuilder(), R = 0.5, c = 0.085;
+    for (let i = -5; i <= 5; i++) for (let j = 0; j < 7; j++) {       // vieira de voxels: semicírculo desde la bisagra
+      const x = i * c, z = 0.04 + j * c, r = Math.hypot(x, z);
+      if (r > R) continue;
+      const h = 0.04 + 0.07 * (1 - r / R);                                // cúpula: más alta en el medio
+      mb.box(x, up * h / 2, z, c, h, c, (i & 1) ? 0xe2e2e2 : 0xffffff);  // columnas claras y oscuras = estrías
+    }
+    for (let i = -5; i <= 5; i += 2) { const a = Math.atan2(i * c, 0.46); mb.box(Math.sin(a) * 0.47, up * 0.02, Math.cos(a) * 0.47, 0.07, 0.04, 0.05, 0xd4d4d4, 0, a, 0); }   // festón
+    mb.box(0, up * 0.025, -0.02, 0.3, 0.05, 0.08, 0xc8c8c8);            // orejuelas de la bisagra
     return mb;
   };
   const nests = new MeshBuilder(), nestGeo = new THREE.CylinderGeometry(0.7, 0.8, 0.08, 10);
@@ -14039,9 +14046,12 @@ function openClam(c, force) {                                        // force: p
     P.g.position.set(P.x, groundY(P.x, P.z) + 0.4, P.z); P.g.visible = true;
     P.mesh.material.color.setHex(Q.cocoColor); P.glow.material.opacity = 0;
   } else if (type.startsWith('weapon:')) {
-    const id = type.slice(7);
-    giveWeapon(id); raiseWeapon();
-    showBanner(CONFIG.WEAPONS[id].name, 1.5);
+    // F5.18b (pedido de Diego): el arma queda flotando arriba de la concha y se agarra con F (antes te la daba sola)
+    const id = type.slice(7), m = buildWeaponModel(CONFIG.WEAPONS[id]);
+    m.scale.setScalar(1.6); m.rotation.y = Math.PI / 2; m.position.set(0, 0.95, 0.22);
+    c.g.add(m); c.offer = { id, t: CONFIG.CLAMS.offerTime, model: m };
+    c.openT = 0; c.prize.visible = false;
+    showBanner(CONFIG.WEAPONS[id].name + ' — [F] take', 2);
   }
   clamPaint(c);
   sfxShellRise();
@@ -14063,10 +14073,12 @@ function clamNear(room, px, pz, bd) {
   }
   return best;
 }
-function clamReady(c) { return CLAMS.have && c.stage > 0 && !c.used; }
+function clamReady(c) { return CLAMS.have && c.stage > 0 && !c.used && !c.offer; }
+function clamDropOffer(c) { if (c.offer) { c.g.remove(c.offer.model); c.offer = null; } }
 function clamPrompt(it) {
   if (it.kind === 'fumigator') return { text: '[F] Take FUMIGATOR', cost: 0 };
   const c = it.target;
+  if (c.offer) return { text: '[F] Take ' + CONFIG.WEAPONS[c.offer.id].name, cost: 0 };   // F5.18b
   if (c.stage === 0 || c.used) return { text: 'Empty clam', cost: 0 };
   const name = CONFIG.CLAMS.names[c.stage] + ' clam';
   if (!CLAMS.have) return { text: name + ' - you need the fumigator', cost: 0 };
@@ -14081,7 +14093,13 @@ function clamPress(it) {
     showBanner('FUMIGATOR', 1.5);
     return true;
   }
-  return clamReady(it.target);
+  const c = it.target;
+  if (c.offer) {                                                      // F5.18b: agarrar el arma de la concha
+    giveWeapon(c.offer.id); raiseWeapon(); showBanner(CONFIG.WEAPONS[c.offer.id].name, 1.5);
+    clamDropOffer(c); sfxBuy();
+    return true;
+  }
+  return clamReady(c);
 }
 
 function updateClams(dt) {
@@ -14093,7 +14111,11 @@ function updateClams(dt) {
     c.glow.material.opacity = lit ? 0.35 + 0.25 * Math.sin(t * 2.5 + c.x) : 0;
     if (lit) c.glow.quaternion.copy(camera.quaternion);
     let open = 0;
-    if (c.openT > 0) {                                                // se abre, muestra el premio y se cierra
+    if (c.offer) {                                                    // F5.18b: abierta con el arma flotando, hasta que la agarres
+      c.offer.t -= dt; open = 1;
+      c.offer.model.rotation.y += dt * 1.5; c.offer.model.position.y = 0.95 + Math.sin(t * 2.5) * 0.05;
+      if (c.offer.t <= 0) clamDropOffer(c);
+    } else if (c.openT > 0) {                                                // se abre, muestra el premio y se cierra
       c.openT = Math.max(0, c.openT - dt);
       const k = 2.5 - c.openT;
       open = k < 0.3 ? k / 0.3 : c.openT < 0.4 ? c.openT / 0.4 : 1;
@@ -14117,6 +14139,7 @@ function updateClams(dt) {
 function resetClams() {
   const C = CONFIG.CLAMS, E = C.every;
   for (const c of CLAMS.list) {
+    clamDropOffer(c);
     c.stage = 0; c.used = false; c.openT = 0; c.prize.visible = false; c.top.rotation.x = 0;
     c.next = 1 + E[0] + Math.floor(Math.random() * (E[1] - E[0] + 1)) - Math.floor(Math.random() * 2);   // no todas a la vez
     clamPaint(c);

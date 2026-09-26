@@ -49,7 +49,7 @@ personajes, casa, muelle, cabeza del calamar y playa. Para mirar el juego sin na
 - Three.js **r128** por `<script>` UMD desde cdnjs. Nada de ES modules ni bundlers: `src/*.js` son pedazos
   de UN script clásico que comparten scope.
 - Sin assets externos. Texturas por canvas en código.
-- `localStorage` solo para high score (`CONFIG.HIGHSCORE_KEY`) y, desde F5.18, el perfil (XP, nombre, accesorios: `CONFIG.PROGRESSION.key`).
+- `localStorage` solo para high score (`CONFIG.HIGHSCORE_KEY`) y, desde F5.18, las cuentas (XP, accesorios, chicles, moneda, preset: `CONFIG.PROGRESSION.accountsKey`).
 - Español. Directo. Si algo es mala idea técnica, decirlo antes de codear.
 - Al editar: decir SOLO qué cambió. Al final: 3 bugs probables y cómo probarlos.
 
@@ -75,7 +75,8 @@ personajes, casa, muelle, cabeza del calamar y playa. Para mirar el juego sin na
 | `src/traps.js` | 7g TRAMPAS | tiburón del muelle, cortadora del jardín oeste (V2 F5.9), tortugas del rancho (F5.10) |
 | `src/bunker.js` | 7h BÚNKER | búnker bajo tierra, escotilla, estatuas de plantas, caballito de mar (V2 F5.11) |
 | `src/clams.js` | 7i ALMEJAS | fumigador, 9 almejas que cambian de color, premios (V2 F5.14) |
-| `src/progress.js` | 7j PROGRESO | XP, niveles y rangos, accesorios y camos de armas, perfil guardado (V2 F5.18) |
+| `src/progress.js` | 7j PROGRESO | XP, niveles y rangos, accesorios y camos de armas, cuentas, chicles: inventario, preset y tienda (V2 F5.18) |
+| `src/gums.js` | 7k CHICLES | chicleras en el mapa y los efectos de los chicles en la partida (V2 F5.18b) |
 | `src/ui.js` | 8 UI | HUD, menús, prompt, feel de UI, overlay de debug |
 | `src/gfx.js` | 8c GRÁFICOS | calidad, sombras, post-proceso CSS, sol y luna (V2 F7), después de audio.js |
 | `src/audio.js` | 8b AUDIO | audio procedural |
@@ -204,6 +205,11 @@ Nombres agregados en V2 (tampoco se renombran):
 · `levelProgress` · `addXP` · `resetMatchXP` · `attUnlocked/camoUnlocked/canAttach` · `loadoutOf` · `toggleAttachment` · `setCamo` · `attDef(b, id)`
 · `curAtt(k)` · `def.att/def.camo` · `tintModel` · `addAttachmentModels` · `MENU.mode/map/weapon` · `menuPanel(k)` · `pickMap` · `buildSilhouettes`
 · `renderWeaponsPanel/renderProfilePanel/renderProfileMini` · `menuCamera()`
+· F5.18b: `attsFor(id)` · `attName(id, k)` · `CONFIG.PROGRESSION.weaponAtt/attAlias` · `WPREV` · `weaponPreview` · `ACCOUNTS` · `DEV`
+· `useAccount/switchAccount/createAccount/renameAccount/deleteAccount/accountNames` · `devMaxAccount` · `CONFIG.GUMS` · `gumDef` · `gumCount`
+· `setPresetSlot` · `presetGums` · `useGumItem` · `addInk` · `rollGumPack` · `rollInk` · `GUMM{machines,offer,held,fx,uses}` · `buildGumMachines`
+· `gumActive(id)` · `gumNear/gumPrompt/useGumMachine` · `takeGum` · `activateGum` · `useHeldGum` · `applyGum` · `gumMeleeHit` · `updateGums`
+· `resetGums` · `renderGumsPanel` · `gumShop` · `c.offer` (almeja) · `clamDropOffer` · `CONFIG.CLAMS.offerTime`
 
 ## Mapa canónico (1 u = 1 m, grid 1x1, pared alto 4)
 | | Cuarto | [xMin,xMax,zMin,zMax] |
@@ -1271,6 +1277,33 @@ nombró (rancho, cueva, templo, jardines, estación → caparazón). La casa y l
   todo. Salida en `shots/` (ignorada por git).
 - Tests: `f516.js` (sección 9: el caparazón). Se adaptaron `roof.js` (la escalera del caparazón y sus barandas),
   `props.js` (cuartos con bordes no enteros).
+
+## Accesorios por arma, cuentas, modo dev, chicles y conchas (V2 F5.18b) — manda sobre F5.18 donde se contradice
+- **Accesorios por arma** (`CONFIG.PROGRESSION.weaponAtt`; sin entrada = los 6): las de mano sin culata, las escopetas sin
+  mira, el francotirador sin mira ni láser, la bazooka solo quickdraw/cargador/láser, y **el arco con los suyos**: LIGHT LIMBS
+  (LV 5, carga ×0.65), BROADHEAD (LV 10, daño ×1.25) y STABILIZER (LV 16, dispersión ×0.5). `attAlias` renombra en un arma
+  (SPEED LOADER, CHOKE, SHELL CARRIER, SUPPRESSOR…). Los modelos se ubican respecto del cañón (`userData.muzzle`), no de la
+  caja del modelo (que incluye la mano).
+- **Vista previa 3D** en WEAPONS (`weaponPreview`, `WPREV`): un renderer chico aparte, el arma con accesorios y camo girando.
+- **Cuentas locales** (`ACCOUNTS`, `bhz_accounts_v1`): varias en la misma compu (selector, crear, renombrar, borrar en
+  PROFILE). Cada una guarda XP, accesorios, camos, chicles, moneda y preset. La cuenta única de F5.18 se migra sola.
+- **Modo dev** (`devMaxAccount`, tecla X en partida o botón en PROFILE; solo con `CONFIG.DEBUG_MODE`): nivel máximo, todos
+  los chicles infinitos y moneda infinita. **No se guarda nada** (`saveProfile` sale): al recargar vuelve la cuenta real.
+- **Chicles** (`CONFIG.GUMS`, progress.js + gums.js), pestaña GUMS:
+  - CLASSIC (7): se desbloquean por nivel y no se gastan. RARE (5), ULTRA RARE (4), EPIC (3): se gastan al agarrarlos.
+  - Moneda **KRAKEN INK**: 14% al comprar una puerta, una liana o la caja. Tienda: 1/2/3 monedas = 1/2/3 chicles con mejor
+    chance de ultra y épico (72/23/5, 55/33/12, 38/42/20 %), con animación de sorteo.
+  - Preset de 5 guardado por cuenta.
+  - **Chicleras** cúbicas en porche, rancho, templo y playa del calamar (`machine.spots`, contra un borde: no cambian el
+    grid): 500 / 1000 / 2000 en la misma ronda (máx. 3). Sale uno al azar del preset y queda 6 s en la bandeja: F lo agarra
+    (recién ahí se gasta); si no, se va.
+  - Tipos: instant, timed (HUD con segundos), charges (T usa una: TRIPLE THREAT = 3 insta-kills), melee (POP SHOCKS),
+    passive (LUCKY BOX). Efectos enganchados en `spendPoints` (SHOPPING SPREE), `addPoints` (BEACON), `perkReload`/ADS
+    (QUICK HANDS), stamina (IRON LUNGS), cuchillo (SHARP EDGE, POP SHOCKS), `damagePlayer` (HARD SKIN), munición (FREE FIRE),
+    zombies (SHADOW STEP: no te ven ni pegan), caja (LUCKY BOX), etc. `resetGums` en `resetGame`; `GUMM.uses` vuelve a 0 por ronda.
+- **Almejas → conchas cúbicas** (vieira de voxels). El premio de arma **queda flotando** `offerTime` 10 s y se agarra con F
+  (antes te la daba sola).
+- Test: `f518.js` (secciones 6 y 7), `f514.js` adaptado.
 
 ## Cubos otra vez, agacharse, last stand, XP y menú (V2 F5.18) — manda sobre F5.17c donde se contradice
 - **De vuelta a cubos** (pedido de Diego): zombies, perros, calamares, bosses y plantas carnívoras (tallo, mandíbulas y

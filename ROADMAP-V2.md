@@ -727,6 +727,10 @@ claro (que crece).
 - Menú nuevo: mundo en gris con siluetas, menú a la izquierda, mapas (City y ??? bloqueados), armas, perfil, ajustes.
 - Diego subirá una carpeta `sonidos/` para implementar.
 
+### F5.18b — HECHO (falta playtest)
+- Accesorios por arma (arco propio) con vista previa 3D, cuentas locales, modo dev (X), chicles con moneda, tienda,
+  preset y chicleras cúbicas, conchas cúbicas que ofrecen el arma.
+
 ### Tanda E — Calamar y embarcadero
 - Embarcadero amplio y oscuro, sobre la arena al costado de la cabeza del calamar.
 - Cadáveres de animales de mar, algunos medio alienígenas.

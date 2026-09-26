@@ -655,7 +655,7 @@ const CONFIG = {
       { room: 'R17', x: -58, z: 64 }, { room: 'R15', x: 15, z: 50 },  { room: 'R20', x: 45, z: 64.5 },   // F5.15: áreas (F5.16: la del campamento, al sendero del templo)
       { room: 'R20', x: 80, z: 60 },  { room: 'R19', x: -48, z: -40 }, { room: 'R14', x: -45, z: 31 }
     ],
-    every: [3, 4], openTime: 1.5, range: 1.8,
+    every: [3, 4], openTime: 1.5, range: 1.8, offerTime: 10,   // F5.18b: el arma espera offerTime s a que la agarres
     colors: [0x8a8478, 0x4ad86a, 0xf0d040, 0xa04ae8],               // vacía, verde, amarilla, morada
     names: ['EMPTY', 'GREEN', 'YELLOW', 'PURPLE'],
     // premios por color: [tipo, peso]. 'piece' = pieza de la Ola (hasta que sale; si ya salió, su peso se reparte)

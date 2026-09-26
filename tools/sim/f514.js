@@ -120,7 +120,8 @@ const pk0 = G.PICKUPS.pool.filter(p => p.active).length;
 G.openClam(c1, 'powerup');
 check(G.PICKUPS.pool.filter(p => p.active).length === pk0 + 1, 'power-up: aparece al lado');
 G.openClam(c1, 'weapon:sniper');
-check(state.weapons.some(w => w.id === 'sniper'), 'arma: te la da');
+check(!state.weapons.some(w => w.id === 'sniper') && c1.offer && c1.offer.id === 'sniper', 'arma: queda flotando, no te la da sola');
+check(G.clamPress({ kind: 'clam', target: c1 }) && state.weapons.some(w => w.id === 'sniper') && !c1.offer, 'con F la agarrás');
 // pieza
 fresh();
 check(G.pieceAvailable(), 'la pieza está disponible');
