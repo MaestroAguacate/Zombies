@@ -502,6 +502,13 @@ function directClear(z, P, L, lure) {
 
 //--- IA: decidir dirección deseada ---
 // P = a dónde va (el jugador, o F5.11 el langostino con tLevel 0)
+// F5.18: con el jugador tirado (Quick Revive), se alejan en línea recta hasta lastStand.flee m y esperan
+function fleeZombie(z, P) {
+  const dx = z.px - P.x, dz = z.pz - P.z, d = Math.hypot(dx, dz);
+  if (d >= CONFIG.PERKS.lastStand.flee) { z.mode = 'direct'; return; }
+  if (d < 1e-3) { z.wantX = 1; z.wantZ = 0; } else { z.wantX = dx / d; z.wantZ = dz / d; }
+  z.mode = 'direct';
+}
 function steerZombie(z, P, tLevel) {
   const lure = tLevel !== undefined;
   const C = CONFIG.ZOMBIE, L = z.level || 0, same = L === (lure ? tLevel : playerLevel());   // F2.8: nivel del zombie
@@ -740,6 +747,7 @@ function updateZombies(dt) {
   for (const z of list) {
     z.sx = z.sz = z.wantX = z.wantZ = 0;
     if (z.state !== 'walk') continue;
+    if (DOWN.on) { fleeZombie(z, P); continue; }                // F5.18: tirado con Quick Revive, se alejan
     if (!lure) steerZombie(z, P);
     else if (!z.boss) steerZombie(z, lure, 0);                   // todos al langostino
     else { const d = FLOW.dist; FLOW.dist = FLOW.pdist; steerZombie(z, P); FLOW.dist = d; }   // el boss, al jugador
@@ -836,7 +844,8 @@ function updateZombies(dt) {
     const pl = playerLevel(), onTop = playerOnTop();
     // F5.6: si estás arriba de un mueble te agarra de las piernas desde el borde (si no, el medio de la cama era seguro)
     const reach = onTop !== undefined ? Math.max(K.attackRange, C.attackRangeOnTop) : K.attackRange;
-    if (z.boss) bossTryAttack(z, distP, pl, onTop);            // F5: golpe al piso con aviso
+    if (DOWN.on) { /* F5.18: tirado: nadie pega */ }
+    else if (z.boss) bossTryAttack(z, distP, pl, onTop);            // F5: golpe al piso con aviso
     else if ((z.level || 0) === pl && distP < reach && z.attackCd <= 0 &&
         segmentClear(z.px, z.pz, P.x, P.z, 0.02, false, onTop, pl)) {
       const hit = z.squid ? K.damage * z.size : K.damage;       // F5.9: el calamar grande pega más
@@ -848,7 +857,7 @@ function updateZombies(dt) {
 
     animateZombie(z, dt, realV);
     // F5.11: esperando al lado del langostino no cuenta como atasco
-    stuckWatch(z, dt, lure && !z.boss ? Math.min(distP, Math.hypot(lure.x - z.px, lure.z - z.pz)) : distP);
+    if (!DOWN.on) stuckWatch(z, dt, lure && !z.boss ? Math.min(distP, Math.hypot(lure.x - z.px, lure.z - z.pz)) : distP);
   }
 }
 

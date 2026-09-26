@@ -22,6 +22,9 @@ const CONFIG = {
     // trepar muebles: caminando sube escalones hasta stepUp; en el aire (saltando) se sube a lo que tenga el
     // tope hasta climbReach por encima de los pies. Salto 0.44 + 0.55 = hasta ~1 m (mesas, sofá, cama, banco)
     stepUp: 0.3, climbReach: 0.55,
+    // F5.18: agacharse (mantener C). Solo baja los ojos (y la bala) drop m: el cuerpo y las colisiones no cambian.
+    // Más lento, sin sprint ni salto, y dispersión ×spreadMul
+    crouch: { drop: 0.65, speedMul: 0.5, rate: 10, spreadMul: 0.75 },
     // F5.7 (reemplaza "te deja en 10" de F2.8): daño proporcional a la caída. Nada debajo de fallHeight m; de
     // ahí a fallMaxDrop (el techo, 4.3) sube parejo hasta fallMaxDmg. Del techo con 100 quedás en 40. No mata
     fallHeight: 2.0, fallMaxDrop: 4.3, fallMaxDmg: 60
@@ -501,7 +504,11 @@ const CONFIG = {
     staminSpeed: 1.2,     // Stamin-Up: sprint ×1.2 ...
     staminTime: 2,        //            ... y stamina ×2 (8 s)
     reviveUses: 3,        // Quick Revive (solo, como Black Ops): se compra 3 veces por partida y desaparece
-    reviveIframe: 2       // s de invulnerabilidad al revivir
+    reviveIframe: 2,      // s de invulnerabilidad al revivir
+    // F5.18 (pedido de Diego, como Black Ops): con Quick Revive, el golpe letal te deja `time` s tirado: pantalla gris,
+    // te arrastrás a speedMul, con la Ray Gun (y la munición llena), invulnerable, y los zombies se alejan hasta flee m.
+    // Después te parás con la vida llena y tus armas de vuelta
+    lastStand: { time: 10, speedMul: 0.25, drop: 1.2, flee: 16, weapon: 'raygun' }
   },
   // V2 F3a: escudo. 3 piezas (cada una sorteada en 1 de sus 3 lugares por partida), se arma en el banco del
   // garaje (prop 'banco') manteniendo F. En la espalda bloquea de atrás; equipado (tecla 3) de frente y clic

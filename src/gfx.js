@@ -158,6 +158,7 @@ function gfxFilter() {
     f += (f ? ' ' : '') + 'contrast(' + P.contrast + ') saturate(' + (1.02 + 0.1 * warm).toFixed(3) + ') sepia(' +
          (P.warm * warm).toFixed(3) + ') hue-rotate(' + (-P.cold * k).toFixed(1) + 'deg)';
   }
+  if (typeof DOWN !== 'undefined' && DOWN.on) f += (f ? ' ' : '') + 'grayscale(1) brightness(0.8)';   // F5.18: tirado
   return f;
 }
 function gfxApplyFilter() {

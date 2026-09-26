@@ -120,16 +120,39 @@ function dropMuleWeapon() {
 }
 function tryRevive() {
   if (!hasPerk('revive')) return false;
-  const P = CONFIG.PLAYER, t = clock.elapsedTime;
   state.perks = [];
-  state.health = maxHealth();
   loseWave();                                                     // F5.5: la Ola Rompiente vuelve al taller
   dropMuleWeapon();                                               // F5.11: sin Mule Kick, la 3ra arma se pierde
-  // el i-frame de damagePlayer mira lastDamageTime: correrlo hacia adelante da reviveIframe s limpios
-  state.lastDamageTime = t + CONFIG.PERKS.reviveIframe - P.hitIframe;
-  sfxRevive(); showBanner('QUICK REVIVE', 1.6);
   updatePerkHUD();
+  startDown();                                                    // F5.18: tirado 10 s con la Ray Gun
   return true;
+}
+// F5.18: "last stand" (CONFIG.PERKS.lastStand). DOWN.saved = tus armas mientras tanto
+const DOWN = { on: false, t: 0, saved: null, cur: 0 };
+function startDown() {
+  const L = CONFIG.PERKS.lastStand, def = CONFIG.WEAPONS[L.weapon], W = weaponsState;
+  if (W.phase === 'shield') unequipShield();
+  if (W.phase === 'reloading') UI.reload.style.opacity = '0';
+  DOWN.on = true; DOWN.t = L.time; DOWN.saved = state.weapons; DOWN.cur = state.currentWeapon;
+  state.weapons = [{ id: L.weapon, mag: def.magSize, reserve: def.reserveMax }]; state.currentWeapon = 0;
+  state.health = 1; ADS.on = false;
+  W.phase = 'idle'; raiseWeapon(); equipModel(def); updateAmmoHUD();
+  sfxRevive(); showBanner('QUICK REVIVE', 1.6); gfxApplyFilter();
+}
+function endDown() {
+  const P = CONFIG.PLAYER;
+  DOWN.on = false;
+  state.weapons = DOWN.saved || []; DOWN.saved = null;
+  state.currentWeapon = Math.max(0, Math.min(DOWN.cur, state.weapons.length - 1));
+  state.health = maxHealth();
+  // el i-frame de damagePlayer mira lastDamageTime: correrlo hacia adelante da reviveIframe s limpios
+  state.lastDamageTime = clock.elapsedTime + CONFIG.PERKS.reviveIframe - P.hitIframe;
+  weaponsState.phase = 'idle'; raiseWeapon(); equipModel(curDef()); updateAmmoHUD();
+  sfxRevive(); showBanner('REVIVED', 1.2); gfxApplyFilter();
+}
+function updateDown(dt) {
+  player.downK += ((DOWN.on ? 1 : 0) - player.downK) * Math.min(1, dt * 6);
+  if (DOWN.on && (DOWN.t -= dt) <= 0) endDown();
 }
 
 function updatePerks(dt) {
@@ -154,6 +177,7 @@ function updatePerkHUD() {
 }
 function resetPerks() {
   state.perks = []; state.reviveBuys = 0; state.power = false;
+  DOWN.on = false; DOWN.saved = null; DOWN.t = 0; player.downK = 0;   // F5.18
   for (const L of WORLD.lamps) if (L.mode0) L.mode = L.mode0;
   for (const key of PERK_KEYS) {
     if (!PERKM.machines[key]) continue;

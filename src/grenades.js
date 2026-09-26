@@ -41,7 +41,7 @@ function buildGrenades() {
 // G apretada: saca el pin. true = empezó a cocinar
 function startCook() {
   const W = weaponsState;
-  if (!state.running || state.gameOver || GREN.cooking || GREN.throwT > 0) return false;
+  if (!state.running || state.gameOver || GREN.cooking || GREN.throwT > 0 || DOWN.on) return false;
   if (state.grenades <= 0) { sfxDry(); return false; }
   if (W.phase === 'switching' || W.phase === 'melee' || W.phase === 'shield') return false;
   if (W.phase === 'reloading') UI.reload.style.opacity = '0';   // se corta (la munición pasa recién al completarse)
@@ -198,7 +198,7 @@ function giveMonkeys() {
 // tecla 4: lo tira como una granada (sin cocinar). true = salió
 function throwMonkey() {
   const M = CONFIG.MONKEY, W = weaponsState;
-  if (!state.running || state.gameOver || MONKEY.count <= 0 || GREN.cooking) return false;
+  if (!state.running || state.gameOver || MONKEY.count <= 0 || GREN.cooking || DOWN.on) return false;
   if (W.phase === 'switching' || W.phase === 'melee' || W.phase === 'grenade') return false;
   const m = MONKEY.pool.find(q => q.state === 'off');
   if (!m) return false;

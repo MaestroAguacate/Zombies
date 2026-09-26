@@ -104,7 +104,7 @@ function takeShield() {
 // tecla 3: equipar / guardar en la espalda
 function toggleShield() {
   const W = weaponsState, S = state.shield;
-  if (!state.running || !S.has) return false;
+  if (!state.running || !S.has || DOWN.on) return false;
   if (W.phase === 'shield') { unequipShield(); return true; }
   if (W.phase === 'grenade' || W.phase === 'melee' || W.phase === 'switching') return false;
   if (W.phase === 'reloading') UI.reload.style.opacity = '0';     // se corta (la munición pasa al completarse)

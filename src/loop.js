@@ -208,6 +208,7 @@ function animate() {
     updateBox(dt);
     updateRelics(dt);
     updatePerks(dt);
+    updateDown(dt);                     // F5.18: tirado con Quick Revive
     updateShield(dt);
     updateQuest(dt);                    // F5.5: después de updateShield (comparten la barra de armado)
     updateClams(dt);                    // F5.14: almejas (también usa la barra)

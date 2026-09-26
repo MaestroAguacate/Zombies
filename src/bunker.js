@@ -766,6 +766,29 @@ function buildShell() {
   const dmesh = dm.mesh(MAT.grimeV), door = state.doors[D.id];
   if (dmesh && door) { scene.remove(dmesh); dmesh.userData.theme = false; dmesh.matrixAutoUpdate = true; dmesh.position.copy(door.mesh.position).negate(); door.mesh.add(dmesh); }
   wd.cyl(-57.3, 0, 68.25, 0.04, 1.0, 0x5a5a5a, 1, 5); wd.cyl(-45, 0, 68.75, 0.04, 1.2, 0x5a5a5a, 1, 5);   // postes de los carteles
+  // ---- F5.18: el cráneo de la tortuga, montado sobre la boca y mirando afuera (sin collider: queda arriba de 3.4 m) ----
+  {
+  const sk = new MeshBuilder(), kBone = 0xd8ccb0, kBoneD = 0xb8a88a, kHole = 0x1a120c, K = 1.35;
+  const kx = cx, ky = 4.35, kz = cz - B + 0.6;                           // centro del cráneo, apoyado en el arco de la boca
+  const P = (x, y, z) => [kx + x * K, ky + y * K, kz + z * K];
+  const sph = (x, y, z, a, b2, c, col, seg) => { const q = P(x, y, z); sk.sphere(q[0], q[1], q[2], a * K, b2 * K, c * K, col, seg); };
+  sph(0, 0.3, 0.6, 1.05, 0.85, 1.35, kBone, 14);                          // bóveda (cuña ancha atrás)
+  sph(0, 0.05, -0.5, 0.85, 0.7, 0.95, kBone, 12);                          // cara
+  sph(0, -0.1, -1.25, 0.55, 0.5, 0.5, kBoneD, 10);                         // hocico
+  sk.tube([P(0, 0.25, -1.3), P(0, 0.05, -1.75), P(0, -0.45, -1.8), P(0, -0.75, -1.55)], 0.3 * K, 0.06 * K, kBoneD, 10, 7);   // pico ganchudo hacia abajo
+  for (const s2 of [-1, 1]) {
+    sph(s2 * 0.62, 0.12, -0.55, 0.3, 0.45, 0.48, kHole, 10);              // cuencas grandes, al frente y a los costados
+    sk.tube([P(s2 * 0.5, 0.55, -0.2), P(s2 * 0.82, 0.35, -0.55), P(s2 * 0.72, -0.25, -0.8), P(s2 * 0.4, -0.35, -0.85)], 0.09 * K, 0.07 * K, kBoneD, 10, 6);   // arco de la cuenca
+    sph(s2 * 0.13, 0.02, -1.62, 0.07, 0.09, 0.06, kHole, 6);               // narinas
+    sk.tube([P(s2 * 0.9, -0.15, 0.4), P(s2 * 0.95, -0.55, -0.3), P(s2 * 0.6, -0.8, -1.1), P(s2 * 0.12, -0.85, -1.5)], 0.14 * K, 0.08 * K, kBone, 12, 6);   // mandíbula
+    sph(s2 * 0.95, 0.25, 0.7, 0.3, 0.5, 0.6, kBoneD, 10);                  // sien
+  }
+  sk.tube([P(0, 1.05, 1.7), P(0, 1.1, 0.5), P(0, 0.75, -0.5)], 0.12 * K, 0.05 * K, kBoneD, 8, 6);   // cresta
+  for (let i = 0; i < 5; i++) sk.tube([P(-0.5 + i * 0.25, 1.0, 0.3 + i * 0.1), P(-0.35 + i * 0.22, 0.7, -0.2), P(-0.45 + i * 0.26, 0.25, -0.3)], 0.02, 0.012, 0x3a2e22, 5, 4);   // grietas
+  for (let i = 0; i < 6; i++) { const q = P((rr() - 0.5) * 1.6, 0.7 + rr() * 0.4, rr() * 1.2); sk.blob(q[0], q[1], q[2], 0.35, 0.12, 0.35, 0x5a7a3a, i); }   // musgo
+  for (let i = 0; i < 3; i++) sk.tube([P(-0.7 + i * 0.7, 0.8, 0.3), P(-0.6 + i * 0.7, -0.3, -0.4), P(-0.65 + i * 0.7, -1.0 - i * 0.2, -0.5)], 0.03, 0.02, 0x3f5a2a, 6, 4);   // lianas
+  sk.mesh(new THREE.MeshLambertMaterial({ vertexColors: true })).userData.theme = false;
+  }
   // ---- materiales y mallas ----
   const put = (B2, mat) => { const m = B2.mesh(mat); if (m) { m.userData.theme = false; m.updateMatrix(); } return m; };
   put(ex, new THREE.MeshLambertMaterial({ map: scutes, vertexColors: true }));

@@ -580,7 +580,7 @@ function updateInteract() {
 }
 function interact() {
   const it = interactState;
-  if (!it.kind || !state.running) return false;
+  if (!it.kind || !state.running || DOWN.on) return false;
   // el generador no se usa con F (va con el cuchillo)
   if (it.kind === 'gen') { sfxDeny(); denyPrompt(); return false; }
   if (it.kind === 'part') return pickPart(it.target.key);        // F3a: suenan solos

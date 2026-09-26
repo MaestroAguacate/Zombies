@@ -22,7 +22,7 @@ const decals = { pool: [], i: 0 };
 // Solo con arma en la mano, en 'idle' y sin correr. Baja el FOV de la cámara del mundo (el arma tiene la
 // suya), la dispersión (fireWeapon), la velocidad (updatePlayer) y la sensibilidad (lookInput)
 const ADS = { on: false, k: 0 };
-function adsSpread() { return 1 - (1 - CONFIG.ADS.spreadMul) * ADS.k; }
+function adsSpread() { return (1 - (1 - CONFIG.ADS.spreadMul) * ADS.k) * (player.crouch ? CONFIG.PLAYER.crouch.spreadMul : 1); }   // F5.18: agachado
 function updateAds(dt) {
   const A = CONFIG.ADS, def = curDef();
   const want = ADS.on && def && weaponsState.phase === 'idle' && !player.sprinting;
@@ -365,7 +365,7 @@ function giveWeapon(id) {
 }
 
 function switchWeapon(dir) {
-  if (state.weapons.length < 2) return;
+  if (state.weapons.length < 2 || DOWN.on) return;
   if (weaponsState.phase === 'switching' || weaponsState.phase === 'grenade') return;
   const n = state.weapons.length;
   weaponsState.pendingSlot = (state.currentWeapon + (dir || 1) + n) % n;
@@ -376,7 +376,7 @@ function switchWeapon(dir) {
 // F3a: teclas 1 y 2. Con el escudo equipado, guarda el escudo y saca esa arma
 function selectWeapon(i) {
   const W = weaponsState;
-  if (i >= state.weapons.length || W.phase === 'switching' || W.phase === 'grenade' || W.phase === 'melee') return;
+  if (DOWN.on || i >= state.weapons.length || W.phase === 'switching' || W.phase === 'grenade' || W.phase === 'melee') return;
   if (i === state.currentWeapon && W.phase !== 'shield') return;
   if (W.phase === 'reloading') UI.reload.style.opacity = '0';
   W.pendingSlot = i; W.phase = 'switching'; W.phaseT = 0;
@@ -407,7 +407,7 @@ function reloadWeapon() {
 // Interrumpe una recarga en curso (no se pierde munición: la transferencia
 // solo ocurre al completarse). No interrumpe un cambio de arma.
 function meleeAttack() {
-  if (!state.running || state.gameOver) return;
+  if (!state.running || state.gameOver || DOWN.on) return;
   const K = meleeDef(), W = weaponsState;              // F3b: cuchillo o machete
   const now = performance.now();
   if (now - meleeState.lastAttack < K.cooldown) return;

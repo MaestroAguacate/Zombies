@@ -123,11 +123,23 @@ check(Math.abs(n1 / n0 - PK.dtapRate) < 0.05, 'Double Tap: cadencia ×1.33 (SMG)
 check(d0 > 0 && Math.abs(d1 / d0 - PK.dtapDamage) < 1e-6, 'Double Tap: daño ×1.33', `(${d0} -> ${d1.toFixed(1)})`);
 clearZombies();
 
-// 7) Quick Revive (solo, como Black Ops)
+// 7) Quick Revive (solo, como Black Ops). F5.18: 10 s tirado con la Ray Gun, después revive
 fresh(); powerOn();
+G.giveWeapon('smg');
+const before = state.weapons.map(w => w.id).join(',');
 useMachine('jugg'); useMachine('revive');
 state.lastDamageTime = -99; state.health = 10; G.damagePlayer(25, 0, 0);
-check(!state.gameOver && state.perks.length === 0 && state.health === CONFIG.PLAYER.maxHealth, 'golpe letal con QR: revive con vida llena y SIN perks (Jugg también)', `(vida ${state.health})`);
+const LS = CONFIG.PERKS.lastStand;
+check(!state.gameOver && G.DOWN.on && state.perks.length === 0, 'golpe letal con QR: quedás tirado y SIN perks (Jugg también)');
+check(state.weapons.length === 1 && state.weapons[0].id === 'raygun', 'tirado: solo la Ray Gun en la mano');
+G.damagePlayer(9999, 0, 0, true);
+check(G.DOWN.on && !state.gameOver && state.health === 1, 'tirado: invulnerable (ni el golpe que ignora el i-frame)');
+check(G.meleeAttack() === undefined && !G.startCook() && G.weaponsState.phase !== 'melee', 'tirado: sin cuchillo ni granadas');
+G.updateDown(LS.time - 0.5);
+check(G.DOWN.on, 'a los 9.5 s sigue tirado');
+G.updateDown(0.6);
+check(!G.DOWN.on && state.health === CONFIG.PLAYER.maxHealth, 'a los 10 s revive con la vida llena', `(vida ${state.health})`);
+check(state.weapons.map(w => w.id).join(',') === before, 'revive con sus armas de vuelta', `(${state.weapons.map(w => w.id)})`);
 G.tick(1.0); G.damagePlayer(25, 0, 0);
 check(state.health === 100, 'invulnerable 2 s después de revivir');
 G.tick(1.2); G.damagePlayer(25, 0, 0);
@@ -138,6 +150,7 @@ fresh(); powerOn();
 for (let i = 0; i < PK.reviveUses; i++) {
   check(useMachine('revive'), `compra ${i + 1} de QR`);
   state.health = 1; state.lastDamageTime = -99; G.damagePlayer(25, 0, 0);
+  if (G.DOWN.on) G.updateDown(LS.time + 0.1);
 }
 const qr = PERKM.machines.revive;
 const f = frontOf(L.revive, PK.size, 0.8); player.pos.set(f.x, 1.7, f.z); G.updateInteract();
@@ -145,7 +158,9 @@ check(qr.gone && !qr.col.solid && WORLD.hitMeshes.indexOf(qr.hit) < 0 && G.inter
 fresh(); powerOn(); useMachine('revive');
 state.health = 5; state.lastDamageTime = -99;
 G.explodeAt(player.pos.x + 1, player.pos.y - 0.85, player.pos.z);
-check(!state.gameOver && state.health === 100, 'tu propia granada letal también dispara el revive');
+check(!state.gameOver && G.DOWN.on, 'tu propia granada letal también dispara el revive');
+G.updateDown(LS.time + 0.1);
+check(state.health === 100, '...y revive a los 10 s');
 
 // 8) HUD y reset
 fresh(); powerOn(); useMachine('jugg'); useMachine('dtap');

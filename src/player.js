@@ -4,7 +4,9 @@ const player = {
   vel: new THREE.Vector3(),
   yaw: 0, pitch: 0,
   grounded: true,
-  speedNow: 0
+  speedNow: 0,
+  crouch: false, crouchK: 0,        // F5.18: agachado (C) y cuánto bajó la vista (0..1)
+  downK: 0                          // F5.18: tirado en el piso (Quick Revive), 0..1
 };
 const keys = Object.create(null);
 // F2: stamina del sprint. v = 0..1; exhausted = se vació y todavía no llegó a STAMINA.minToSprint
@@ -15,6 +17,7 @@ function initPlayer() {
   player.yaw = 0; player.pitch = 0;
   player.grounded = true; player.airTop = 0;
   player.pushT = 0; player.pushX = player.pushZ = 0; player.dazeT = 0;   // F5
+  player.crouch = false; player.crouchK = 0;                            // F5.18
   state.health = CONFIG.PLAYER.maxHealth;
   stamina.v = 1; stamina.exhausted = false; stamina.idleT = 0;
 }
@@ -35,8 +38,10 @@ function updatePlayer(dt) {
 
   // F2: el sprint gasta stamina (sprintTime s llena, Stamin-Up la alarga); si se vacía, no se vuelve a
   // correr hasta minToSprint. Recarga tras delay s sin correr, en rechargeTime s
-  const ST = CONFIG.STAMINA;
-  const sprinting = keys['ShiftLeft'] && fz < 0 && weaponsState.phase !== 'reloading' && !stamina.exhausted && stamina.v > 0 && !ADS.on;
+  const ST = CONFIG.STAMINA, CR = P.crouch;
+  player.crouch = !!keys['KeyC'] && !DOWN.on;                                        // F5.18: agacharse (mantener C)
+  player.crouchK += ((player.crouch ? 1 : 0) - player.crouchK) * Math.min(1, dt * CR.rate);
+  const sprinting = !player.crouch && !DOWN.on && keys['ShiftLeft'] && fz < 0 && weaponsState.phase !== 'reloading' && !stamina.exhausted && stamina.v > 0 && !ADS.on;
   player.sprinting = sprinting;                 // F3b: el ADS no entra corriendo
   if (sprinting) {
     stamina.idleT = 0;
@@ -49,7 +54,9 @@ function updatePlayer(dt) {
   }
   const spd = (sprinting ? P.sprint * sprintMul() : P.speed) * (1 - (1 - CONFIG.ADS.moveMul) * ADS.k)   // F3b: apuntando ×0.7
             * (player.dazeT > 0 ? CONFIG.BOSS.dazeMul : 1)    // F5: silbido del Sombrerón
-            * (playerLevel() === 0 ? wetSandMul(player.pos.x, player.pos.z) : 1);   // F5.8: arena mojada
+            * (playerLevel() === 0 ? wetSandMul(player.pos.x, player.pos.z) : 1)    // F5.8: arena mojada
+            * (player.crouch ? CR.speedMul : 1)                                     // F5.18: agachado
+            * (DOWN.on ? CONFIG.PERKS.lastStand.speedMul : 1);                     // F5.18: arrastrándose
 
   // input local rotado por +yaw
   const sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
@@ -65,7 +72,7 @@ function updatePlayer(dt) {
 
   // gravedad / salto
   v.y -= P.gravity * dt;
-  if (keys['Space'] && player.grounded) { v.y = P.jump; player.grounded = false; }
+  if (keys['Space'] && player.grounded && !player.crouch && !DOWN.on) { v.y = P.jump; player.grounded = false; }
 
   // movimiento + colisión. Si una pared frena, se pierde esa componente (no queda "cargada")
   const x0 = player.pos.x, z0 = player.pos.z;
@@ -153,6 +160,8 @@ function shakeNoise(t, seed) {
   return Math.sin(t + seed) * 0.55 + Math.sin(t * 2.17 + seed * 1.9) * 0.3 + Math.sin(t * 4.31 + seed * 3.1) * 0.15;
 }
 
+// F5.18: cuánto bajan los ojos (agachado; tirado en el piso con Quick Revive)
+function eyeDrop() { return CONFIG.PLAYER.crouch.drop * player.crouchK + CONFIG.PERKS.lastStand.drop * player.downK; }
 function updateCameraFeel(dt) {
   const F = CONFIG.FEEL, P = CONFIG.PLAYER;
   const wR = springW(recoilReturnOf(curDef())), wH = springW(F.hurtReturn);
@@ -184,14 +193,14 @@ function updateCameraFeel(dt) {
   const aimYaw = player.yaw + feel.recoilY.x;
   _feelEuler.set(aimPitch, aimYaw, 0, 'YXZ');
   feel.aimQuat.setFromEuler(_feelEuler);
-  feel.eye.copy(player.pos);
+  feel.eye.copy(player.pos); feel.eye.y -= eyeDrop();                  // F5.18: agachado / tirado
 
   // CÁMARA (visual)
   const rx = Math.cos(player.yaw), rz = -Math.sin(player.yaw);   // derecha local
   const side = bobX + sh * F.shakeMaxPos * n4;
   camera.position.set(
     player.pos.x + rx * side,
-    player.pos.y + bobY + feel.land.x + sh * F.shakeMaxPos * n1 * 0.5,
+    player.pos.y - eyeDrop() + bobY + feel.land.x + sh * F.shakeMaxPos * n1 * 0.5,
     player.pos.z + rz * side
   );
   camera.rotation.set(
@@ -360,7 +369,7 @@ function fallDamage(drop) {
 }
 // ignoreIframe (F2.7): la granada propia pega aunque un zombie te haya golpeado recién
 function damagePlayer(dmg, fromX, fromZ, ignoreIframe) {
-  if (state.gameOver) return;
+  if (state.gameOver || DOWN.on) return;                          // F5.18: tirado sos invulnerable
   const t = clock.elapsedTime;
   if (!ignoreIframe && t - state.lastDamageTime < CONFIG.PLAYER.hitIframe) return;   // i-frame
   STATS.damageTaken += Math.min(dmg, state.health);
