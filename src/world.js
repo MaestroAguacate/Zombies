@@ -172,6 +172,7 @@ const ROOMS = [
   { id:'R20', name:'TEMPLO',        x1: 55, x2: 95, z1: 55, z2: 100, floor:'jungle', outdoor:true },
   { id:'R20', name:'TEMPLO',        x1: 28, x2: 33, z1: 58, z2: 67, floor:'jungle', outdoor:true, part:true, corridor:true },
   { id:'R20', name:'TEMPLO',        x1: 33, x2: 55, z1: 62, z2: 67, floor:'jungle', outdoor:true, part:true, corridor:true },
+  { id:'R20', name:'CHOQUE',        x1: 36, x2: 55, z1: 75, z2: 92, floor:'jungle', outdoor:true, part:true },   // F5.18: CONFIG.CRASH
   // F5.11: búnker bajo tierra (zona aparte, piso en CONFIG.BUNKER.y). Se dibuja en bunker.js (noFloor)
   { id:'R16', name:'BUNKER',        x1:-38, x2:-10, z1:-90, z2:-66, floor:'conc', outdoor:true, noFloor:true },   // F5.12: bajo el mar
   // V2 F5.6: Jardín Trasero, detrás del pasillo, el dormitorio y la caseta, con un pasillo al aire libre al este
@@ -248,6 +249,23 @@ function openRooms() {
 // hitMeshes (frena balas; el raycaster no mira .visible). decor = solo visual, sin colisión.
 // Es lógica: se construye con o sin tema. Las coordenadas coinciden con buildTheme() (si movés un mueble
 // allá, movelo acá). Pegado a pared: el anillo no navegable ya lo cubre, no cambia caminos.
+// F5.18: matriz de un auto del choque (CONFIG.CRASH.cars): parado en (x, z), girado ry y volcado (de techo o de costado).
+// La usan PROPS (caja del collider) y el dibujo (garden.js buildCrash)
+function crashFrame(c) {
+  const [x, z, ry, , , flip] = c, side = flip === 'side';
+  const e = new THREE.Euler(side ? Math.PI / 2 : Math.PI, ry, 0, 'YXZ');
+  return new THREE.Matrix4().compose(new THREE.Vector3(x, side ? 0.92 : 1.5, z), new THREE.Quaternion().setFromEuler(e), new THREE.Vector3(1, 1, 1));
+}
+// caja [x1, x2, z1, z2, alto] de una caja local [x1, x2, y1, y2, z1, z2] con la matriz M
+function crashBox(M, b) {
+  let x1 = Infinity, x2 = -Infinity, z1 = Infinity, z2 = -Infinity, y2 = 0;
+  const v = new THREE.Vector3();
+  for (const x of [b[0], b[1]]) for (const y of [b[2], b[3]]) for (const z of [b[4], b[5]]) {
+    v.set(x, y, z).applyMatrix4(M);
+    x1 = Math.min(x1, v.x); x2 = Math.max(x2, v.x); z1 = Math.min(z1, v.z); z2 = Math.max(z2, v.z); y2 = Math.max(y2, v.y);
+  }
+  return [x1, x2, z1, z2, y2];
+}
 const PROPS = [
   { id: 'sofa',        room: 'R2', box: [  2.05,   4.35, 16.85, 17.75, 0.92] },
   { id: 'tv',          room: 'R2', box: [ -7.78,  -7.25, 14.3,  15.5,  1.12] },
@@ -296,6 +314,10 @@ const PROPS = [
     const w = Math.abs(Math.sin(r)) > 0.5 ? [0.25, 0.5] : [0.5, 0.25];
     return { id: 'estela' + i, room: 'R20', box: [x - w[0], x + w[0], z - w[1], z + w[1], 2.6] };
   }),
+  // F5.18: el choque al oeste del templo: autos volcados, el calamar muerto y el Sombrerón (el dibujo, en garden.js buildCrash)
+  ...CONFIG.CRASH.cars.map((c, i) => ({ id: 'auto' + i, room: 'R20', box: crashBox(crashFrame(c), [-2.15, 2.15, 0, 1.5, -0.92, 0.92]) })),
+  { id: 'calamarMuerto', room: 'R20', box: [CONFIG.CRASH.squid[0] - 1.9, CONFIG.CRASH.squid[0] + 1.9, CONFIG.CRASH.squid[1] - 1.6, CONFIG.CRASH.squid[1] + 1.6, 1.3] },
+  { id: 'sombreronMuerto', room: 'R20', box: [CONFIG.CRASH.boss[0] - 1.5, CONFIG.CRASH.boss[0] + 1.5, CONFIG.CRASH.boss[1] - 0.7, CONFIG.CRASH.boss[1] + 0.7, 0.9] },
   // F5.17: postes del entrepiso del caparazón y el jeep de la policía volcado en el claro (el dibujo, en bunker.js)
   ...CONFIG.SHELL.posts.map(([x, z], i) => ({ id: 'shellPost' + i, room: 'R21', box: [x - 0.16, x + 0.16, z - 0.16, z + 0.16, UP.y - 0.3] })),
   (J => ({ id: 'jeep', room: 'R17', box: [J[0], J[1], J[2], J[3], 1.7] }))(CONFIG.SHELL.jeep),
@@ -1098,7 +1120,8 @@ function buildMap() {
   addBoundary(-75.2, -19.8, 97.8, 98.2, 'bound:jungla');           // F5.17: la espesura alrededor del patio
   addBoundary(-20.2, -19.8, 74, 98, 'bound:jungla');
   // F5.15: el anexo NE del templo (R20, x 55..95, z 55..100)
-  addBoundary( 54.8,  55.2, 73.8, 100.2, 'bound:jungla');
+  addBoundary( 54.8,  55.2, 73.8, CONFIG.CRASH.gap[0], 'bound:jungla');   // F5.18: hueco al choque (z gap)
+  addBoundary( 54.8,  55.2, CONFIG.CRASH.gap[1], 100.2, 'bound:jungla');
   addBoundary( 55,    95.2, 54.8, 55.2, 'bound:jungla');
   addBoundary( 94.8,  95.2, 54.8, 100.2, 'bound:jungla');
   addBoundary( 54.8,  95.2, 99.8, 100.2, 'bound:jungla');

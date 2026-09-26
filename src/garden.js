@@ -1344,6 +1344,7 @@ function buildGarden() {
   buildPoolWater();                                                // F7c
   buildBeachDecor();                                               // F7c
   buildLifeguard();                                                // F5.13
+  buildCrash();                                                    // F5.18: choque al oeste del templo
   buildTemple();                                                   // F5.13
   buildJungle();                                                   // F5.12
   buildBurns();                                                    // F5.12
@@ -1426,6 +1427,7 @@ function updateGarden(dt) {
   const G = CONFIG.GARDEN, P = player.pos, onGround = playerLevel() === 0, t = clock.elapsedTime;   // F5.16: las plantas están en el piso
   updateTemple(t);                                                 // F5.13: antorchas
   updateBeach(dt, t);                                              // F7c: agua que se mueve y cangrejos
+  updateCrash(dt, t);                                              // F5.18: autos en llamas y humo
   if (RANCHO.bulbs) RANCHO.bulbs.material.color.setRGB(1, 0.8 + 0.08 * Math.sin(t * 3), 0.5 + 0.08 * Math.sin(t * 3));   // F5.10
   updateRanchoEyes(dt);                                            // F5.17: ojos en la cueva
   for (const p of PLANTS) {
@@ -1541,4 +1543,133 @@ function resetGarden() {
   for (const p of PLANTS) p.spitT = randIn(CONFIG.GARDEN.acid.plantEvery);
   for (const p of PLANTS) { p.fed = 0; p.eatT = 0; plantAlien(p, false); p.prey = null; p.head.position.copy(p.base);
     p.head.rotation.x = p.head.rotation.z = 0; p.open = 0; p.cd = 0; p.warned = false; p.head.rotation.y = 0; p.top.rotation.x = 0; p.bot.rotation.x = 0; }
+}
+
+//--- F5.18: el choque al oeste del templo (CONFIG.CRASH). Autos volcados (3 en llamas, con humo), cadáveres, un
+// calamar muerto del tamaño de un auto y el Sombrerón muerto con la guitarra atravesada. Cubos, como los personajes.
+// Los sólidos están en PROPS (world.js); acá el dibujo. Sin luces nuevas: llamas aditivas y un Points de humo
+const CRASH = { flames: [], smoke: null, puffs: [], sources: [] };
+function buildCrash() {
+  const C = CONFIG.CRASH, mb = new MeshBuilder(), glow = new MeshBuilder(), rr = mulberry(518);
+  const blood = 0x5a0a0a, dark = 0x1a1816, burnt = 0x2a2420;
+  // autos: modelo local parado (largo en x), transformado con crashFrame (volcado)
+  const car = (b, col, fire) => {
+    const c = fire ? burnt : col, glass = fire ? 0x0a0a0a : 0x2a3a44;
+    b.box(0, 0.65, 0, 4.2, 0.6, 1.8, c);                                   // carrocería
+    b.box(-0.2, 1.2, 0, 2.2, 0.55, 1.6, c);                                // cabina
+    b.box(-0.2, 1.2, 0, 2.02, 0.44, 1.64, glass);                          // ventanas de los costados
+    b.box(0.92, 1.18, 0, 0.06, 0.42, 1.44, glass, 0, 0, -0.5);             // parabrisas
+    b.box(-1.32, 1.18, 0, 0.06, 0.42, 1.44, glass, 0, 0, 0.5);
+    for (const s of [-1, 1]) {
+      b.box(s * 2.12, 0.48, 0, 0.12, 0.24, 1.84, 0x3a3a3a);                // paragolpes
+      for (const w of [-1, 1]) b.box(s * 1.35, 0.36, w * 0.82, 0.72, 0.72, 0.3, 0x141414);   // ruedas
+      for (const w of [-1, 1]) b.box(s * 1.35, 0.36, w * 0.98, 0.34, 0.34, 0.02, 0x6a6a6a);  // llantas
+    }
+    b.box(2.17, 0.72, 0.6, 0.04, 0.14, 0.32, fire ? 0x3a3020 : 0xfff0c0); b.box(2.17, 0.72, -0.6, 0.04, 0.14, 0.32, fire ? 0x3a3020 : 0xfff0c0);
+    b.box(-2.17, 0.72, 0.6, 0.04, 0.14, 0.3, 0x8a1010); b.box(-2.17, 0.72, -0.6, 0.04, 0.14, 0.3, 0x8a1010);
+    b.box(0, 0.33, 0, 3.8, 0.06, 1.6, dark);                               // chasis
+    b.box(-1.6, 0.3, 0.4, 1.4, 0.1, 0.1, 0x3a3a3a);                        // escape
+    for (let k = 0; k < 5; k++) b.box(rr() * 3.6 - 1.8, 0.65 + rr() * 0.3, (rr() < 0.5 ? -1 : 1) * 0.905, 0.3 + rr() * 0.4, 0.1 + rr() * 0.2, 0.01, fire ? 0x151210 : 0x6a3a1a);   // abolladuras y óxido
+  };
+  const fmat = new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,230,140,1)', 'rgba(255,90,10,0.55)'), transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, vertexColors: true });
+  for (const c of C.cars) {
+    const M = crashFrame(c), fire = c[4];
+    mb.frame = M; car(mb, c[3], fire); mb.frame = null;
+    // vidrios rotos y un charco de aceite al lado
+    for (let k = 0; k < 8; k++) mb.box(c[0] + (rr() - 0.5) * 5, 0.012, c[1] + (rr() - 0.5) * 4, 0.12, 0.01, 0.08, 0x9ab8c0, 0, rr() * 3, 0);
+    mb.box(c[0] + 1.2, 0.008, c[1] + 1.4, 1.6, 0.01, 1.1, 0x121010, 0, rr() * 3, 0);
+    if (!fire) continue;
+    // llamas: varias tarjetas cruzadas en un mesh (una por auto); el humo sale de acá
+    const top = crashBox(M, [-2.15, 2.15, 0, 1.5, -0.92, 0.92])[4], fb = new MeshBuilder();
+    for (let k = 0; k < 7; k++) {
+      const dx = (rr() - 0.5) * 3, dz = (rr() - 0.5) * 1.2, w = 0.9 + rr() * 0.8, h = 1.2 + rr() * 1.1;
+      for (const r of [0, Math.PI / 2]) fb.plane(dx, h / 2, dz, w, h, 0, r + c[2], 0, null, k % 2 ? 0xffffff : 0xffc080);
+      glow.box(c[0] + dx, top + 0.05, c[1] + dz, 0.5, 0.06, 0.4, 0xff6a10);                          // brasas
+    }
+    const fm = fb.mesh(fmat); scene.remove(fm); fm.matrixAutoUpdate = true; fm.userData.theme = false;
+    const g = new THREE.Group(); g.position.set(c[0], top - 0.1, c[1]); g.add(fm); scene.add(g);
+    CRASH.flames.push(g); CRASH.sources.push([c[0], top + 1.5, c[1]]);
+  }
+  // cadáveres de civiles (cubos, acostados) con charco de sangre
+  const body = (x, z, ry, shirt) => {
+    mb.setFrame(x, 0, z, ry);
+    mb.box(0, 0.14, 0, 0.5, 0.26, 0.75, shirt);                            // torso
+    mb.box(0, 0.14, 0.58, 0.34, 0.3, 0.34, 0xc8a080);                      // cabeza
+    mb.box(-0.12, 0.1, -0.72, 0.18, 0.18, 0.75, 0x2a3a5a, 0, 0.15, 0); mb.box(0.14, 0.1, -0.7, 0.18, 0.18, 0.75, 0x2a3a5a, 0, -0.3, 0);   // piernas
+    mb.box(-0.42, 0.08, 0.2, 0.16, 0.16, 0.6, 0xc8a080, 0, 0.9, 0); mb.box(0.4, 0.08, 0.05, 0.16, 0.16, 0.6, shirt, 0, -0.5, 0);           // brazos
+    mb.box(0.3, 0.01, 0.25, 1.4, 0.01, 1.1, blood, 0, 0.3, 0);
+    mb.setFrame(null);
+  };
+  C.bodies.forEach(([x, z, r], i) => body(x, z, r, [0x8a3a2a, 0xd8d0b8, 0x3a6a8a, 0x5a7a3a, 0xa87a2a, 0x6a4a8a, 0x2a2a2a][i % 7]));
+  // calamar muerto del tamaño de un auto: el de los mobs (cubos) ×3.5, de costado, con tinta y sangre verde
+  { const [x, z, r] = C.squid, skin = 0x8a3a5a, skin2 = 0x6a2a48, spot = 0xb05a7a;
+    mb.setFrame(x, 0, z, r);
+    mb.box(0, 0.55, -0.5, 1.9, 1.1, 2.4, skin);                           // manto, acostado (largo en z)
+    mb.box(0, 0.45, -2.0, 1.3, 0.8, 0.8, skin2); mb.box(0, 0.35, -2.6, 0.7, 0.5, 0.5, skin2);   // punta del manto
+    for (const s of [-1, 1]) mb.box(s * 1.2, 0.3, -1.9, 0.7, 0.12, 1.0, skin2, 0, s * 0.3, 0);    // aletas caídas
+    for (let k = 0; k < 7; k++) mb.box((rr() - 0.5) * 1.6, 1.11, -0.5 + (rr() - 0.5) * 2, 0.25, 0.02, 0.25, spot);   // manchas
+    mb.box(0, 0.45, 1.05, 1.6, 0.9, 0.8, skin);                           // cabeza
+    for (const s of [-1, 1]) {
+      mb.box(s * 0.81, 0.55, 1.05, 0.04, 0.42, 0.42, 0xe8e0c0);            // ojos muertos a los costados
+      mb.box(s * 0.83, 0.55, 1.08, 0.02, 0.18, 0.18, 0x101010);
+    }
+    for (let k = 0; k < 8; k++) {                                          // tentáculos tirados, cada uno en 4 tramos
+      let a = -1.2 + k * 0.34, px = (k - 3.5) * 0.18, pz = 1.45;
+      for (let j = 0; j < 4; j++) {
+        const L = 0.8 - j * 0.1; a += (rr() - 0.5) * 0.6;
+        px += Math.sin(a) * L * 0.5; pz += Math.cos(a) * L * 0.5;
+        mb.box(px, 0.1 - j * 0.015, pz, 0.26 - j * 0.04, 0.18 - j * 0.03, L, j % 2 ? skin : skin2, 0, a, 0);
+        if (j < 3) mb.box(px, 0.2 - j * 0.02, pz, 0.1, 0.02, 0.1, 0xe0b0c0, 0, a, 0);   // ventosa
+        px += Math.sin(a) * L * 0.5; pz += Math.cos(a) * L * 0.5;
+      }
+    }
+    mb.box(0.3, 0.008, 1.6, 3.4, 0.01, 2.6, 0x0a0a14, 0, 0.3, 0);         // tinta
+    mb.setFrame(null);
+    glow.box(x + 0.6, 0.015, z - 1.2, 1.4, 0.012, 1.0, 0x6aff7a, 0, r, 0);   // baba verde que brilla
+  }
+  // el Sombrerón muerto, boca arriba, con la guitarra atravesada en el pecho y el sombrero tirado al lado
+  { const [x, z, r] = C.boss, suit = 0x1a1a1e, skin = 0x6a7a5a, silver = 0xc8c8c0;
+    mb.setFrame(x, 0, z, r);
+    mb.box(0, 0.35, 0, 1.3, 0.6, 1.0, suit);                               // torso (acostado: largo en x)
+    for (let k = 0; k < 4; k++) mb.box(-0.4 + k * 0.25, 0.66, 0.15, 0.06, 0.03, 0.06, silver);   // botones
+    mb.box(1.0, 0.35, 0, 0.6, 0.55, 0.55, skin);                           // cabeza
+    mb.box(1.02, 0.64, 0.12, 0.08, 0.03, 0.1, 0x101010); mb.box(1.02, 0.64, -0.12, 0.08, 0.03, 0.1, 0x101010);   // ojos cerrados
+    mb.box(1.16, 0.5, 0, 0.12, 0.06, 0.36, 0x2a1a10);                      // bigote
+    mb.box(-1.2, 0.22, 0.25, 1.2, 0.34, 0.34, suit); mb.box(-1.2, 0.22, -0.28, 1.2, 0.34, 0.34, suit, 0, 0.2, 0);   // piernas
+    mb.box(-1.85, 0.25, 0.25, 0.3, 0.4, 0.38, 0x3a2412); mb.box(-1.85, 0.25, -0.4, 0.3, 0.4, 0.38, 0x3a2412);       // botas
+    mb.box(0.2, 0.2, 0.85, 1.0, 0.3, 0.3, suit, 0, 0.5, 0); mb.box(0.1, 0.2, -0.85, 1.0, 0.3, 0.3, suit, 0, -0.3, 0);   // brazos
+    mb.box(0.1, 1.1, 0.05, 0.14, 1.6, 0.1, 0x6a4a2a, 0.35, 0, 0.25);       // mástil de la guitarra, clavado
+    mb.box(0.32, 1.9, 0.33, 0.24, 0.3, 0.1, 0x4a2a1a, 0.35, 0, 0.25);      // clavijero
+    mb.box(-0.12, 0.5, -0.12, 0.8, 0.14, 0.6, 0xb8742a, 0.35, 0, 0.25);    // caja de la guitarra, partida sobre el pecho
+    mb.box(-0.1, 0.58, -0.12, 0.22, 0.02, 0.22, 0x1a0e06, 0.35, 0, 0.25);  // boca de la guitarra
+    mb.box(0, 0.01, 0, 3.0, 0.012, 2.0, blood, 0, 0.2, 0);
+    mb.box(1.4, 0.05, 1.5, 1.7, 0.08, 1.7, 0x2a2018, 0, 0.6, 0.15);       // ala del sombrero
+    mb.box(1.4, 0.3, 1.5, 0.7, 0.45, 0.7, 0x2a2018, 0, 0.6, 0.15);        // copa
+    mb.box(1.4, 0.13, 1.5, 0.74, 0.08, 0.74, silver, 0, 0.6, 0.15);       // banda
+    mb.setFrame(null);
+  }
+  // restos: cubiertas, conos, marcas de frenada
+  for (let k = 0; k < 6; k++) mb.box(38 + rr() * 16, 0.006, 76 + rr() * 15, 0.25, 0.008, 3 + rr() * 3, 0x141210, 0, rr() * 3, 0);
+  [[37.5, 76.5], [53.5, 77], [37.2, 90.5]].forEach(([x, z]) => { mb.box(x, 0.02, z, 0.4, 0.04, 0.4, 0x2a2a2a); mb.box(x, 0.3, z, 0.22, 0.55, 0.22, 0xe86a1a); mb.box(x, 0.35, z, 0.24, 0.1, 0.24, 0xf0f0f0); });
+  for (const B of [mb, glow]) { const m = B.mesh(B === glow ? new THREE.MeshBasicMaterial({ vertexColors: true }) : new THREE.MeshLambertMaterial({ vertexColors: true })); if (m) { m.userData.theme = false; m.updateMatrix(); } }
+  // humo: un solo Points, puffs que suben de los autos en llamas, se abren y se van
+  const N = C.smoke, pos = new Float32Array(N * 3), geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  CRASH.smoke = new THREE.Points(geo, new THREE.PointsMaterial({ size: 6, map: radialTex('rgba(190,184,176,0.6)', 'rgba(150,146,140,0.3)'),
+    transparent: true, depthWrite: false, color: 0x8a847a, opacity: 0.85 }));
+  CRASH.smoke.frustumCulled = false; CRASH.smoke.userData.theme = false; scene.add(CRASH.smoke);
+  for (let i = 0; i < N; i++) CRASH.puffs.push({ s: i % Math.max(1, CRASH.sources.length), t: i / N * 6, life: 6 });
+  updateCrash(0, 0);                                                     // posiciones iniciales (si no, arrancan en el origen)
+}
+function updateCrash(dt, t) {
+  CRASH.flames.forEach((g, i) => { const k = 0.8 + 0.3 * Math.abs(Math.sin(t * 9 + i * 2.1)) + 0.1 * Math.sin(t * 23 + i); g.scale.set(1, k, 1); });
+  if (!CRASH.smoke || !CRASH.sources.length) return;
+  const P = CRASH.smoke.geometry.attributes.position;
+  CRASH.puffs.forEach((p, i) => {
+    p.t = (p.t + dt) % p.life;
+    const src = CRASH.sources[p.s], k = p.t / p.life;
+    P.setXYZ(i, src[0] + Math.sin(i * 1.7 + t * 0.3) * k * 1.6 + k * 2.5, src[1] + k * 9, src[2] + Math.cos(i * 2.3) * k * 1.6);
+  });
+  P.needsUpdate = true;
 }

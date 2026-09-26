@@ -627,6 +627,16 @@ const CONFIG = {
   // se compra en su tablón (WALLBUYS)
   // F5.15: en la playa oeste (-27, -20), más larga (w a lo largo de x) y de estilo rancho: 6 patas, techo de palma
   LIFEGUARD: { x: -27, z: -20, w: 6, d: 3.4, h: 2.6 },
+  // F5.18: choque en la jungla al oeste del templo (parte de R20, `area`), abierto al anexo por el borde x 55 (z gap).
+  // cars: [x, z, ry, color, arde, vuelco ('roof' | 'side')]: sólidos (PROPS 'autoN', caja del vuelco girado).
+  // squid: calamar muerto del tamaño de un auto (sólido). boss: Sombrerón muerto con la guitarra atravesada (sólido).
+  // bodies: cadáveres [x, z, ry] (sin collider). Fuego y humo sin luces: llamas aditivas y un Points de humo
+  CRASH: { area: [36, 55, 75, 92], gap: [78, 88],
+    cars: [[44.6, 83, 0.12, 0xa8322a, true, 'roof'], [40.2, 87.2, 1.5, 0x3a5a8a, true, 'side'], [49, 79.2, -0.1, 0xd8d4c8, false, 'roof'],
+           [48.6, 88.4, 1.62, 0xe8b820, true, 'side'], [39.6, 79.4, 0.05, 0x4a6a3a, false, 'roof']],
+    squid: [51.8, 84.2, 0.5], boss: [42.4, 90.4, 0.2],
+    bodies: [[46.6, 85.8, 0.4], [42.2, 81.2, 2.1], [45.6, 80.2, -1.2], [38.4, 83.6, 1.1], [51.2, 81.2, 2.8], [44.8, 90.8, -0.6], [52.6, 89.6, 1.9]],
+    smoke: 36 },
   // F5.13: templo estilo Tikal en la esquina NE. La cima (top) está a UP.y: entra al grid de arriba (los zombies
   // suben por las 2 rampas de piedra). Base sólida debajo de la cima; escalones bajos (tiers) sólidos alrededor,
   // sin tapar las rampas; santuario decorativo encima (collider de arriba: no se atraviesa). Afuera del templo,
@@ -667,7 +677,7 @@ const CONFIG = {
   // F5.15: la espesura: la jungla vieja [x1, x2, z1, z2]. Lo que cae acá y no es un área ni un sendero no se
   // camina: world.js buildThicketWalls pone una pared de vegetación en cada borde con lo caminable
   THICKET: [[-75, 55, 40, 74], [-75, -20, -24, -4], [-75, -24, -4, 18], [-75, -27, 18, 40], [20, 55, -24, -4], [35, 55, -4, 40],
-            [55, 95, 55, 100], [-75, -20, 74, 98]],   // F5.17: la espesura alrededor del patio del caparazón (claro hasta z 95)
+            [55, 95, 55, 100], [-75, -20, 74, 98], [20, 55, 74, 100]],   // F5.18: la espesura alrededor del choque   // F5.17: la espesura alrededor del patio del caparazón (claro hasta z 95)
   thicketWallH: 3,
   // F5.12: jungla. Árboles con tronco sólido cada ~spacing m (al azar con semilla fija, lejos de lo que hay que
   // usar), helechos, rocas, lianas y flores; y una franja tupida afuera del borde que tapa el vacío

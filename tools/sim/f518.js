@@ -51,5 +51,14 @@ check(player.downK < 0.1, 'se para');
 G.resetGame();
 check(!G.DOWN.on && G.DOWN.saved === null, 'reset');
 
+// 3) choque al oeste del templo
+fresh();
+const CC = CONFIG.CRASH;
+check(G.roomAt(44.6, 83) && G.roomAt(44.6, 83).id === 'R20', 'el choque es parte del templo (R20)');
+check(CC.cars.every((c, i) => G.WORLD.colliders.some(q => q.tag === 'prop:auto' + i && q.solid)), 'los autos son sólidos');
+player.pos.set(58, 1.7, 83); G.updateFlowField(true);
+check(G.flowAt(44, 77) > 0 && G.flowAt(52, 86) > 0, 'se llega desde el anexo del templo (hueco en x 55)');
+check(G.CRASH.flames.length === CC.cars.filter(c => c[4]).length && G.CRASH.smoke, 'llamas en los autos que arden y humo');
+
 console.log(fail ? `\n${fail} FALLAS` : '\nPASA');
 process.exit(fail ? 1 : 0);
