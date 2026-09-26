@@ -731,6 +731,25 @@ claro (que crece).
 - Accesorios por arma (arco propio) con vista previa 3D, cuentas locales, modo dev (X), chicles con moneda, tienda,
   preset y chicleras cúbicas, conchas cúbicas que ofrecen el arma.
 
+### PLAN VIGENTE (2026-09-26) — leer esto primero al retomar
+Todo lo de arriba está hecho, commiteado y pusheado en `claude/compassionate-knuth-tcnxws`. Orden de lo que sigue:
+1. **Playtest de Diego** de F5.16–F5.18b y arreglos. Qué mirar:
+   - FPS en Alto (sombras + follaje) y en el menú (renderer extra de la vista previa de armas).
+   - Chicles: SHOPPING SPREE con 0 puntos en puerta, perk, caja, pared y PaP (todo pasa por `spendPoints`, confirmar);
+     chicle en la bandeja cuando te tira el Quick Revive (no debe gastarse); T con TRIPLE THREAT.
+   - Last stand: volver con las armas correctas (PaP en curso, recargando, escudo en mano).
+   - Accesorios en cada arma (que no floten) y la vista previa.
+   - Choque del templo: zombies trabados entre los autos (overlay `L`).
+   - Conchas: el arma flotante se agarra con F y se va a los 10 s.
+2. **Sonidos de Diego:** subirá `sonidos/` (archivos). Plan: embeberlos en base64 dentro de `index.html` (sigue siendo
+   un solo archivo; hay que documentar que se levanta la regla "sin assets externos"), cargarlos con
+   `decodeAudioData` en `audio.js` y reemplazar/sumar a los procedurales según la lista que mande. Cuidar el peso.
+3. **Tanda E** (abajo).
+4. Entorno que sigue de cajas: estatuas de la cámara del calamar, máquinas de perks, PaP (los personajes quedan en cubos
+   por pedido de Diego).
+5. **F8** cierre V2: `CONFIG.DEBUG_MODE = false`, P9 balance (chicles incluidos: chance de moneda 14%, costos 500/1000/2000),
+   tag.
+
 ### Tanda E — Calamar y embarcadero
 - Embarcadero amplio y oscuro, sobre la arena al costado de la cabeza del calamar.
 - Cadáveres de animales de mar, algunos medio alienígenas.

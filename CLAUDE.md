@@ -32,10 +32,12 @@ Más **F5.14** (fumigador, 9 almejas de colores con premios, la pieza de la Ola 
 grande). Más **F6** (audio: música procedural, audio 3D, pasos por superficie, ambiente por zona, volúmenes
 separados). Más **F7** (gráficos: calidad Bajo/Medio/Alto, sombras en Alto, post-proceso CSS, ciclo de luz con
 sol y luna, desmembramiento, animaciones y poses de muerte, agua animada, playa con props y cangrejos).
-**Repo (2026-09-25):** GitHub `MaestroAguacate/Zombies` arrancó de cero con subidas web: sin historial ni tags
-viejos (`v1-final`…`v2-f5.5` solo existen en la copia local de Diego). F5.6–F7 + F5.15 están en `main`, con los
-43 tests en verde (7 tests desactualizados por F5.15 se arreglaron: f510, f511, f512, f513, quest, roof, audio2).
-Falta el playtest de Diego (sobre todo FPS con sombras). **F5.16 (5 áreas, ver ROADMAP-V2): tandas A, B, C y D hechas**, sigue E (calamar y embarcadero) y después F8. **Todo el juego está en inglés** (textos visibles); el código y los comentarios siguen en español.
+**Repo (2026-09-26):** GitHub `MaestroAguacate/Zombies` arrancó de cero con subidas web: sin historial ni tags
+viejos (`v1-final`…`v2-f5.5` solo existen en la copia local de Diego). Se trabaja en la rama
+`claude/compassionate-knuth-tcnxws`, con los **46 tests en verde**. Falta el playtest de Diego de todo lo hecho desde
+F5.16. **F5.16: tandas A, B, C y D hechas**, sigue E (calamar y embarcadero) y después F8. **Todo el juego está en
+inglés** (textos visibles); el código y los comentarios siguen en español. Para retomar: `MEMORIA-CHAT.md` y la
+sección "PLAN VIGENTE" de `ROADMAP-V2.md`.
 **F5.17 (estilo BO2, "menos Minecraft"):** formas curvas y hojas con alfa en el `MeshBuilder`, jungla nueva por celdas,
 rancho, cueva, templo y jardines rediseñados, y el **caparazón de tortuga gigante** en lugar de la estación de policía
 (ver la sección F5.17). **F5.18:** personajes y plantas de vuelta a cubos, agacharse, Quick Revive con 10 s tirado, XP y
