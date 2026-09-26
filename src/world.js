@@ -1346,9 +1346,10 @@ function buildPlantPots(mb) {
     const r = G.potR, c = { minX: x - r, maxX: x + r, minY: y, maxY: y + G.potH, minZ: z - r, maxZ: z + r,
                             tag: 'plant', mesh: null, solid: true };
     WORLD.colliders.push(c);
-    if (mb) {                                                           // F5.17: maceta de barro torneada (antes una caja)
-      mb.lathe([[0.72, 0], [0.8, 0.08], [0.95, 0.82], [1.1, 0.88], [1.1, 0.98], [0.94, 1.0]], x, y, z, r, G.potH, r, 0xa0522d, 14);
-      mb.cyl(x, y + G.potH * 0.9, z, r * 0.92, 0.02, 0x3a2a1a, 1, 14);                        // tierra
+    if (mb) {                                                           // F5.18: de vuelta a cajas (pedido de Diego)
+      mb.box(x, y + G.potH * 0.45, z, r * 2, G.potH * 0.9, r * 2, 0xa0522d);                  // maceta de barro
+      mb.box(x, y + G.potH * 0.92, z, r * 2 + 0.08, 0.08, r * 2 + 0.08, 0x8a4424);             // borde
+      mb.box(x, y + G.potH * 0.9, z, r * 1.8, 0.04, r * 1.8, 0x3a2a1a);                        // tierra
     }
   }
 }

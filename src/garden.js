@@ -1368,40 +1368,27 @@ function buildGarden() {
 // tallo y hojas (F5.7: más alto y grueso para la cabeza ×headScale). F5.11: stone = de piedra (estatuas)
 function plantStem(mb, x, y, z, S, stone) {
   const stemH = 0.7 * S;
-  // F5.17: tallo curvo (tubo) y hojas carnosas (gotas aplastadas) en vez de cajas
-  mb.tube([[x, y, z], [x + 0.06 * S, y + stemH * 0.5, z - 0.04 * S], [x, y + stemH, z]], 0.07 * S, 0.05 * S, stone ? 0x8a8a84 : 0x3f6a2a, 6, 6);
-  for (let k = 0; k < 5; k++) {
-    const a = k * 1.26, r = 0.24 * S;
-    mb.blob(x + Math.cos(a) * r, y + 0.1, z + Math.sin(a) * r, 0.24 * S, 0.035, 0.1 * S, stone ? 0x9a9a92 : [0x4e7a32, 0x5a8a3a][k % 2], k, 0, -a, 0.3);
-  }
+  mb.box(x, y + stemH / 2, z, 0.1 * S, stemH, 0.1 * S, stone ? 0x8a8a84 : 0x3f6a2a, 0.08, 0, 0);
+  for (let k = 0; k < 4; k++) mb.box(x + Math.cos(k * 1.6) * 0.22 * S, y + 0.12, z + Math.sin(k * 1.6) * 0.22 * S,
+    0.38 * S, 0.04, 0.16 * S, stone ? 0x9a9a92 : 0x4e7a32, 0, -k * 1.6, 0.3);
 }
 // cabeza: dos mandíbulas que se abren (pivote atrás), cada una un mesh fusionado.
 // F5.9: cada mandíbula tiene la versión normal (n) y la alienígena (a: morada, dientes verdes, ojos en antenas).
 // F5.11: withStone = además la de piedra (s), que arranca visible (estatuas de la escotilla)
-// F5.17: mandíbulas de media esfera con dientes cónicos todo alrededor y manchas (antes cajas)
 let PLANT_JAW_MAT = null;
-const PLANT_HEMI = new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2);
 function plantJawMesh(up, look) {
   const b = new MeshBuilder(), s = up ? 1 : -1, alien = look === 'alien', stone = look === 'stone';
-  const shell = stone ? (up ? 0x9a9a92 : 0x8a8a84) : alien ? (up ? 0x7a2ab0 : 0x5a1a8a) : (up ? 0xb0283a : 0x9a2030);
-  b.add(PLANT_HEMI, 0, 0, 0.22, 0.25, 0.15, 0.24, up ? 0 : Math.PI, 0, 0, shell);
-  b.cyl(0, -s * 0.004, 0.22, 0.235, 0.012, stone ? 0x6a6a64 : alien ? 0x9aff6a : 0xe89aa8, 1, 14);      // adentro
-  const tooth = stone ? 0xb8b8b0 : alien ? 0xc8ff4a : 0xf0ead8, th = alien ? 0.12 : 0.09;
-  for (let i = 0; i < 13; i++) {                                               // dientes alrededor del borde
-    const a = -2.3 + i / 12 * 4.6, x = 0.24 * Math.sin(a), z = 0.22 + 0.23 * Math.cos(a);
-    b.cyl(x, 0, z, 0.018, th, tooth, 0, 5, up ? Math.PI : 0, 0, 0);
-  }
-  if (!stone) for (let i = 0; i < 5; i++) {                                    // manchas
-    const a = i * 1.3, r = 0.12 + (i % 2) * 0.05;
-    b.blob(Math.sin(a) * r, s * (0.1 - r * 0.3), 0.22 + Math.cos(a) * r, 0.035, 0.012, 0.035, alien ? 0xd060ff : 0xe86070, i);
-  }
+  b.box(0, s * 0.07, 0.22, 0.46, 0.14, 0.44, stone ? (up ? 0x9a9a92 : 0x8a8a84) : alien ? (up ? 0x7a2ab0 : 0x5a1a8a) : (up ? 0xb0283a : 0x9a2030));
+  b.box(0, s * 0.005, 0.22, 0.4, 0.01, 0.38, stone ? 0x6a6a64 : alien ? 0x9aff6a : 0xe89aa8);      // adentro
+  const tooth = stone ? 0xb8b8b0 : alien ? 0xc8ff4a : 0xf0ead8, th = alien ? 0.12 : 0.08;
+  for (let i = 0; i < 6; i++) b.box(-0.2 + i * 0.08, -s * 0.03, 0.43, 0.03, th, 0.03, tooth);   // dientes
+  for (let i = 0; i < 3; i++) b.box(0.23, -s * 0.03, 0.1 + i * 0.12, 0.03, th, 0.03, tooth);
   if (alien && up) {                                                            // antenas con ojos y púas
     [-0.14, 0, 0.14].forEach((ax, k) => {
-      const h = 0.3 + (k === 1 ? 0.1 : 0);
-      b.tube([[ax, 0.1, 0.12], [ax * 1.2, 0.1 + h * 0.6, 0.1], [ax * 1.3, 0.1 + h, 0.12]], 0.018, 0.012, 0x4a1a6a, 5, 5);
-      b.sphere(ax * 1.3, 0.14 + h, 0.12, 0.05, 0.05, 0.05, 0x7aff3a, 6);
+      b.box(ax, 0.24 + (k === 1 ? 0.05 : 0), 0.12, 0.03, 0.28 + (k === 1 ? 0.1 : 0), 0.03, 0x4a1a6a, 0, 0, ax * 1.5);
+      b.box(ax * 1.3, 0.4 + (k === 1 ? 0.1 : 0), 0.12, 0.08, 0.08, 0.08, 0x7aff3a);
     });
-    for (let i = 0; i < 4; i++) b.cyl(-0.18 + i * 0.12, 0.12, 0.3, 0.02, 0.1, 0xd060ff, 0, 5, 0.4, 0, 0);
+    for (let i = 0; i < 4; i++) b.box(-0.18 + i * 0.12, 0.16, 0.3, 0.04, 0.1, 0.04, 0xd060ff, 0.4, 0, 0);
   }
   if (!PLANT_JAW_MAT) PLANT_JAW_MAT = new THREE.MeshLambertMaterial({ vertexColors: true });
   const m = b.mesh(PLANT_JAW_MAT);
