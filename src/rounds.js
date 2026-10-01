@@ -103,6 +103,7 @@ function zombiesLeft() {
 }
 function updateRounds(dt) {
   const R = roundState, C = CONFIG.ROUNDS;
+  if (eeHold()) return;                                         // F5.29: con el cebo del Kraken y en la pelea, nada sale
   if (R.phase === 'pause') {
     // F5.19: el audio de ronda suena apenas termina la anterior (o al arrancar la partida), el número cambia a los
     // hudAt s y la ronda (los zombies) arranca al terminar la pausa
@@ -428,6 +429,7 @@ function resetGame() {
   resetTraps();                        // F5.9: trampas apagadas y listas
   resetBunker();                       // F5.11: escotilla cerrada, estatuas de piedra
   resetCatacombs();                    // F5.28e: palancas arriba (la puerta D23 la cierra el reset de las puertas)
+  resetKraken();                       // F5.29: el easter egg desde cero (arena escondida, sin remolino ni restos)
   resetClams();                        // F5.14
   resetMatchXP();                      // F5.18
   resetGums();                         // F5.18b

@@ -162,6 +162,7 @@ function updateSkyDome() {
   D.scale.setScalar(Math.max(10, camera.far - 3));
   // arriba: del violeta del atardecer al azul de la noche (la neblina morada lo tiñe)
   SKYDOME.u.top.value.copy(_skyC.setHex(C.dayTop)).lerp(_skyN.setHex(C.nightTop), k).lerp(_skyP.setHex(C.purpleTop), p);
+  if (typeof eeSkyTint === 'function') eeSkyTint(SKYDOME.u.top.value, 'top');   // F5.29: después del Kraken, azul brillante
   SKYDOME.u.sunA.value = Math.max(0, 1 - k / 0.6) * (1 - p);
   SKYDOME.u.moonA.value = Math.max(0, (k - CONFIG.GFX.moon.from) / (1 - CONFIG.GFX.moon.from)) * (1 - 0.6 * p);
   SKYDOME.u.starA.value = Math.max(0, (k - 0.3) / 0.7) * (1 - 0.7 * p);

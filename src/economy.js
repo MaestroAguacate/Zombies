@@ -712,7 +712,9 @@ function updateInteract() {
     const gm = gumNear(room, px, pz, bd);
     if (gm) { bd = gm.dist; kind = 'gum'; target = gm.target; }
     const pt = portalNear(room, px, pz, bd);                      // F5.19: el portal del templo está arriba de la nave
-    if (pt) { kind = 'portal'; target = pt.target; }
+    if (pt) { bd = pt.dist; kind = 'portal'; target = pt.target; }
+    const ee = eeNear(room, px, pz, bd, lvl);                     // F5.29: el easter egg (la semilla, las consolas de arriba)
+    if (ee) { kind = 'ee'; target = ee.target; }
     interactState.kind = kind; interactState.target = target; return;
   }
   for (const id in state.doors) {
@@ -771,6 +773,8 @@ function updateInteract() {
   if (lv) { bd = lv.dist; kind = 'lever'; target = lv.target; }
   const br = barrierNear(room, px, pz, bd);                       // F5.19b: ventanas y trampillas rotas
   if (br) { bd = br.dist; kind = 'barrier'; target = br.target; }
+  const ee = eeNear(room, px, pz, bd, lvl);                       // F5.29: el easter egg (sin cartel)
+  if (ee) { bd = ee.dist; kind = 'ee'; target = ee.target; }
   interactState.kind = kind; interactState.target = target;
 }
 function interact() {
@@ -783,6 +787,7 @@ function interact() {
   if (it.kind === 'barrier') return true;                       // F5.19b: se repara manteniendo F (updateBarriers)
   if (it.kind === 'lantern') return useLantern(it.target);      // F5.20
   if (it.kind === 'lever') return pullLever(it.target);         // F5.28e
+  if (it.kind === 'ee') return eeUse(it.target);                // F5.29: el easter egg (suena solo: ok o fallo)
   if (it.kind === 'firesale') { const ok = useFireSaleBox(it.target); if (!ok) { sfxDeny(); denyPrompt(); } return ok; }   // F5.19c
   if (it.kind === 'qpiece') return pickQuestPiece(it.target);   // F5.5
   if (it.kind === 'workshop') return workshopPress();

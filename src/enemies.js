@@ -562,7 +562,20 @@ function setSky(n, mob) {
   if (NIGHT.storm && NIGHT.thunderT <= 0) NIGHT.thunderT = randIn(NIGHT.storm === 'mob' ? W.mobThunderEvery : W.thunderEvery);
 }
 // cuánto se cierra la niebla sin boss (la neblina morada la acerca). La usa updateBoss
-function weatherFogFar(base) { return base + (CONFIG.WEATHER.purple.fogFar - base) * NIGHT.p; }
+function weatherFogFar(base) {
+  // F5.29b: en la tormenta del muelle del Kraken la niebla va más lejos (el Kraken es enorme)
+  const k = typeof eeFogFar === 'function' ? eeFogFar() : 0;
+  if (k) return k;
+  return base + (CONFIG.WEATHER.purple.fogFar - base) * NIGHT.p;
+}
+// F5.29b: las zonas con tormenta propia (oscuridad zd, relámpagos cada every s, lluvia × rainOpacity): el templo y el
+// muelle del Kraken
+function stormZone(zr) {
+  if (!zr) return null;
+  if (zr.id === 'R20') return CONFIG.TEMPLE.storm;
+  if (zr.id === 'R25') return CONFIG.EE.storm;
+  return null;
+}
 function lightning() {
   NIGHT.flash = CONFIG.DOGS.lightning.time;
   sfxThunder();
@@ -581,6 +594,7 @@ function applyNight(k, f, p) {
   paletteAt('sun', k, W.sun.color);
   paletteAt('fog', k, scene.fog.color).lerp(P.fog, p).lerp(NIGHT.white, f * 0.4).multiplyScalar(1 - (1 - DZ.fog) * (NIGHT.zd || 0));
   paletteAt('sky', k, W.sky.material.color).lerp(P.sky, p).lerp(NIGHT.white, f * 0.7);
+  eeSkyTint(scene.fog.color, 'fog'); eeSkyTint(W.sky.material.color, 'fog');   // F5.29: después del Kraken, morado y azul
   nightTint(k, f);                                         // F5.28f: el follaje y las bajadas de las catacumbas
 }
 // F5.20: oscuridad de la casa (0 afuera o con energía; HOUSE.dark adentro; HOUSE.litDark con el farol del cuarto prendido)
@@ -601,7 +615,7 @@ function updateNight(dt) {
   // F5.28 (Diego): el búnker, mucho más oscuro (sin luces que se prendan). F5.28d: el templo, oscuro y con tormenta
   let zt = zr && zr.id === 'R16' ? CONFIG.BUNKER.dark.zd
            : zr && (zr.id === 'R23' || zr.id === 'R24') ? CONFIG.CATA.zd       // F5.28e: catacumbas y cueva
-           : zr && zr.id === 'R20' ? CONFIG.TEMPLE.storm.zd
+           : stormZone(zr) ? stormZone(zr).zd                                 // F5.28d: el templo; F5.29b: el muelle del Kraken
            : zr && zr.id === 'R21' && !state.power ? CONFIG.SHELL.unpoweredDark : zr && zr.dark ? 1 : houseDark(zr);
   if (gumActive('nighteyes')) zt *= CONFIG.GUMS.list.nighteyes.zdMul;   // F5.28d: NIGHT EYES (el filtro verde, gfxFilter)
   // F5.24 (Diego: "los cambios de luces se ven muy abruptos"): un resorte críticamente amortiguado en vez de lineal:
@@ -619,9 +633,11 @@ function updateNight(dt) {
     lightning();
   }
   // F5.28d (Diego: "el templo más oscuro, que llueva y relámpagos"): en el templo hay tormenta siempre, en cualquier ronda
-  if (zr && zr.id === 'R20' && state.running && !state.gameOver) {
-    if ((NIGHT.templeT = (NIGHT.templeT || randIn(CONFIG.TEMPLE.storm.every)) - dt) <= 0) {
-      NIGHT.templeT = randIn(CONFIG.TEMPLE.storm.every);
+  // F5.29b: y en el muelle del Kraken (stormZone)
+  const sz = stormZone(zr);
+  if (sz && state.running && !state.gameOver) {
+    if ((NIGHT.templeT = (NIGHT.templeT || randIn(sz.every)) - dt) <= 0) {
+      NIGHT.templeT = randIn(sz.every);
       lightning();
     }
   }
@@ -696,7 +712,7 @@ function rainRoof(x, z) {
 // F5.16: áreas donde llueve siempre, sea la ronda que sea (CONFIG.WEATHER.rainRooms)
 function rainZone() {
   const r = roomAt(player.pos.x, player.pos.z);
-  return !!r && CONFIG.WEATHER.rainRooms.includes(r.id);
+  return !!r && (CONFIG.WEATHER.rainRooms.includes(r.id) || !!stormZone(r));
 }
 function updateRain(dt) {
   if (!RAIN.lines) return;
@@ -706,7 +722,7 @@ function updateRain(dt) {
   if (!on) return;
   // F5.28d: en la tormenta del templo la lluvia se ve más cerrada
   const rz = roomAt(player.pos.x, player.pos.z);
-  RAIN.lines.material.opacity = CONFIG.WEATHER.rain.opacity * (rz && rz.id === 'R20' ? CONFIG.TEMPLE.storm.rainOpacity : 1);
+  RAIN.lines.material.opacity = CONFIG.WEATHER.rain.opacity * (stormZone(rz) ? stormZone(rz).rainOpacity : 1);
   const R = CONFIG.WEATHER.rain, a = RAIN.pos, dy = R.speed * dt, dx = R.wind * dt, P = player.pos, h = R.area / 2;
   for (let i = 0; i < RAIN.n; i++) {
     const o = i * 6;

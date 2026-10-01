@@ -32,7 +32,8 @@ check(under > 0 && free === 0, 'celdas bajo props: bloqueadas', `(${under} celda
 // 3) conectividad: con todas las puertas abiertas, todo alcanzable desde la sala
 G.setSquidHead(G.CONFIG.SQUIDHEAD.openRound, true);                    // F5.19: la cabeza del calamar es una caja de R19 (se abre en la R13)
 player.pos.set(0, 1.7, 10); G.updateFlowField(true);
-const rooms = G.ROOMS.filter(r => !r.hidden);
+// F5.29: la arena del Kraken (R25) es una isla en el mar: se llega solo por el viaje de la pared de agua
+const rooms = G.ROOMS.filter(r => !r.hidden && r.id !== 'R25');
 const unreached = rooms.filter(r => {
   for (let x = Math.floor(r.x1); x < r.x2; x++) for (let z = Math.floor(r.z1); z < r.z2; z++) if (G.flowAt(x, z) >= 0) return false;   // F5.17: cuartos con bordes no enteros
   return true;

@@ -15,7 +15,9 @@ const PERK_KEYS = Object.keys(CONFIG.PERKS.list);
 function hasPerk(id) { return state.perks.indexOf(id) >= 0; }
 function maxHealth() {
   const h = hasPerk('jugg') ? CONFIG.PERKS.juggHealth : CONFIG.PLAYER.maxHealth;
-  return DEV.hp ? h * CONFIG.DEBUG.devHealthMul : h;              // F5.19c: tecla X (modo dev)
+  // F5.19c: tecla X (modo dev). F5.29d: la tecla L (la pelea del Kraken) da debugHpMul × de vida hasta que termina la partida
+  const k = typeof EE !== 'undefined' && EE.debugHp ? CONFIG.EE.debugHpMul : 1;
+  return (DEV.hp ? h * CONFIG.DEBUG.devHealthMul : h) * k;
 }
 function perkRate() { return hasPerk('dtap') ? CONFIG.PERKS.dtapRate : 1; }          // divide el intervalo entre disparos
 function perkDmg() { return (hasPerk('dtap') ? CONFIG.PERKS.dtapDamage : 1) * (gumActive('glasscannon') ? 1.5 : 1); }   // F5.20: GLASS CANNON

@@ -111,6 +111,11 @@ js += `\n;globalThis.G={scene,state,player,camera,clock,CONFIG,NAV,WORLD,FLOW,ZP
  useHeldGum,updateGums,resetGums,gumActive,gumDef,WRATH,gumWrath,PICKUPS,updatePickups,trySpawnPickup,useBox,BOX,GDRUM,gumDrumMount,favoriteWeapon,
  CATA,cataGround,cataWalk,cataRamp,cataOpen,cataLeverNear,pullLever,cataLeversOn,updateCatacombs,resetCatacombs,thicketDraw,cutRects,cataLight,
  HURT,hurtHit,updateHurtHUD,LOADSCR,startLoading,updateLoading,deathEater,GRADE,GVAULT,templeRoofAt,DEATH,
+ EE,KRAKEN,eeNear,eeUse,eeOnPlantDeath,eeOnBeastDeath,eeCalm,eeStartFight,eeHold,krakenHit,krakenBlast,krakenMouth,
+ eeChargeFire,krakenCraft,krakenDropOrb,krakenP3Spawn,beastAwakeAt,curSlot,
+ updateKraken,resetKraken,eeDebugFight,BUNK,
+ eeMounted,eeMountFire,krakenMount,krakenDismount,krakenSlam,krakenFloor,krakenHelper,krakenEdgeSpot,eeStorm,eeFogFar,stormZone,rainZone,
+ weatherFogFar,THEMEFX,BOSS,ZPOOL,COLHASH,fireWeapon,scene,
  DOORLIGHT,updateDoorLights,SHELLFX,VFIRE,updateVoxFire,weaponSeen,deathPool,deathPeekers,FLIGHT,fakeLightAdd,fakeLightTint,nightTint,VOXT,updateVoxTrees,updateTheme,
  LANTERNS,lanternNear,useLantern,updateLanterns,resetLanterns,houseDark,rollVariant,setZombieVariant,blackFuse,inWindowHole,jumpFrom,setSunForRound,roomAt,placeRoot};`;
 vm.runInContext(js, ctx);

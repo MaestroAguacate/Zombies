@@ -218,11 +218,12 @@ function attachHat(z) {
   z.hatOn = true; z.hitParts = z.partsHat;
 }
 // variant (F5.9): 'sombrero' (por defecto) | 'calamar'. true = salió (o no hay nada que sacar)
-function spawnBoss(variant) {
+// F5.29b: at = { x, z } lo pone ahí (el easter egg del Kraken: sale del mar por el borde del muelle; el tocadiscos)
+function spawnBoss(variant, at) {
   const B = CONFIG.BOSS, v = variant || 'sombrero';
   const z = BOSS.pool.find(q => q.variant === v && !q.active);
   if (!z) return true;                                            // ya están todos en juego: no reintenta
-  const sp = bossSpawnPoint(BOSS.pool.filter(q => q.active).length);
+  const sp = at || bossSpawnPoint(BOSS.pool.filter(q => q.active).length);
   if (!sp) return false;
   attachHat(z);
   z.phase = 1; z.hatDmg = 0; z.act = null; z.gun = 'idle'; z.gunT = 0; z.gunAcc = 0; z.squidT = B.calamar.squidEvery;
@@ -291,7 +292,7 @@ function bossDeath(z) {
   STATS.bosses++;
   addXP(CONFIG.PROGRESSION.xp.boss);        // F5.18
   trySpawnPickup(z.px, z.pz, 'maxammo');
-  if (z.variant === 'bestia') beastDeath(z);                      // F5.26: la guarida vuelve a tener barriles
+  if (z.variant === 'bestia') { beastDeath(z); eeOnBeastDeath(); }   // F5.26: la guarida vuelve a tener barriles (F5.29: paso 2)
   else dropString(z);                                             // F5.5: la cuerda de guitarra (una vez)
   bossTrophies(z.variant, z.px, z.pz, z.level || 0);              // F5.26: los trofeos (y la cuenta)
   z.gun = 'idle'; z.gunModel.visible = false;                     // los cocos en vuelo terminan su recorrido
@@ -667,7 +668,8 @@ function updateBoss(dt) {
   // F5.8 (Diego): la niebla se cierra al aparecer (1 s) y queda cerrada TODA la pelea; se abre al morir (2 s)
   if (BOSS.fogBase && scene.fog) {
     // F5.9: sin boss, la niebla va a la del clima (la neblina morada la acerca)
-    const on = bossAlive(), base = BOSS.fogBase, target = on ? B.fogFar : weatherFogFar(base.far), f = scene.fog.far;
+    // F5.29b: en la pelea del Kraken la niebla no se cierra por los bosses que salen del mar (taparía al Kraken)
+    const on = bossAlive() && !(typeof EE !== 'undefined' && EE.storm), base = BOSS.fogBase, target = on ? B.fogFar : weatherFogFar(base.far), f = scene.fog.far;
     if (f !== target) {
       const rate = (base.far - B.fogFar) * dt / (on ? 1 : 2);
       scene.fog.far = f > target ? Math.max(target, f - rate) : Math.min(target, f + rate);

@@ -2621,3 +2621,161 @@ Manda sobre todo lo de arriba donde se contradice. Test: `f528.js`.
 - **Hiedra** en cubos (`voxIvy`) en lugar de los planos de hojas (los cuadrados verdes de las paredes).
 - **Canción de las máquinas**: suena al acercarte (`PERKS.jingleDist` 8) aunque no haya energía, en tu mismo nivel.
 - **Pantalla de CHICLES** con la bóveda 3D (`GVAULT`, comparte el renderer del tambor: `GDRUM.owner`).
+
+## F5.29 (2026-10-01): el easter egg del Kraken — `src/kraken.js` (7q), `CONFIG.EE`
+Manda sobre todo lo de arriba donde se contradice. Test: `f529.js`. Guía para el jugador: `GUIA-EASTER-EGG.md`; diseño:
+`EASTER-EGG.md`. **Sin pistas en el juego:** el cartel de interacción del easter egg (`kind: 'ee'`) sale vacío; solo
+suenan `sfxEEOk` (paso cumplido), `sfxEEFail` (paso fallido) y `sfxEEReady` (listo), procedurales.
+- **Pasos** (`EE.step`, cada uno pide el anterior; `eeNear`/`eeUse` desde `updateInteract`/`interact`):
+  1. al morir la planta jefa (`eeOnPlantDeath`) brota una **semilla**: hay `seed.time` 30 s para agarrarla; si no, se
+     hunde y vuelve a brotar la ronda siguiente;
+  2. matar a la **Bestia** (`eeOnBeastDeath`, desde `boss.js`);
+  3. **teletransportador del búnker**: con la semilla, pararse en la plataforma `tele.charge` 20 s (bajarse lo corta);
+     te deja en el laboratorio del caparazón (`tele.arrive`);
+  4. **pruebas del caparazón**: 3 consolas (una por nivel, `consoles`) en `calib` 25 s; después aguantar `hold` 60 s
+     dentro del caparazón (elipse del caparazón, no los rects de R21);
+  5. **Sombrerón en la cápsula**: el tocadiscos (`gramo`) lo llama a `lureSpawn`; hay que bajarlo a menos de `weak` 35% de
+     vida, meterlo en la cabina (`booth`) y cerrarla desde su consola. Matarlo o cerrar vacía falla (`retry` 60 s);
+  6. la cabina procesa `process` 10 s y suelta el **cebo** (`EE.lure`). Al agarrarlo: **calma** (`eeCalm`) — se van los
+     zombies, la ronda se pausa (`eeHold()` arriba de `updateRounds`), de día con cielo morado (`NIGHT.target` 0,
+     `pTarget` 1). Es para prepararse.
+- **Entrada:** la pared de agua (`membrane`) al fondo del primer piso de la cabeza del calamar, con el cebo → fundido y
+  viaje a la arena (`eeTravel`, reusa `BUNK.fadeTo` y `startTravel`).
+- **F5.29b** (Diego, tras probarla con L: "muy básica y mal diseñada; el calamar no se ve tan grande como en la playa;
+  los arpones no funcionan; no se ven los límites; un ataque de tentáculos del piso que te aleje del arpón; de noche,
+  lloviendo y con muchos relámpagos; zombies de agua; más espacio; el calamar como el que escupe calamarcitos con un ojo
+  que brille; tentáculos más lentos, detallados, que peguen 60 y sean sólidos; un muelle en medio del mar lejos de la
+  costa; que salga un boss en cada paso cumplido o fallado"). Lo que sigue es la pelea de F5.29b.
+- **El muelle (arena R25)** (`arena`: centro (62, −76), en la esquina sureste del grid; rects en `ROOMS` al cargar con
+  `hideMap`; bordes invisibles `buildKrakenShell`, en `buildMap`): 1008 m², más ancho que hondo (cubierta, dos puntas al
+  frente, dos alas, el fondo y el embarcadero); la punta más cercana a la costa queda a 39 m. Tablones sobre juntas
+  oscuras, pilotes con algas, viga y **baranda** en todo el borde (salvo la punta del embarcadero, donde está el bote),
+  salvavidas y redes, **faroles** (los de `lanterns` y uno cada `lanternEvery` m, ninguno a menos de 4 m de un cañón;
+  las manchas de luz en un solo mesh), barcos hundidos en el agua. Escondido (`KRAKEN.arena.visible`) fuera de la pelea.
+- **La tormenta** (`eeStorm`, `CONFIG.EE.storm`): noche `night` 0.78, el mar de la playa se esconde (`THEMEFX.sea.far`,
+  `near`, `foam`, `vox`) y lo reemplaza un plano oscuro con olas en cubos (`updateKrakenSea`, InstancedMesh); la niebla
+  va a `fogFar` 60 m y la cámara también (`weatherFogFar` → `eeFogFar`; `updateBoss` no la cierra con los bosses del
+  mar). `stormZone(zr)` (enemies.js) junta el templo y el muelle: oscuridad de zona, relámpagos cada `every` 1.2–3.5 s y
+  lluvia × `rainOpacity`. Al terminar (ganar, perder, morir o `resetGame`) vuelve todo (`setFog(SETTINGS.fog)`).
+- **El Kraken**: el calamar gigante de la playa (`buildGiantSquid`) × `scale` 8, con más detalle (bultos, manchas,
+  aletas, la falda), **manchas bioluminiscentes**, los ojitos amarillos, la boca roja con dientes que se abre (escala) en
+  la fase 3, y un **OJO grande que brilla** (iris ámbar escalonado, pupila horizontal, halo; `fog: false`) con párpado
+  (cerrado en la fase 1, abierto en la 2, entrecerrado en la 3). 8 tentáculos que se enroscan a los costados (3 tramos
+  encadenados). El cuerpo frena las balas (`part: 'body'`).
+- **La pelea** (`EE.fight`, `updateKrakenFight`; `fight.time` 360 s):
+  - **golpe** (fase 1; después cada `slowK` × más lento): el tentáculo sale del agua y se levanta (`lift` 13 m) mientras
+    una **franja roja** marca dónde cae (`warn` 2.2 s), cae en `fall` 0.5 s (`slamDmg` **60**, te corre de costado
+    `push` m) y queda apoyado `stay` 8 s, **sólido**: `boxes` colliders (`kraken:tent`, creados en `buildKrakenShell`
+    con `solid: false`: no tocan el grid) se mueven a lo largo y se prenden (solo `COLHASH.dirty`). Los zombies de abajo
+    se aplastan. Hasta `maxDown` 2 a la vez. Segmentos en un solo InstancedMesh (`tentIM`): cuerpo, cresta, manchas y
+    ventosas. Encima, la **ventosa que brilla** (redonda en escalones, `suckerHP` 3000): cortar `cuts` 4 → fase 2;
+  - **tentáculo del piso** (todas las fases, `floorEvery` 8–11 s; subido a un cañón, a los `mountGrace` 3 s): aviso
+    `floorWarn` 1.1 s (anillo naranja, las tablas que crujen, temblor), sale (`floorDmg` 25, te tira `floorPush` m hacia
+    el medio del muelle y te baja del cañón) y queda parado `floorStay` 2.5 s, sólido;
+  - **cañones de arpones** (fase 2): F en el asiento te sube (`krakenMount`; `eeMounted` deja al jugador quieto en
+    `updatePlayer` y esconde el arma en `animate`); el clic (`fireWeapon` → `eeMountFire`) dispara el arpón desde la boca
+    del caño en la dirección de la mira (`harpoonSpeed` 70 m/s, con cuerda); si el tramo pasa a menos de `eyeR` 2.6 del
+    ojo abierto, cuenta; en el cuerpo o al agua (en la fase 2) es un paso fallado. Lámpara verde/roja; recarga 6 s.
+    `eyeHits` 3 → fase 3;
+  - **fase 3**: se acerca (`lunge` 5 m) y abre el pico; el cebo (tecla de granada, `eeThrowLure`) a la boca; al agua =
+    paso fallado (vuelve en `lureBack` 8 s); tragado, la panza brilla `bellyTime` 20 s y **solo le pegan las
+    explosiones** (`krakenBlast` desde `explodeAt`, y la Ray Gun: `traceShot` pasa `blast` si el arma tiene
+    `explosive` o `splashRadius`); si no la revientan a tiempo, escupe el cebo (paso fallado);
+  - **ahogados** suben por el borde (`drowned.max` 12 a la vez, uno cada `every` 1.2 s; `KRAKEN.edges`), y calamarcitos
+    y tinta;
+  - **bosses del mar** (`krakenHelper`): cada fase cumplida (`krakenPhase`, con el sonido de paso cumplido) y cada paso
+    fallado (`krakenFail`) hace salir uno por el borde (`helpers`, en orden: Sombrerón, Calamarón...; `spawnBoss` acepta
+    `at`), hasta `helpersMax` 2; si ya están, `helperDrowned` ahogados;
+  - nada queda fuera del muelle: el jugador vuelve a su último lugar bueno y los zombies en el agua se descartan
+    (`F.okX`); el golpe cubre el ancho de las cajas en diagonal (slamW·√2), así nadie queda metido en una;
+  - al terminar, `krakenClear` saca tentáculos, arpones y todo lo de la arena (ahogados, calamarcitos, bosses);
+  - las balas al Kraken: `traceShot`/`tracePierce` con `userData.type === 'kraken'` → `krakenHit`.
+- **F5.29c** (Diego: "de noche con rayos; el muelle una L un poco más grande; que tarden más los zombies; tentáculo más
+  grueso; no vi dónde disparar; sonido del golpe y del acierto; oscuro con un par de antorchas; música de boss; el boss
+  más grande, más cúbico, que dé miedo, con heridas, oscuro y con varios ojos pequeños"; y "que cuando complete un paso
+  me spawnee un Max Ammo en el centro"). Manda sobre F5.29b:
+  - **muelle en L** (`arena`: centro (60, −78)): el brazo largo frente al Kraken (62 × 14), la pata hacia la costa y el
+    embarcadero en su punta (1072 m²; lo más cercano a la costa, a 34 m). Sin faroles: 6 **antorchas** (`torches`,
+    fuego en cubos con `voxFire`, mancha de luz `torchR`; fuera de la pelea quedan bajo el agua: `KRAKEN.fires`, `eeStorm`);
+  - **noche cerrada** (`storm.night` 1, `zd` 0.2) y relámpagos cada 0.8–2.6 s; la madera casi sin brillo propio;
+  - **ahogados** más despacio: el primero a los `drowned.first` 10 s, después uno cada 3.5 s, hasta 8;
+  - **tentáculos** más gruesos (`thick` 3.4 → 1.1, `slamW` 1.6, `floorThick`); apoyados sobre las tablas; la **ventosa**
+    más grande, sobre el lomo, con un halo que late (Sprite) visible de lejos;
+  - **sonidos**: `sfxKrakenSlam` (el golpe contra el muelle) y `sfxKrakenWeak` (el acierto en el lugar correcto: cada
+    balazo a la ventosa, cada 0.12 s como mucho, y cada arponazo al ojo, el segundo paso);
+  - **música de boss** toda la pelea: la pista de Diego `cuando_al_boss_le_queda_menos_de_30_de_vida` (`updateZoneTracks`)
+    o, sin ella, el tema procedural del boss (`updateMusic`);
+  - **el Kraken** × `scale` 10.5 (`rise` −6/−5/−2, `eyeR` 3.3, `mouthR` 4.2, `lunge` 6): piel casi negra, el manto en
+    capas de cubos con placas, cresta de púas, dos cuernos ganchudos, percebes, arpones viejos clavados, **heridas** abiertas
+    (carne, costillas y lo que chorrea; MeshBasic oscuro), la cuenca del ojo en carne viva con venas y un **enjambre de
+    ojitos** rojos, ámbar y amarillos (24); sin las manchas bioluminiscentes; tentáculos con ganchos de hueso;
+  - **Max Ammo** en el medio del muelle (`arena.ammo`) por cada fase cumplida (`krakenPhase` → `trySpawnPickup`).
+- **F5.29d** (Diego: "si le pego con el arpón, que me saque del arpón; en el paso 1, que entre 1 y 4 tentáculos salga la
+  herida; en la segunda fase, una ventana más corta; no entiendo el paso 3: que cada boss me dé una granada morada, 4 (dos
+  Sombrerones, el Calamarón y el monstruo del búnker), que las amarre a la wonder weapon en una mesa y le dispare a la
+  boca; que grite y explote de a poco; la cinemática: explota una parte, se hunde, yo en un pedazo de madera nadando a la
+  playa, volteo un segundo y está el remolino; al llegar se ve el remolino; y dame la wonder weapon en vez de Bahamut").
+  Manda sobre F5.29b/c:
+  - **fase 1**: cada golpe trae la herida con chance `woundChance` 0.4, y nunca más de `woundMax` − 1 seguidos sin ella
+    (`T.wound`, `F.noWound`);
+  - **fase 2**: el ojo se abre `eyeOpen` 2.4 s y se cierra `eyeClosed` 3.6 s (`F.eyeOpen`, `F.eyeT`; ruge al abrir; el halo
+    late 0.8 s antes); cerrado, el arpón rebota sin contar; **cada acierto te baja del cañón**;
+  - **fase 3 nueva** (se sacaron el cebo arrojadizo, la panza y su gancho en `startCook`): salen `p3Bosses` (2 Sombrerones,
+    el Calamarón y la Bestia; de a `p3Alive` 2, cada `p3Every` s; `krakenP3Spawn`); cada uno, al morir, suelta una
+    **granada morada** (`krakenDropOrb`, se agarra a `orbPick` m; los 4 huecos de la **mesa** se prenden). Con las 4, F en
+    la mesa (`krakenCraft`, `arena.table`, collider `kraken:table`): se atan a la **Ola Rompiente** (si no la tenés, la mesa
+    te la da) y se ve la carga atada en el arma (`KRAKEN.bundle` en `weaponsState.model`). El clic con la Ola
+    (`fireWeapon` → `eeChargeFire`) la tira en arco (`chargeSpeed`, `chargeGrav`); a la boca abierta → `krakenDying`
+    (grita, se sacude y explota de a poco `dieTime` s) → la cinemática; al cuerpo o al agua → paso fallado (ahogados) y
+    vuelve a la mesa en `chargeBack` s. En la fase 3 los fallos no traen bosses (los de esa fase son los de las granadas);
+    al entrar, los ayudantes que quedaban se hunden;
+  - **la Bestia en el muelle** (`beastAwakeAt(x, z)` en beast.js): despierta donde sale, sin ir a la escalera (`BEAST.away`);
+    su muerte no cuenta como el paso 2 (`eeOnBeastDeath` mira `EE.fight`); al terminar la pelea vuelve como estaba (dormida
+    o muerta: `F.beastWas`);
+  - **la cinemática** (`EE.cine.stage`): `sink` (`win.cine` 4.5 s: a los `boom` 0.6 s vuela un pedazo, `krakenBoom`: 10
+    cubos con gravedad; se hunde a 9 m/s) y `swim` (`win.swim` 12 s: sin tormenta, amanece, el muelle desaparece; vas en el
+    **tablón** de `swimFrom` a la orilla, meciéndote; entre `look` 0.38 y 0.52 la cámara mira para atrás al remolino, que
+    no tiene niebla y se ve de lejos); llegás a `beachOut` mirando el remolino (`win.whirl` (14, −36), más cerca de la
+    playa). Durante la cinemática `eeMounted()` deja al jugador quieto y sin arma;
+  - **tecla L**: la Ola Rompiente en lugar de la LEVIATHAN (Diego le dice "Bahamut") y `EE.debugHpMul` 5× de vida
+    (`EE.debugHp`, lo mira `maxHealth`; se va con `resetGame`). Diego: "no logro probar todo el easter egg";
+  - `fight.time` 420 s.
+- **F5.29e** (Diego: "el muelle una C que rodee un poco al calamar, para correr de la Bestia; la cinemática le falta
+  mucho: que explote poco a poco, que se vea el remolino y luces moradas en el cielo como un portal cúbico"). Manda sobre
+  lo de arriba:
+  - **muelle en C**: el centro de `arena` ES el Kraken (`kraken: [0, 0]`, en (60, −84)); la barra de atrás (z 14..26),
+    dos brazos a sus costados (x ±16..±28, z −6..14) y el embarcadero al norte (el último rectángulo). Todo se corrió al
+    norte porque el grid termina en z −91; 1168 m²; lo más cercano a la costa, a 30 m. `lunge` 4 (la boca no llega a la
+    barra). Cañones en las puntas de los brazos y en el frente de la barra; la mesa contra la baranda de atrás; el
+    tentáculo del piso te tira hacia `arena.start` (el medio de la barra);
+  - **la cinemática** (`win`): la carga en la boca arranca la cinemática enseguida (`krakenDying` → `krakenWin`), en 4
+    tomas (`EE.cine.stage`):
+    - `blast` (`blast` 6 s): la cámara da la vuelta alrededor del Kraken; explota cada vez más seguido (`blastEvery` 0.55 →
+      0.1 s, `krakenBlastFx`: bolas de fuego en cubos `krakenFireball`, salpicaduras, pedazos que saltan); se prenden de a
+      una las `cracks` 48 grietas (InstancedMesh en el cuerpo, `KRAKEN.crackM`); el ojo titila y se apaga; se sacude y se
+      hunde; los tentáculos se retuercen;
+    - `boom` (`boomT` 1.4 s): la gran explosión (`krakenBoom`: vuelan los `chunks` 18 pedazos con su grieta, 6 bolas de
+      fuego, relámpago) y se va al fondo; el remolino empieza a abrirse;
+    - `whirl` (`whirlT` 5 s): la cámara sube; se lo traga el remolino (crece a 2.6); al segundo se abre el **portal**
+      (`buildKrakenFinale`, `krakenPortalAt`, `updateKrakenPortal`: 3 anillos de cubos que giran al revés uno del otro,
+      un remolino de cubos en el medio, el centro que brilla y un halo; los rayos de cubos que suben del remolino; las
+      **auroras**, 5 cintas de cubos que ondulan; todo aditivo y sin niebla; `sfxKrakenPortal`) y la vista sube al cielo;
+    - `swim`: el tablón (mirando para atrás, la vista sube un poco: el remolino y el portal);
+  - después de ganar, **el portal queda en el cielo sobre el remolino de la playa** (la pista del mapa que viene);
+  - (Diego: "una granada morada se salió del muelle") si el boss muere en el agua o pegado a la baranda (a menos de 0.6 m
+    del borde), la granada vuela flotando (`orbFly` m/s, alta y con estela) hasta delante de la mesa; mientras vuela no
+    se agarra (`O.fly`);
+  - (Diego: "que el calamar se voltee a donde yo vaya") el Kraken gira sin tope hacia vos por el lado más corto
+    (`fight.turn` 1.2; antes ±0.6 rad y desde las puntas de la C quedaba de costado).
+- **Salidas:**
+  - **ganar** (`krakenWin` → cinemática del remolino → `krakenAfterWin`): volvés a la playa (`beachOut`); el remolino
+    queda en el mar (`win.whirl`) y se ve desde la playa; restos del Kraken por el mapa (`win.debris`); el cielo y la
+    niebla se tiñen de morado y azul (`eeSkyTint` en `applyNight`/`updateSkyDome`, `EE.skyK`) y lo que queda de la ronda
+    es de día. Premios: todos los perks, `points` 10 000, `ink` 5, `xp` 5000, munición llena, camo KRAKEN
+    (`PROFILE.krakenSlayer`; en el menú sale "???" hasta tenerlo) y el cartel THE KRAKEN IS DEAD;
+  - **se acaba el tiempo** (`krakenLose(true)`): te escupe a la playa sin el cebo y salen `punish.bosses` (2 Sombrerones
+    y el Calamarón) y 4 perros; el cebo vuelve a la cabina en `lureRounds` 2 rondas (se puede reintentar);
+  - **el bote** (`boat`, 5 s al lado, en la punta del embarcadero): escapar sin castigo, el cebo vuelve igual;
+  - **morir** en la pelea es game over (pedido de Diego).
+- **Debug:** la tecla `L` (`eeDebugFight`) te tira directo a la pelea con el equipo de dios (Perkaholic, Ray Gun con PaP).
+- `CONFIG.DEBUG_MODE` vuelve a `true` para desarrollar (en F8 estaba en false).

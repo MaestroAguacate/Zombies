@@ -74,7 +74,8 @@ function buildMapBase() {
     const sx = ix * px, sy = (NAV.h - 1 - iz) * px;
     let col;
     // F5.28e: las catacumbas y la cueva (r.cata) no van al mapa: abajo no hay señal y el laberinto es para perderse
-    if (r && r.cata) { kind[k] = inThicket(x, z) ? 4 : 3; col = kind[k] === 4 ? C.thicket : C.blocked; }
+    // (F5.29: la arena del Kraken, r.hideMap, tampoco: es mar)
+    if (r && (r.cata || r.hideMap)) { kind[k] = r.hideMap ? 5 : inThicket(x, z) ? 4 : 3; col = kind[k] === 4 ? C.thicket : kind[k] === 5 ? C.sea : C.blocked; }
     else if (isNav(X, Z)) { kind[k] = 1; col = r ? (C.floors[r.floor] || C.floorDefault) : C.floorDefault; }
     else if (r) { kind[k] = 3; col = C.blocked; }
     else if (inThicket(x, z)) { kind[k] = 4; col = C.thicket; }
@@ -300,7 +301,7 @@ function mapIcon(g, kind, x, y, s, col) {
 function mapPoi(g, V, k, x, z, kind, col, label) {
   if (!mapSeenAt(x, z)) return;
   const q = roomAt(x, z);
-  if (q && q.cata) return;
+  if (q && (q.cata || q.hideMap)) return;
   const [sx, sy] = mapPt(V, k, x, z), s = Math.max(6, Math.min(12, k * 0.9));
   mapIcon(g, kind, sx, sy, s, col);
   if (label) {

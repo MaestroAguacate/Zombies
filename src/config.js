@@ -4,8 +4,9 @@
 const CONFIG = {
   // MODO DEBUG: true SOLO EN DESARROLLO. Se apaga (false) antes de cualquier build final: habilita trucos
   // (P puntos, N noclip, [ ] rondas, O puertas, B grid, H overlay), el overlay y el cartel "DEBUG MODE"
-  // (F8, cierre de V2: apagado. Los tests lo prenden en tools/sim/harness.js)
-  DEBUG_MODE: false,
+  // (F8, cierre de V2: apagado y con tag v2-final. F5.29: prendido otra vez para desarrollar el easter egg y YALUW;
+  // los tests lo prenden igual en tools/sim/harness.js)
+  DEBUG_MODE: true,
   DEBUG: { points: 5000, unlockPoints: 15000, flySpeed: 9, flyFast: 2.5, devHealthMul: 4 },   // F5.19c: X = vida ×devHealthMul con barra   // O suma unlockPoints (F5.10)   // P suma points; noclip a flySpeed m/s (×flyFast con Shift)
   // F5.20 (Diego): arrancás en el garaje (antes, el porche R1). yaw -PI/2 = mirando a +x (a la puerta del pasillo)
   START: { room: 'R6', x: -10, z: 22.3, yaw: -Math.PI / 2 },
@@ -460,7 +461,9 @@ const CONFIG = {
       { id: 'charro',  name: 'CHARRO',     color: 0x2a2630, boss: 'sombrero', kills: 5 },
       { id: 'abyss',   name: 'ABYSS',      color: 0x5a1a6a, boss: 'calamar',  kills: 5 },
       { id: 'thorn',   name: 'THORN',      color: 0x2a4a1a, boss: 'plant',    kills: 5 },
-      { id: 'boneking', name: 'BONE KING', color: 0xe8dcc0, boss: 'any',      kills: 25 }
+      { id: 'boneking', name: 'BONE KING', color: 0xe8dcc0, boss: 'any',      kills: 25 },
+      // F5.29: el del easter egg (matar al Kraken: PROFILE.krakenSlayer)
+      { id: 'kraken', name: 'KRAKEN', color: 0x6a2a9a, ee: true }
     ],
     noAtt: ['wave'],
     // F5.18b: cuentas locales (varias en la misma compu), todas en una sola clave
@@ -1191,6 +1194,106 @@ const CONFIG = {
   // F5.25 A: árboles de cubos en instancias por celda de `chunk` m; a menos de `near` m (del borde de la celda) el detalle alto
   // F5.28f (rendimiento): 3 detalles: cerca (a menos de near m del borde de la celda), medio (a menos de mid) y lejos
   VOXTREES: { chunk: 24, near: 6, mid: 24 },
+  // F5.29 (Diego): el easter egg THE KRAKEN (src/kraken.js; guía en GUIA-EASTER-EGG.md, diseño en EASTER-EGG.md).
+  // travel: s del fundido de cada viaje (al laboratorio, a la arena, a la playa). seed: s antes de que la semilla se
+  // hunda y alcance para agarrarla. tele: s de carga, s fuera de la plataforma que la cortan, alcance y llegada al
+  // laboratorio. consoles: [x, z, nivel] (0 planta baja, 1 anillo, 2 galería); calib: s para las 3; hold: s adentro del
+  // caparazón. gramo: el tocadiscos; lureSpawn: dónde aparece el Sombrerón; booth: la cabina [centro, ancho x, fondo z] y
+  // su consola; weak: vida máxima (fracción) para atraparlo; process: s hasta el cebo; retry: s del tocadiscos tras un
+  // fallo; shutTime: s que las puertas quedan cerradas. membrane: la pared de agua de la cabeza del calamar. beachOut:
+  // adonde volvés. arena: centro (x, z) y en coordenadas relativas los rectángulos caminables (enteros), dónde arrancás,
+  // el bote, los 4 arpones, los restos de barco y dónde salen los calamarcitos
+  EE: {
+    travel: 0.8,
+    debugHpMul: 5,                   // F5.29d: la tecla L (debug) multiplica la vida máxima, para probar la pelea entera
+    seed: { time: 30, pick: 1.8 },
+    tele: { charge: 20, leave: 3, reach: 2.2, arrive: [-58, 90] },
+    consoles: [[-44, 82, 0], [-60.5, 89, 1], [-50, 96.5, 2]], use: 1.9, calib: 25, hold: 60,
+    gramo: [-55, 97.6], lureSpawn: [-51, 68],
+    booth: { x: -44.5, z: 96.5, w: 3, d: 3 }, boothConsole: [-44.5, 94.4], weak: 0.35, process: 10, retry: 60, shutTime: 2.5,
+    membrane: { x: -88, z: -64.3, w: 4, h: 4, use: 2.4 },
+    beachOut: [0, -12],
+    // F5.29b (Diego: "un muelle en medio del mar, lejos de la costa, más grande porque el calamar es gigante"): el muelle
+    // en la esquina sureste del grid (centro x, z; la costa queda a 46 m o más, tapada por la tormenta). rects:
+    // tablones caminables, relativos y enteros (cubierta, dos puntas al frente, dos alas, el fondo y el embarcadero);
+    // kraken: dónde sale (relativo, fuera del grid: solo dibujo) y su escala (el modelo del calamar gigante de la playa,
+    // F5.11, × scale); rise: altura del Kraken en cada fase (en la 3 sube y se acerca lunge m). harpoons: los 4 cañones
+    // (el asiento queda detrás, mirando al Kraken); lanterns: faroles de la baranda (marcan el borde de noche)
+    // (más ancho que hondo: lo más cercano a la costa, la punta del embarcadero, queda a 39 m; la cubierta, a 48 m)
+    // F5.29c (Diego: "que el muelle sea una L un poco más grande; oscuro y con un par de antorchas; el boss más grande"):
+    // el brazo largo frente al Kraken (14 de hondo), la pata de la L hacia la costa (al este) y el embarcadero en su punta
+    // (1072 m²; lo más cercano a la costa, a 34 m). torches: las antorchas (fuego en cubos y una mancha de luz de torchR m)
+    // F5.29e (Diego: "el muelle una C que rodee un poco al calamar, para tener espacio para correr de la Bestia"): el centro
+    // (x, z) es el Kraken; la barra de atrás (al norte, entre el Kraken y la costa), dos brazos a los costados del Kraken
+    // y el embarcadero al norte de la barra (el último rectángulo). Todo se corrió al norte: el grid termina en z −91 y los
+    // brazos tienen que llegar al costado del Kraken (1168 m²; lo más cercano a la costa, a 30 m). lunge: la boca no llega
+    // a la barra
+    arena: { x: 60, z: -84, kraken: [0, 0], scale: 10.5, rise: [-6, -5, -2],
+             rects: [[-28, 28, 14, 26], [-28, -16, -6, 14], [16, 28, -6, 14], [-2, 2, 26, 30]],
+             start: [0, 22], boat: [0, 31.6],
+             harpoons: [[-18, -4], [18, -4], [-8, 16], [8, 16]],
+             torches: [[-27.4, -5.4], [27.4, -5.4], [-27.4, 25.4], [27.4, 25.4], [-16.6, 14.6], [16.6, 14.6]],
+             torchR: 6, torchOpacity: 0.6, ammo: [0, 20],                 // ammo: el Max Ammo de cada fase cumplida
+             // F5.29d: la mesa de trabajo de la fase 3 (contra la baranda de atrás de la barra)
+             table: [-14, 25.3],
+             wrecks: [[-42, -12, 0.6], [42, -16, 2.1], [-44, 22, -1], [44, 26, 0.4]] },
+    // la tormenta en el muelle (enemies.js stormZone): noche (night: la oscuridad, 1 = la más cerrada), zd oscuridad de
+    // zona, relámpagos cada every s, lluvia × rainOpacity, niebla a fogFar m (la cámara también), el mar a seaY (cubos de
+    // cube m, olas de wave m). F5.29c (Diego: "de noche con rayos, oscuro"): noche cerrada y más relámpagos
+    storm: { night: 1, zd: 0.2, every: [0.8, 2.6], rainOpacity: 2.2, fogFar: 64, seaY: -1.7, cube: 2, wave: 0.45 },
+    // la pelea: time s en total.
+    // Golpe (fase 1, F5.29b: más lento y sólido): slamEvery s entre golpes (×slowK en las fases 2 y 3), maxDown apoyados a la
+    // vez; warn s mientras sube y se marca la franja roja, fall s de la caída, stay s apoyado (SÓLIDO: no se cruza), up s
+    // que tarda en irse; lift m de alto; slamW m de medio ancho, slamDmg y push si te pega; reach m más allá de vos;
+    // segs cubos por tentáculo; boxes colliders por tentáculo (cada boxStep m). suckerHP: la ventosa que brilla; cuts.
+    // Del piso (todas las fases): floorEvery s (×1.4 en la fase 1) y, subido a un cañón, a los mountGrace s; floorWarn s
+    // de aviso (las tablas que se rajan), floorDmg, floorPush (te tira lejos y te baja del cañón), floorStay s parado
+    // (sólido), floorR m del empujón. Ahogados: drowned.max a la vez, uno cada every s, a más de minDist m.
+    // squidEvery s (salen 2), squidMax vivos, inkEvery s. Fase 2: eyeHits arponazos al ojo; eyeR m (radio del ojo);
+    // harpoonUse m del asiento; harpoonReload s; harpoonSpeed m/s; harpoonRange m; flinch s con el ojo cerrado. Fase 3:
+    // mouthOpen / mouthClosed s del pico, mouthR m para que la carga entre en la boca, lunge m que se acerca. boat s cerca del bote
+    // (boatUse m). helpers: los bosses que salen del mar al cumplir una fase o fallar un paso (en orden), hasta helpersMax
+    // vivos; si ya están, helperDrowned ahogados de golpe
+    // F5.29c: tentáculos más gruesos (thick: ancho en la base y la punta; slamW sigue al ancho), los ahogados salen más
+    // despacio (drowned.first s hasta el primero) y eyeR crece con el Kraken.
+    // F5.29d (Diego): fase 1: no todos los tentáculos traen la herida (woundChance; a lo sumo woundMax seguidos sin ella).
+    // Fase 2: el ojo se abre en ventanas cortas (eyeOpen s abierto, eyeClosed s cerrado); un arponazo te baja del cañón.
+    // Fase 3 (en lugar del cebo y la panza): salen del mar p3Bosses (de a p3Alive, cada p3Every s) y cada uno suelta una
+    // GRANADA MORADA (se agarra a orbPick m; si cae afuera del muelle, vuela a orbFly m/s hasta delante de la mesa); con las 4, en la mesa (tableUse m) se atan a la Ola Rompiente; esa carga
+    // (chargeSpeed m/s, chargeGrav) a la boca abierta lo mata (la cinemática: win.blast). Si erra, la carga vuelve a la mesa
+    // en chargeBack s
+    fight: { time: 420,
+             woundChance: 0.4, woundMax: 4, eyeOpen: 2.4, eyeClosed: 3.6,
+             p3Bosses: ['sombrero', 'sombrero', 'calamar', 'bestia'], p3Alive: 2, p3Every: 4, orbPick: 1.8, orbFly: 7, tableUse: 2.2,
+             chargeSpeed: 32, chargeGrav: 5, chargeBack: 8, slamEvery: [4.5, 6.5], slowK: 1.6, maxDown: 2, warn: 2.2, fall: 0.5, stay: 8, up: 1.2, lift: 15,
+             thick: [3.4, 1.1], floorThick: [2.4, 0.8],
+             slamW: 1.6, slamDmg: 60, push: 9, reach: 2.5, segs: 24, boxes: 14, boxStep: 1.5, suckerHP: 3000, cuts: 4,
+             floorEvery: [8, 11], mountGrace: 3, floorWarn: 1.1, floorDmg: 25, floorPush: 11, floorStay: 2.5, floorR: 2.2, floorSegs: 12,
+             drowned: { max: 8, every: 3.5, first: 10, minDist: 8 },
+             squidEvery: 10, squidMax: 6, inkEvery: 8,
+             eyeHits: 3, eyeR: 3.3, harpoonUse: 1.9, harpoonReload: 6, harpoonSpeed: 70, harpoonRange: 75, flinch: 2.5,
+             mouthOpen: 6, mouthClosed: 5, mouthR: 4.2, lunge: 4, turn: 1.2,   // turn: qué tan rápido gira hacia vos
+             boat: 5, boatUse: 2.2,
+             helpers: ['sombrero', 'calamar', 'sombrero', 'calamar'], helpersMax: 2, helperDrowned: 4 },
+    // intento fallido (se acabó el tiempo): bosses y perros en la playa; el cebo vuelve a la cabina en lureRounds rondas
+    punish: { bosses: ['sombrero', 'sombrero', 'calamar'], dogs: 4, lureRounds: 2 },
+    // victoria: cine s mirando el remolino; premios; el remolino en el mar (whirl, radio whirlR); el cielo (arriba y
+    // niebla) morado y azul; los restos del Kraken [x, z, tamaño] por el mapa.
+    // F5.29d (Diego: "explota una parte y se hunde; yo salgo en un pedazo de madera nadando a la playa, volteo un segundo
+    // y está el remolino; al llegar a la playa se ve el remolino"): cine s del Kraken que se hunde (boom: cuándo vuela el
+    // pedazo), swim s en el tablón hasta la playa (de swimFrom, relativo al muelle, a beachOut); entre look[0] y look[1]
+    // (fracción del viaje) mirás para atrás; al final quedás mirando el remolino
+    // F5.29e (Diego: "la cinemática le falta mucho: que explote poco a poco, que se vea el remolino y que salgan luces
+    // moradas en el cielo como un portal cúbico"): blast s explotando de a poco (una explosión cada blastEvery s, de la
+    // primera a la última; se le abren cracks grietas que brillan), boomT s de la gran explosión (chunks pedazos),
+    // whirlT s mirando desde arriba cómo se lo traga el remolino mientras se abre el PORTAL en el cielo (portal: altura y
+    // los radios de sus anillos de cubos; aurora: cintas de luces de ribbons × per cubos), y el tablón
+    win: { blast: 6, blastEvery: [0.55, 0.1], cracks: 48, boomT: 1.4, chunks: 18, whirlT: 5,
+           portal: { y: 44, rings: [9, 12.5, 16], tilt: 0.45 }, aurora: { ribbons: 5, per: 46, y: 62 },
+           swim: 12, swimFrom: [0, 32], look: [0.38, 0.52], points: 10000, ink: 5, xp: 5000, whirl: [14, -36], whirlR: 9, skyTop: 0x4a8aff, fog: 0x8a5ae0,
+           debris: [[-6, -14, 1], [8, -17, 1.2], [-14, -9, 0.9], [14, -10, 1], [-18, -18, 1], [2, -30, 0.8], [-15, 8, 0.8],
+                    [12, 36, 0.9], [-60, 30, 1], [-55, 62, 1.1], [66, 62, 0.9], [-60, -10, 1]] }
+  },
   // F5.28f (Diego: "el fuego no tiene diseño cúbico"): el fuego en cubos (garden.js voxFire): cubes cubos por fuego más
   // el núcleo, de size m (× la escala de cada fuego), suben height × size en 1/speed s; colores de la base a la punta;
   // solo se anima a menos de near m (suma de |dx| + |dz|) de la cámara

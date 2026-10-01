@@ -534,6 +534,7 @@ derrumbe C1. Por el túnel se ve un brillo naranja que sube del pozo: es la invi
 | `config.js` | `START` (R6), `DOORS`, `WALLBUYS`, `PERKS.list` (lugares), `BOX.spots` y `startRoom`, `GENERATORS.spots`, `SOULS.spots`, `PAP.spot`, `GUMS` (lugares), `SHIELD` (banco y piezas), `QUEST`, `BARRIERS.list`, `TRAPS`, `GARDEN`, `CATA`, `BUNKER`, `BEAST`, `SHELL`, `SQUIDHEAD`, `SQUIDBAY`, `CRASH`, `TEMPLE`, `PLANTBOSS`, `THICKET`, `JUNGLE`, `LIFEGUARD`, `RANCHO`, `CLAMS`, `TROPHIES.spots`, `PORTAL`, `HOUSE`, `WEATHER.rainRooms` y `darkBy` (ciclo de luz por ronda), `FOG` |
 | `world.js` | `NAV`, `UP` y `UP2` (los límites de la playa, en constantes), `ROOMS`, `DOOR_LINKS`, `OPEN_LINKS`, `POOL`, `groundY` (pileta, búnker y `cataGround`), `openRooms` (el portal `R20`↔`R22` y `H8` `R10`↔`R19` escritos a mano), `PROPS` (muebles), `planJungle`, `SPAWN_POINTS`, **`buildMap()` (la casa con `addWall` a mano)**, `buildRoof`, `buildThicketWalls`, `buildShellWalls`, `buildPierDeckSolids`, `buildTempleShell`, `buildSquidHeadShell`, `buildSky` |
 | `catacombs.js` | **un IIFE que agrega cuartos a `ROOMS` al cargarse**: corre siempre y hay que cortarlo con `MAP_ID` |
+| `kraken.js` (F5.29) | el easter egg de la playa: **otro IIFE que agrega la arena R25 a `ROOMS`** (cortarlo con `MAP_ID`); sus ganchos en `traceShot`, `explodeAt`, `startCook`, `updateRounds` (`eeHold`), `applyNight` y `updateSkyDome` miran `EE.fight`/`EE.calm`, pero `buildKraken` y `updateKraken` hay que saltearlos o cortarlos en YALUW (revisar uno por uno) |
 | `theme.js` | `buildTheme()`: casa, playa y muelle |
 | `garden.js` | jardines, jungla (`VOXT`), rancho, templo y choque: se reusan las técnicas, no el contenido |
 | `loop.js` | `init()` llama a ~35 `buildX()` de la playa; `menuCamera()` tiene coordenadas de la playa; `gameUpdate()` llama a ~40 `updateX()` |
@@ -563,7 +564,7 @@ derrumbe C1. Por el túnel se ve un brillo naranja que sube del pozo: es la invi
    - `NAV`, `UP` y `UP2` son objetos: se pisan sus campos (`NAV.minX = ...`); `UP` y `UP2` quedan vacíos.
    - `groundY` arranca con `if (MAP_ID === 'yaluw') return yaluwGround(x, z);`.
    - `openRooms` saltea el portal y `H8` si no es la playa.
-4. **`yaluw.js`** (nuevo, sección 7q): `yaluwGround`, `yaluwLight`, `buildYaluwShell` y `buildYaluw`:
+4. **`yaluw.js`** (nuevo, sección 7r: la 7q es `kraken.js`): `yaluwGround`, `yaluwLight`, `buildYaluwShell` y `buildYaluw`:
    - `buildYaluwShell` arma las paredes invisibles automáticas (las de roca, para todos; las del vacío y la lava, solo
      para zombies) y los pisos y techos que frenan balas. **Es `buildCataShell` generalizado.**
    - `buildYaluw` es el dibujo, por `ChunkMB` y por zona.

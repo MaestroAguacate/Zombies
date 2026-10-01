@@ -5,7 +5,7 @@
 //   ]  siguiente ronda                    [  la ronda anterior (mínimo 1)
 //   O  +15000, puertas, generadores, energía y almas (F5.10)   B  pintar el grid de navegación
 //   H  mostrar / ocultar el overlay        K  ronda de perros ya (la siguiente)
-//   J  ronda de boss ya (la siguiente)
+//   J  ronda de boss ya (la siguiente)    L  a la pelea con el Kraken (F5.29: con Perkaholic y la Ray Gun mejorada)
 const DEBUG = { noclip: false, safeFall: false };
 
 function debugKey(code, repeat) {
@@ -17,6 +17,7 @@ function debugKey(code, repeat) {
   if (code === 'KeyK') { roundState.nextDog = state.round + 1; debugRound(state.round + 1); return true; }
   if (code === 'KeyJ') { roundState.forceBoss = state.round + 1; debugRound(state.round + 1); return true; }
   if (code === 'KeyO') { debugUnlockAll(); debugGodLoadout(); return true; }   // F5.27: + Ray Gun y LEVIATHAN mejoradas, langostinos y escudo
+  if (code === 'KeyL') { eeDebugFight(); return true; }             // F5.29: directo a la pelea con el Kraken (Perkaholic y Ray Gun PaP)
   if (code === 'KeyX') {                                            // F5.18b: cuenta al máximo y todos los chicles (solo la sesión)
     devMaxAccount();
     DEV.hp = true; state.health = maxHealth();                      // F5.19c: vida ×4 y barra con lo que baja cada golpe

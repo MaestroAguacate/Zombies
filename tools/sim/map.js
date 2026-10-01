@@ -35,7 +35,8 @@ function reachable(open) {
 }
 const all = Object.keys(state.doors), but = (...ids) => all.filter(d => !ids.includes(d));
 // (F5.11: el búnker R16 no se abre con puertas: con la escotilla, ver f511.js)
-const every = [...new Set(G.ROOMS.filter(r => !r.hidden && r.id !== 'R16').map(r => r.id))].sort().join();
+// (F5.29: la arena del Kraken R25 es una isla: se llega por la pared de agua, ver f529.js)
+const every = [...new Set(G.ROOMS.filter(r => !r.hidden && r.id !== 'R16' && r.id !== 'R25').map(r => r.id))].sort().join();
 check(reachable([]) === 'R1', 'todo cerrado: solo el porche');
 check(reachable(all) === every, `todo abierto: los ${every.split(',').length} cuartos`);
 // F5.6: el techo une la piscina con el jardín oeste (escaleras 1 y 2), y el jardín oeste da a la playa por D14

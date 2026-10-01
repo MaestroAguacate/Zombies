@@ -37,6 +37,7 @@ const ORDER = [
   'beast.js',     // 7n la Bestia del búnker: barriles, escalera, la Bestia y sus crías (V2 F5.26)
   'trophies.js',  // 7o trofeos de boss, el Altar de Huesos y sus recetas (V2 F5.26)
   'catacombs.js', // 7p catacumbas mayas y la cueva con la entrada del búnker (V2 F5.28e)
+  'kraken.js',    // 7q easter egg THE KRAKEN: los pasos, la arena y la pelea (V2 F5.29)
   'ui.js',       // 8 UI: HUD, menús, overlay de debug
   'mapview.js',  // 8d mapa con la tecla 5 (V2 F5.24)
   'audio.js',    // 8b audio procedural

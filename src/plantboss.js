@@ -625,6 +625,7 @@ function plantDeath() {
   // F5.26: sus trofeos caen delante de ella, arriba de la plancha
   const fx = PLANTB.mouth ? PLANTB.mouth.x : C.x, fz = PLANTB.mouth ? PLANTB.mouth.z : C.z;
   bossTrophies('plant', fx, fz, 1);
+  eeOnPlantDeath(fx, fz);                                               // F5.29: la semilla negra del easter egg
   startPlantCine();
 }
 // ---- F5.22: animación (el juego sigue, sin tomar la cámara): se retuerce, escupe el PaP (vuela a su lugar dando vueltas),

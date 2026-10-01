@@ -6,12 +6,10 @@ Juego web estilo CoD Zombies, en cubos (voxel), en una isla con una casa de play
 > lo cubre) está en **`HISTORIAL-FASES.md`**: buscá ahí la sección de la fase antes de tocar un sistema viejo. Para
 > retomar el trabajo, leé también la sección "PLAN VIGENTE" de `ROADMAP-V2.md` y `MEMORIA-CHAT.md`.
 
-## Estado (2026-09-30)
-- V1 cerrada (tag local `v1-final`). **V2 en cierre (F8)**: hecho hasta **F5.28f**; Diego lo jugó y dio el OK.
-  - `CONFIG.DEBUG_MODE` en **false** (el harness de los tests lo prende);
-  - el compañero CPU queda para V3;
-  - soak de 8 partidas sin errores (dos avisos que son del bot: salta entre zonas sin abrir puertas);
-  - falta: suite en verde, subir (git: `index.html` pesa 44.6 MB, la subida web admite 25) y el tag `v2-final`.
+## Estado (2026-10-01)
+- V1 cerrada (tag local `v1-final`). **V2 cerrada** (tag `v2-final`, subido). El compañero CPU queda para V3.
+- **F5.29: el easter egg del Kraken** (`kraken.js`, `CONFIG.EE`, test `f529.js`; guía en `GUIA-EASTER-EGG.md`).
+  `CONFIG.DEBUG_MODE` volvió a **true** para desarrollar (antes de publicar, a false).
 - **Lo próximo: el segundo mapa, YALUW** (una cueva enorme estilo "viaje al centro de la Tierra"; en el menú, en el lugar
   de CITY). Se juega como la playa; la fauna alienígena es decoración; la lava quema y caer al pozo mata; se baja en
   espiral por el pozo central y sus paredes tienen túneles a otras zonas. Diseño en `DISEÑO-MAPA2.md`.
@@ -87,6 +85,7 @@ Juego web estilo CoD Zombies, en cubos (voxel), en una isla con una casa de play
 | `beast.js` | 7n | la Bestia del búnker, sus crías, barriles de gasolina, escalera rota |
 | `trophies.js` | 7o | trofeos de boss (al perfil), tienda ITEMS, ítem equipado en el mapa y sus efectos, placas |
 | `catacombs.js` | 7p | catacumbas mayas (R23), cueva del búnker (R24), puerta de las 3 palancas (D23) |
+| `kraken.js` | 7q | easter egg: pasos, arena R25 en el mar y la pelea con el Kraken, victoria |
 | `ui.js` | 8 | HUD, menús, perfil, prompt |
 | `mapview.js` | 8d | el mapa (tecla 5) |
 | `gfx.js` | 8c | calidad, sombras, post, cielo, ciclo de luz |
@@ -143,6 +142,8 @@ Todas tienen su porqué en `HISTORIAL-FASES.md`:
 - **`CONFIG.DEBUG_MODE`:** va en `true` solo en desarrollo (buildcheck avisa; desde F8 está en `false` y
   `tools/sim/harness.js` lo prende para los tests). Teclas:
   - `P` +5000 · `]`/`[` ronda · `N` noclip · `K` perros · `J` boss · `B` grid · `H` overlay · `X` cuenta dev;
+  - `L` te tira a la pelea del Kraken con el equipo de dios (con la Ola Rompiente en lugar de la LEVIATHAN) y 5× de vida
+    hasta que termina la partida;
   - **`O` desbloquea todo:** puertas, energía, generadores, almas, PaP, búnker y cabeza del calamar, más el equipo de
     dios (Perkaholic, Ray Gun y LEVIATHAN con PaP, langostinos y escudo).
 
@@ -211,6 +212,15 @@ Todas tienen su porqué en `HISTORIAL-FASES.md`:
   - **4 plantas con 6 arrastrados cada una → la caracola brilla** en la cabeza del calamar (R13). Es una de las 3 piezas
     de la Ola, junto con el coco dorado (concha morada) y la cuerda (Sombrerón).
   - Las 2 estatuas con 5 kills cerca y después de comer → se abre el búnker.
+  - **Easter egg del Kraken (F5.29):** semilla de la planta jefa → Bestia → teletransportador del búnker → pruebas del
+    caparazón → Sombrerón en la cápsula → cebo (calma: sin zombies y de día morado) → pared de agua de la cabeza del
+    calamar → un muelle en C en medio del mar que rodea al Kraken, de noche con tormenta (F5.29b–e). El Kraken es el calamar gigante de la playa
+    ×10.5 con un ojo que brilla. Pelea en 3 fases (tentáculos sólidos, algunos con herida; cañones de arpones al ojo, que
+    se abre por ventanas; 4 granadas moradas de 2 Sombrerones, el Calamarón y la Bestia, atadas a la Ola en una mesa y
+    disparadas a la boca), con tentáculos del piso, ahogados y un boss del mar por cada fase cumplida o paso fallado;
+    ganar: cinemática (explota de a poco, gran explosión, el remolino y un portal cúbico morado en el cielo, que queda;
+    vas en un tablón a la playa mirándolos), restos y cielo morado y azul;
+    el tiempo o el bote te sacan; morir es game over. Sin pistas en el juego.
 - **Gráficos:** todo en cubos (F5.25: las primitivas curvas del `MeshBuilder` hacen cubos), calidad Bajo/Medio/Alto,
   sombras solo en Alto, ciclo de luz por ronda y desmembramiento. F5.28f: corrección de color (`GRADE`, una pasada
   de post; el arma se dibuja después) con el revelado de Diego en `CONFIG.GFX.grade` (temperatura 48, contraste 26,
@@ -220,7 +230,7 @@ Todas tienen su porqué en `HISTORIAL-FASES.md`:
   llenas, plantas completas) están embebidas y activas.
 
 ## Herramientas y tests
-- **Tests headless:** `npm --prefix tools/sim test` (52 archivos; la suite entera tarda 1.5–2 h). Cargan el juego real en Node sin dibujar
+- **Tests headless:** `npm --prefix tools/sim test` (53 archivos; la suite entera tarda 1.5–2 h). Cargan el juego real en Node sin dibujar
   (`harness.js`).
   - Correrlos **siempre** después de tocar WORLD, ZOMBIES o ROUNDS; los de cada fase están en su sección del historial.
   - El harness apaga los perros, los bosses, las barricadas y la planta jefa: el test de cada sistema los prende.

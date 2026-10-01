@@ -944,7 +944,8 @@ function updateMusic() {
   if (near < A.musicNearDist) g *= A.musicNearDuck;
   AUDIO.music.gain.setTargetAtTime(g, t, 0.08);
   if (!playing) return;
-  const boss = typeof bossAlive === 'function' && bossAlive();
+  // (sin la pista de Diego, en la pelea del Kraken suena el tema procedural del boss)
+  const boss = (typeof bossAlive === 'function' && bossAlive()) || (typeof EE !== 'undefined' && !!EE.fight);
   const k = musicIntensity();
   MUSIC.boss = boss; MUSIC.k = k;
   const bpm = boss ? A.bossBpm : Math.min(A.bpmMax, A.musicBpm + A.bpmPerRound * Math.max(0, (state.round || 1) - 1));
@@ -1044,7 +1045,9 @@ function updateZoneTracks(playing) {
   if (playing) {
     const low = typeof BOSS !== 'undefined' && state.zombies.some(z => z.boss && z.alive && z.health < z.maxHealth * A.bossLowFrac);
     const r = roomAt(player.pos.x, player.pos.z);
-    if (low) want.cuando_al_boss_le_queda_menos_de_30_de_vida = A.zoneVol.boss;
+    // F5.29c (Diego: "que suene una música de boss fight"): toda la pelea del Kraken, la pista del boss
+    const kraken = typeof EE !== 'undefined' && (!!EE.fight || !!EE.cine);
+    if (low || kraken) want.cuando_al_boss_le_queda_menos_de_30_de_vida = A.zoneVol.boss;
     else if (typeof inBunker === 'function' && inBunker()) { want.musica_del_buker = A.zoneVol.bunker; want.bunker = A.zoneVol.bunkerAmb; }
     else if (r && r.id === 'R20') want.background_music_in_temple = A.zoneVol.temple;
   }

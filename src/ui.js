@@ -60,6 +60,7 @@ function promptFor(it) {
   if (it.kind === 'door' && it.target.power) return { text: 'Gate - opens with the power', cost: 0 };   // F5.7
   if (it.kind === 'door' && it.target.levers) return cataDoorPrompt();                                 // F5.28e: D23
   if (it.kind === 'lever') return { text: '[F] Pull the lever', cost: 0 };                           // F5.28e
+  if (it.kind === 'ee') return { text: '', cost: 0 };                // F5.29: el easter egg no da pistas (F igual funciona)
   if (it.kind === 'door' && it.target.burning) return { text: 'The vines are burning...', cost: 0 };   // F5.12
   if (it.kind === 'door' && it.target.burn) return { text: '[F] Burn the vines - ' + it.target.cost, cost: it.target.cost };
   if (it.kind === 'door') return { text: '[F] Open door - ' + it.target.cost, cost: it.target.cost };
@@ -348,7 +349,7 @@ function renderWeaponsPanel() {
   for (const c of P.camos) {
     const lock = !camoUnlocked(c.id), col = '#' + c.color.toString(16).padStart(6, '0');
     // F5.26: los de boss dicen a quién y cuántas veces (BEAST ×1, CHARRO: SOMBRERÓN ×5, ...)
-    const why = c.boss ? (c.boss === 'any' ? 'ANY BOSS' : BOSS_LABEL[c.boss]) + ' ' + bossKillCount(c.boss) + '/' + c.kills : 'LV ' + c.level;
+    const why = c.ee ? '???' : c.boss ? (c.boss === 'any' ? 'ANY BOSS' : BOSS_LABEL[c.boss]) + ' ' + bossKillCount(c.boss) + '/' + c.kills : 'LV ' + c.level;   // F5.29: el del easter egg, sin pista
     h += '<div class="camo' + (L.camo === c.id ? ' on' : '') + (lock ? ' locked' : '') + '" data-c="' + c.id + '"><i style="background:' +
          'repeating-linear-gradient(45deg,' + col + ' 0 8px,rgba(0,0,0,.35) 8px 12px)"></i>' + (lock ? why : c.name) + '</div>';
   }

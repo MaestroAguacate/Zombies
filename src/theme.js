@@ -820,7 +820,8 @@ function buildOutside() {
   vox.frustumCulled = false; vox.userData.theme = true; scene.add(vox);
   const cells = [];
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) cells.push([BX + C.cube * (i + 0.5), SEA.z0 - C.cube * (j + 0.5), j]);
-  THEMEFX.sea = { near, foam, base: Float32Array.from(ng.attributes.position.array), vox, cells, col: new THREE.Color(), m: new THREE.Matrix4(),
+  // (F5.29b: far también, para esconder todo el mar de la playa durante la tormenta del Kraken)
+  THEMEFX.sea = { far, near, foam, base: Float32Array.from(ng.attributes.position.array), vox, cells, col: new THREE.Color(), m: new THREE.Matrix4(),
                   cBase: new THREE.Color(C.near), cCrest: new THREE.Color(C.crest), cFoam: new THREE.Color(C.foam) };
 
   const b = new MeshBuilder();

@@ -37,7 +37,8 @@ function updatePlayer(dt) {
   if (keys['KeyD']) fx += 1;
   // F5.23: la lengua de la planta te arrastra (no caminás). F5.28: el tentáculo de la Bestia, igual
   const byBeast = beastGrabbed(), grabbed = plantGrabbed() || byBeast;
-  const rooted = plantRooted();                 // F5.24: la jaula de raíces te tiene quieto
+  // F5.24: la jaula de raíces te tiene quieto. F5.29b: subido a un cañón de arpones (el Kraken), también
+  const rooted = plantRooted() || (typeof eeMounted === 'function' && eeMounted());
   if (grabbed || rooted) fx = fz = 0;
   const len = Math.hypot(fx, fz);
   if (len > 0) { fx /= len; fz /= len; }

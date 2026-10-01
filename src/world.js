@@ -1320,6 +1320,7 @@ function buildMap() {
   buildShellSideWalls();               // F5.24: el caparazón no se rodea
   buildBunkerShell();                  // F5.11: paredes, piso y techo del búnker (bunker.js)
   buildCataShell();                    // F5.28e: paredes, pisos, techos, rocas y la puerta de las catacumbas y la cueva
+  buildKrakenShell();                  // F5.29: los bordes de la arena del Kraken (kraken.js)
   buildTempleShell();                  // F5.13: templo (base, escalones, santuario) y el río con sus puentes
   buildSquidHeadShell();               // F5.13: cabeza del calamar (montículo hasta la R13)
   buildPropColliders();

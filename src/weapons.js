@@ -631,6 +631,8 @@ function meleeAttack() {
 //--- DISPARO (hitscan) ---
 // F5.24: hand = 'L' | 'R' para las dos pistolas de la GRAVE WHISPER (clic izquierdo / derecho), cada una con su cadencia
 function fireWeapon(hand) {
+  if (typeof eeMountFire === 'function' && eeMountFire()) return;   // F5.29b: subido a un cañón, el clic tira el arpón
+  if (typeof eeChargeFire === 'function' && eeChargeFire()) return; // F5.29d: la Ola con la carga atada la tira
   const s = curSlot(), def = curDef();
   if (!s || !def || !state.running || BUNK.travel) return;       // F5.19c: no se dispara en el viaje
   if (weaponsState.phase !== 'idle') return;
@@ -848,6 +850,12 @@ function traceShot(origin, dir, def) {
 
   if (t === 'plantTongue') { plantTongueShot(h.point); return null; }   // F5.23: la lengua de la planta te suelta
   if (t === 'beastTentacle') { beastTentacleShot(h.point); return null; }   // F5.28: el tentáculo de la Bestia
+  if (t === 'kraken') {                                                 // F5.29: ventosas, ojo y panza del Kraken
+    // (F5.29b: a la panza solo le pegan las explosiones; la Ray Gun, con su área, cuenta como una)
+    krakenHit(h.object, def.damage * perkDmg(), !!(def.explosive || def.splashRadius));
+    if (def.explosive) explosiveRound(h.point, def);
+    return { head: false, kill: false };
+  }
   if (t === 'questShell' && shootShell()) return null;   // F5.9: la caracola brillante se cae de la tortuga
   if (t === 'tomb') shootTomb();                         // F5.16: la tumba del templo sangra y se abre el portal
   if (t === 'barrel') shootBarrel(h.object);             // F5.26: barril de gasolina del búnker
@@ -903,6 +911,7 @@ function tracePierce(hits, dir, def) {
       if (t === 'beastSleep') { wakeBeast(); shotImpact.point.copy(h.point); break; }
       if (t === 'plantTongue') { plantTongueShot(h.point); shotImpact.point.copy(h.point); break; }   // F5.23
       if (t === 'beastTentacle') { beastTentacleShot(h.point); shotImpact.point.copy(h.point); break; }   // F5.28
+      if (t === 'kraken') { krakenHit(h.object, def.damage * perkDmg()); n++; shotImpact.point.copy(h.point); break; }   // F5.29
       if (t === 'plantBoss' && plantBossHit(def.damage * perkDmg(), !!h.object.userData.head, h.point)) { n++; shotImpact.point.copy(h.point); break; }   // F5.20
       if (!(t === 'questShell' && shootShell())) addImpactDecal(h);
       shotImpact.point.copy(h.point); break;

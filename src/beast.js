@@ -372,6 +372,31 @@ function wakeBeast() {
   return true;
 }
 
+// F5.29d: la Bestia sale del mar en la pelea del Kraken (una de las 4 granadas moradas): despierta en (x, z), sin ir a
+// romper la escalera (BEAST.away). Sirve dormida o ya muerta (en el easter egg se la mató antes)
+function beastAwakeAt(x, z0) {
+  const z = BEAST.z, C = CONFIG.BEAST;
+  if (!z || (z.active && z.alive)) return false;
+  BEAST.phase = 'awake'; BEAST.away = true;
+  const k = WORLD.hitMeshes.indexOf(BEAST.sleepBox);
+  if (k >= 0) WORLD.hitMeshes.splice(k, 1);
+  z.body.scale.set(1, 1, 1); z.head.rotation.set(0, 0, 0);
+  resetZombie(z, { x, z: z0 }, false);
+  z.health = z.maxHealth = Math.round(CONFIG.BOSS.health(Math.max(state.round, C.minRound)) * C.healthMul);
+  z.speed = C.speed;
+  z.state = 'walk'; z.t = 0; z.phase = 1; z.act = null;
+  z.screamT = randIn(C.scream.every); z.pounceT = randIn(C.pounce.every); z.slimeT = C.slime.every; z.spitT = randIn(C.slime.spitEvery);
+  z.tentT = randIn(C.tentacle.every); z.spikeT = randIn(C.spikes.every); z.whipT = 1;
+  z.attackCd = 1;
+  bossEyes(z);
+  z.heading = Math.atan2(player.pos.x - x, player.pos.z - z0); placeRoot(z, 0);
+  state.zombies.push(z);
+  showBanner(C.name + ' RISES', 3);
+  sfxBossRoar(); addTrauma(0.5);
+  startAct(z, 'roar', C.roar);
+  return true;
+}
+
 //--- la Bestia: cerebro (desde bossTick) ---
 // true = hizo algo propio este frame (updateZombies no la mueve)
 function beastTick(z, dt) {
@@ -774,7 +799,7 @@ function beastAct(z, dt, dist, dx, dz) {
       endAct(z); z.attackCd = 0.6;
     }
   } else if (z.actT <= 0) {
-    if (z.act === 'roar') { if (BEAST.broken) endAct(z); else startAct(z, 'toLadder', 12); }
+    if (z.act === 'roar') { if (BEAST.broken || BEAST.away) endAct(z); else startAct(z, 'toLadder', 12); }   // (F5.29d: afuera del búnker, no va a la escalera)
     else if (z.act === 'smash') {
       breakLadder();
       showBanner('IT BROKE THE LADDER', 2.5);
@@ -896,7 +921,7 @@ function beastDamaged(z, dmg) {
   if (z.phase === 1 && z.health < CONFIG.BEAST.rageFrac * z.maxHealth) { z.phase = 3; sfxBossRoar(); showBanner('THE BEAST IS ENRAGED', 2); }
 }
 function beastDeath(z) {
-  BEAST.phase = 'dead';
+  BEAST.phase = 'dead'; BEAST.away = false;
   if (BEAST.tg.state !== 'off' && BEAST.tg.state !== 'back') releaseBeastTentacle(false);   // F5.28: te suelta
   resetBarrels();                                                      // termina la pelea: vuelven los barriles
 }
@@ -976,7 +1001,7 @@ function updateBeast(dt) {
 function resetBeast() {
   resetBarrels();
   // F5.28: sin tentáculo afuera ni tentáculos del piso
-  const T = BEAST.tg; T.state = 'off'; T.t = 0; BEAST.jawOpen = 0;
+  const T = BEAST.tg; T.state = 'off'; T.t = 0; BEAST.jawOpen = 0; BEAST.away = false;
   if (BEAST.tent) { BEAST.tent.visible = false; beastTentacleShootable(false); }
   for (const R of BEAST.spikes) { R.state = 'off'; R.g.visible = false; }
   resetBeastDrool();                                                   // F5.28c

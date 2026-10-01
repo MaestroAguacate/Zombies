@@ -54,6 +54,7 @@ function init() {
   buildTraps();                         // F5.9: tiburón y cortadora
   buildBunker();                        // F5.11: búnker, escotilla, estatuas y caballito de mar
   buildCatacombs();                     // F5.28e: catacumbas mayas y la cueva (el dibujo, las palancas y las plantas)
+  buildKraken();                        // F5.29: el easter egg (semilla, consolas, cabina, cebo, pared de agua, arena y Kraken)
   buildTrophies();                      // F5.26: trofeos de boss y el Altar de Huesos (después del ácido: usa su slime)
   setSquidHead(1, true);                // F5.13: la cabeza del calamar, enterrada
   buildClams();                         // F5.14: almejas y fumigador
@@ -232,7 +233,8 @@ function animate() {
   updateLoading(dt);                     // F5.28e: la pantalla de carga (el juego no corre mientras está)
   gameUpdate(dt);
   if (!state.running && MENU.mode === 'main') { menuCamera(); updateWeaponPreview(dt); updateGumDrum(dt); }   // F5.18: el mundo detrás del menú (F5.28d: el tambor)
-  weaponScene.visible = state.running || MENU.mode === 'pause';
+  // (F5.29b: subido a un cañón de arpones, el arma se guarda)
+  weaponScene.visible = (state.running || MENU.mode === 'pause') && !(typeof eeMounted === 'function' && eeMounted());
   if (renderer.info) renderer.info.reset();
   renderFrame(dt);                       // F5.28e (gfx.js): mundo, corrección de color y el arma encima
 }
@@ -272,6 +274,7 @@ function gameUpdate(dt) {
     updateBunker(dt);                   // F5.11: estatuas, escotilla y fundido
     updateCatacombs(dt);                // F5.28e: llamas, gotas, plantas y palancas de las catacumbas
     updateTrophies(dt);                 // F5.26: trofeos, altar, bombas de slime y la cría domesticada
+    updateKraken(dt);                   // F5.29: el easter egg (después de updateBoss: pisa la barra; y de la cámara del jugador)
     updateWeaponFx(dt);
     updateInteract();
     // fuego automático sostenido

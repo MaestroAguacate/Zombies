@@ -144,6 +144,7 @@ function explodeAt(x, y, z, opts) {
   }
   STATS.src = prevSrc;
   hits += plantBossBlast(x, y, z, center, R, gl);                  // F5.20: la planta jefa del templo
+  hits += krakenBlast(x, y, z, center, R);                         // F5.29: las ventosas y la panza del Kraken
   barrelBlast(x, y, z, R);                                         // F5.26: prende los barriles de gasolina de al lado
   // jugador: daño propio ignorando el i-frame (puede matar) y shake por distancia
   const pc = player.pos.y - CONFIG.PLAYER.height / 2;
