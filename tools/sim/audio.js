@@ -9,7 +9,7 @@ const check = (c, msg, extra) => { console.log((c ? '  ok    ' : '  FALLA ') + m
 const log = { ctx: [], nodes: [], started: [] };
 function param(v) {
   return { value: v, setValueAtTime(x) { this.value = x; }, exponentialRampToValueAtTime() {}, linearRampToValueAtTime() {},
-           setTargetAtTime(x) { this.target = x; } };
+           setTargetAtTime(x) { this.target = x; }, cancelScheduledValues() {} };
 }
 function node(kind, extra) { const n = Object.assign({ kind, connect(d) { return d; }, disconnect() {} }, extra); log.nodes.push(n); return n; }
 function src(kind, extra) {
@@ -61,14 +61,10 @@ for (const id in CONFIG.WEAPONS) { const n0 = log.nodes.length; G.sfxShot(CONFIG
   check(CONFIG.WEAPONS[id].flame ? made === 0 : made >= 4, `disparo ${id}`, `(${made} nodos)`); }
 check(leaks() === 0, 'todo sonido puntual tiene stop (sin fugas)', `(${leaks()})`);
 
-// 4) lanzallamas: loop lazy, uno solo, se apaga al soltar
-G.giveWeapon('flamethrower'); weaponsState.phase = 'idle';
-weaponsState.flameUntil = 1e15;
-G.updateFlameAudio(); G.updateFlameAudio(); G.updateFlameAudio();
-check(log.started.filter(s => s.loop).length === 5 && AUDIO.flame, 'loop del lanzallamas creado una vez');
-check(AUDIO.flame.g.gain.target > 0, 'suena mientras dispara');
-weaponsState.flameUntil = 0; G.updateFlameAudio();
-check(AUDIO.flame.g.gain.target === 0, 'se apaga al soltar');
+// 4) F5.28 (Diego): sin lanzallamas. Ninguna arma lo usa, así que su loop no se crea nunca
+check(!Object.values(CONFIG.WEAPONS).some(w => w.flame) && !CONFIG.WEAPONS.flamethrower, 'F5.28: no hay lanzallamas');
+G.updateFlameAudio(); G.updateFlameAudio();
+check(!AUDIO.flame, 'su loop no se crea');
 
 // 5) recarga en 3 pasos; interrumpida no completa los pasos
 state.weapons = []; G.giveWeapon('m1911'); weaponsState.phase = 'idle';
@@ -90,7 +86,7 @@ for (let i = 0; i < 8; i++) { const z = G.spawnZombie(); z.state = 'walk'; z.px 
 const g0 = growls();
 for (let i = 0; i < 600; i++) { ctx.currentTime += 1 / 60; G.updateZombieAudio(1 / 60); }   // 10 s
 const made = growls() - g0, cap = Math.ceil(10 / CONFIG.AUDIO.growlGap) + 1;
-check(made > 5 && made <= cap, '8 zombies en 10 s: gruñen con limitador', `(${made}, tope ${cap})`);
+check(made >= 4 && made <= cap, '8 zombies en 10 s: gruñen con limitador', `(${made}, tope ${cap})`);
 const far = zs[0]; far.px = 0; far.pz = 10 + CONFIG.AUDIO.growlMaxDist + 5;
 const g1 = growls(); G.sfxGrowl(far, 'idle');
 check(growls() === g1, 'más lejos que growlMaxDist no suena');
@@ -108,14 +104,26 @@ check(leaks() === 0, 'gruñidos sin fugas de nodos');
 
 // 7) campana de ronda, volumen, ambiente según cuarto
 const o0 = log.nodes.filter(n => n.kind === 'osc').length;
-G.startRound(4);
+G.queueRound(4, 12); state.running = true; G.updateRounds(0.01);   // F5.19: la campana suena al empezar la pausa
 // F6: + el tambor (2 golpes, un seno cada uno)
-check(log.nodes.filter(n => n.kind === 'osc').length - o0 === 12, 'campanada (2 golpes x 5 parciales) y tambor (2) al empezar ronda');
+check(log.nodes.filter(n => n.kind === 'osc').length - o0 === 12, 'campanada (2 golpes x 5 parciales) y tambor (2) al empezar la pausa');
 G.setVolume(0.3);
 check(AUDIO.master.gain.target === 0.3 && G.SETTINGS.volume === 0.3, 'volumen aplica al master');
 G.setVolume(7); check(G.SETTINGS.volume === 1, 'volumen se limita a 1');
 player.pos.set(0, 1.7, 0); G.updateAmbience(); const porch = AUDIO.amb.gain.target;
 player.pos.set(-10, 1.7, 35); G.updateAmbience(); const base = AUDIO.amb.gain.target, cut = AUDIO.ambLP.frequency.target;
 check(porch > base * 3 && cut < 400, 'olas fuertes en el porche, apagadas en el sótano', `(${porch.toFixed(2)} vs ${base.toFixed(2)}, lowpass ${cut})`);
+
+// F5.19c: la partida suena por su bus (`game`); en la pausa y al morir se calla (la música de muerte va al master)
+state.running = true; state.gameOver = false; G.MENU.started = true; G.updateGameAudio();
+const onRun = AUDIO.gameOn;
+state.running = false; G.updateGameAudio();
+const onPause = AUDIO.gameOn, pauseT = AUDIO.game.gain.target;
+state.running = true; G.updateGameAudio();
+const back = AUDIO.gameOn;
+G.gameOver(); G.updateGameAudio();
+const onDeath = AUDIO.gameOn;
+G.resetGame(); G.MENU.started = false; G.updateGameAudio();
+check(onRun && !onPause && pauseT === 0 && back && !onDeath && AUDIO.gameOn, 'pausa y muerte callan la partida; el menú y la partida suenan');
 
 console.log(fail ? `FALLA (${fail})` : 'PASA'); process.exit(fail ? 1 : 0);

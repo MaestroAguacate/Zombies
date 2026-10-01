@@ -42,8 +42,10 @@ run(4, () => { G.updateFlowField(false); G.updateZombies(dt); G.updateDown(dt); 
 const d1 = zs.map(q => Math.hypot(q.px - player.pos.x, q.pz - player.pos.z));
 check(d1.every((d, i) => d > d0[i] + 2), 'los zombies se alejan', `(${d0.map(d => d.toFixed(1))} -> ${d1.map(d => d.toFixed(1))})`);
 check(state.health === hp, 'nadie le pega');
-G.keys.KeyW = true; const z0 = player.pos.z; run(1, () => G.updatePlayer(dt)); G.keys.KeyW = false;
-check(Math.abs(z0 - player.pos.z) < CONFIG.PLAYER.speed * CONFIG.PERKS.lastStand.speedMul + 0.1 && Math.abs(z0 - player.pos.z) > 0.3, 'se arrastra despacio', `(${Math.abs(z0 - player.pos.z).toFixed(2)} m en 1 s)`);
+// (F5.20: se arranca mirando a -x; se mide la distancia en el plano)
+G.keys.KeyW = true; const cx0 = player.pos.x, z0 = player.pos.z; run(1, () => G.updatePlayer(dt)); G.keys.KeyW = false;
+const crawl = Math.hypot(cx0 - player.pos.x, z0 - player.pos.z);
+check(crawl < CONFIG.PLAYER.speed * CONFIG.PERKS.lastStand.speedMul + 0.1 && crawl > 0.3, 'se arrastra despacio', `(${crawl.toFixed(2)} m en 1 s)`);
 run(5, () => G.updateDown(dt));
 check(!G.DOWN.on && !G.gfxFilter().includes('grayscale') && state.health === G.maxHealth(), 'a los 10 s revive, sin gris y con la vida llena');
 run(0.5, () => { G.updatePlayer(dt); G.updateDown(dt); });
@@ -58,19 +60,29 @@ check(G.roomAt(44.6, 83) && G.roomAt(44.6, 83).id === 'R20', 'el choque es parte
 check(CC.cars.every((c, i) => G.WORLD.colliders.some(q => q.tag === 'prop:auto' + i && q.solid)), 'los autos son sólidos');
 player.pos.set(58, 1.7, 83); G.updateFlowField(true);
 check(G.flowAt(44, 77) > 0 && G.flowAt(52, 86) > 0, 'se llega desde el anexo del templo (hueco en x 55)');
-check(G.CRASH.flames.length === CC.cars.filter(c => c[4]).length && G.CRASH.smoke, 'llamas en los autos que arden y humo');
+check(!G.CRASH.flames.length && !G.CRASH.smoke, 'F5.19: autos sin llamas ni humo');
 
 // 4) XP, niveles y accesorios
 fresh();
 const PR = CONFIG.PROGRESSION;
-G.PROFILE.xp = 0; G.PROFILE.loadout = {}; G.sanitizeLoadout(); G.resetMatchXP();
+G.PROFILE.xp = 0; G.PROFILE.wxp = {}; G.PROFILE.loadout = {}; G.sanitizeLoadout(); G.resetMatchXP();
 check(G.xpForLevel(1) === 0 && G.xpForLevel(2) === PR.base && G.xpForLevel(3) === 2 * PR.base + PR.step, 'curva de XP');
 check(G.levelOf(G.xpForLevel(12)) === 12 && G.levelOf(G.xpForLevel(12) - 1) === 11 && G.levelOf(1e12) === PR.maxLevel, 'nivel por XP (tope ' + PR.maxLevel + ')');
-check(G.tierName(1) === 'RECRUIT' && G.tierName(PR.maxLevel) === 'COMMANDER', 'rangos');
-check(!G.attUnlocked('quickdraw') && !G.toggleAttachment('smg', 'quickdraw'), 'nivel 1: nada desbloqueado');
+check(G.tierName(1) === 'RECRUIT' && G.tierName(55) === 'COMMANDER' && G.tierName(PR.maxLevel) === 'KRAKEN', 'rangos (F5.27: hasta KRAKEN en el 100)');
+check(!G.attUnlocked('quickdraw', 'smg') && !G.toggleAttachment('smg', 'quickdraw'), 'nivel 1: nada desbloqueado');
 G.addXP(PR.base);
-check(G.rankLevel() === 2 && G.attUnlocked('quickdraw') && G.PROFILE.matchXP === PR.base, 'subir de nivel desbloquea quickdraw');
-G.PROFILE.xp = G.xpForLevel(PR.maxLevel);
+check(G.rankLevel() === 2 && !G.attUnlocked('quickdraw', 'smg') && G.PROFILE.matchXP === PR.base, 'F5.19: subir el nivel general NO desbloquea accesorios');
+// F5.19: nivel por arma: la XP de los kills con el subfusil sube el subfusil y desbloquea SUS accesorios
+state.weapons = [{ id: 'smg', mag: 30, reserve: 120 }]; state.currentWeapon = 0;
+const killsLv2 = Math.ceil(G.wxpForLevel(2) / CONFIG.PROGRESSION.xp.kill);   // F5.19d: el nivel del arma cuesta más
+for (let i = 0; i < killsLv2; i++) {
+  const q = G.spawnZombie(); q.state = 'walk'; G.STATS.src = 'smg'; G.damageZombie(q, 1e6, false);
+  q.active = false; state.zombies.splice(state.zombies.indexOf(q), 1);           // libera el lugar del pool
+}
+check(G.weaponLevel('smg') === 2 && G.attUnlocked('quickdraw', 'smg') && !G.attUnlocked('quickdraw', 'shotgun'), 'F5.19: kills con el subfusil suben SU nivel (quickdraw en el subfusil, no en la escopeta)',
+  `(smg LV ${G.weaponLevel('smg')}, ${G.PROFILE.wxp.smg} XP)`);
+check(G.wxpForLevel(1) === 0 && G.wxpForLevel(2) === PR.weaponLevel.base, 'curva de XP del arma');
+G.PROFILE.xp = G.xpForLevel(PR.maxLevel); G.PROFILE.wxp.smg = G.wxpForLevel(PR.weaponLevel.max);
 const base = CONFIG.WEAPONS.smg;
 check(G.toggleAttachment('smg', 'fastmag') && G.toggleAttachment('smg', 'barrel') && G.toggleAttachment('smg', 'stock'), 'poner 3 accesorios');
 check(!G.toggleAttachment('smg', 'laser') && G.PROFILE.loadout.smg.att.length === PR.maxAtt, 'tope de ' + PR.maxAtt);
@@ -84,8 +96,18 @@ G.toggleAttachment('smg', 'stock'); G.toggleAttachment('smg', 'laser');
 G.ADS.k = 0; const hipL = G.adsSpread(); G.toggleAttachment('smg', 'laser'); const hip0 = G.adsSpread();
 check(Math.abs(hipL / hip0 - PR.attachments.laser.hipSpread) < 1e-9, 'láser: cadera ×' + PR.attachments.laser.hipSpread);
 check(G.setCamo('smg', 'crimson') && G.curDef().camo === PR.camos.find(c => c.id === 'crimson').color, 'camuflaje');
-G.PROFILE.xp = 0; G.sanitizeLoadout();
+G.PROFILE.xp = 0; G.PROFILE.wxp = {}; G.sanitizeLoadout();
 check(G.PROFILE.loadout.smg.att.length === 0 && !G.PROFILE.loadout.smg.camo, 'sin nivel, se sacan los accesorios');
+// F5.27: el nivel general da lo del pase (KRAKEN INK, camos y fichas de XP doble), ya no chicles
+{ const ink0 = G.PROFILE.ink, x20 = G.PROFILE.xp2, g0 = Object.values(G.PROFILE.gums).reduce((a, b) => a + b, 0);
+  G.PROFILE.passClaimed = 1;
+  G.addXP(G.xpForLevel(42) - G.PROFILE.xp);
+  let ink = 0, x2 = 0;
+  for (let L = 2; L <= 42; L++) for (const r of G.passRewards(L)) { if (r.type === 'ink') ink += r.n; if (r.type === 'xp2') x2++; }
+  const g1 = Object.values(G.PROFILE.gums).reduce((a, b) => a + b, 0);
+  check(G.PROFILE.ink - ink0 === ink && G.PROFILE.xp2 - x20 === x2 && g1 === g0, 'F5.27: subir de nivel da lo del pase (tinta y XP doble), sin chicles',
+    `(+${G.PROFILE.ink - ink0} ink de ${ink}, +${G.PROFILE.xp2 - x20} fichas de ${x2}, chicles +${g1 - g0})`);
+  G.PROFILE.xp = 0; }
 const x0 = G.PROFILE.xp;
 G.startRound(2);
 check(G.PROFILE.xp === x0 + PR.xp.round, 'terminar la ronda 1 da ' + PR.xp.round + ' XP');
@@ -123,22 +145,41 @@ fresh(); G.PROFILE.xp = 0; G.PROFILE.gums = {}; G.PROFILE.ink = 0; G.PROFILE.pre
 check(G.gumCount('shadow') === Infinity && G.gumCount('restock') === 0 && G.gumCount('freeall') === 0, 'clásicos por nivel; raros por inventario');
 check(!G.setPresetSlot(0, 'freeall') && G.setPresetSlot(0, 'shadow'), 'solo se ponen en el preset los que tenés');
 const gm = G.GUMM.machines[0];
+const vend = () => { for (let i = 0; i < 60 * (CONFIG.GUMS.machine.vend + 0.05); i++) { G.tick(dt); G.updateGums(dt); } };
 state.points = 5000;
-check(G.useGumMachine(gm) && state.points === 4500 && G.GUMM.offer && G.GUMM.offer.id === 'shadow', 'la chiclera cobra 500 y ofrece uno del preset');
+check(/FREE/.test(G.gumPrompt(gm).text) && G.useGumMachine(gm) && state.points === 5000 && G.GUMM.offer && G.GUMM.offer.id === 'shadow', 'F5.21: el primero de la ronda es gratis y ofrece uno del preset');
+check(G.gumPrompt(gm).text.indexOf('dispensing') >= 0 && !G.takeGum(), 'F5.19: durante ' + CONFIG.GUMS.machine.vend + ' s no se agarra');
+const by0 = gm.ball.position.y;
+vend();
+check(gm.ball.position.y < by0 - 0.3, 'F5.19: el chicle baja por el globo hasta la bandeja');
 check(G.gumPrompt(gm).text.indexOf('[F] Take SHADOW STEP') === 0, 'cartel: agarrarlo con F');
 for (let i = 0; i < 60 * (CONFIG.GUMS.machine.offer + 0.2); i++) { G.tick(dt); G.updateGums(dt); }
 check(!G.GUMM.offer, 'si no lo agarrás en ' + CONFIG.GUMS.machine.offer + ' s, se va');
-check(G.useGumMachine(gm) && state.points === 3500, 'la segunda cuesta 1000');
-check(G.takeGum() && G.gumActive('shadow'), 'agarrarlo lo activa');
+check(G.useGumMachine(gm) && state.points === 4500, 'la segunda cuesta 500');
+vend();
+check(G.takeGum() && !G.gumActive('shadow') && G.GUMM.held && G.GUMM.held.id === 'shadow', 'F5.19c: SHADOW STEP queda en la mano (no se activa solo)');
+check(G.useHeldGum() && G.gumActive('shadow') && !G.GUMM.held, 'con T se activa');
+G.GUMM.fx = {};                                                    // F5.19c: con SHADOW STEP activo la chiclera no vende
 G.PROFILE.gums.freeall = 1; G.setPresetSlot(0, 'freeall');
-G.GUMM.uses = 0; G.useGumMachine(gm); G.takeGum();
+G.GUMM.uses = 0; G.useGumMachine(gm); vend(); G.takeGum();
 check(G.PROFILE.gums.freeall === 0 && G.gumActive('freeall'), 'el épico se gasta al agarrarlo');
 const pts = state.points;
 check(G.spendPoints(2000) && state.points === pts, 'SHOPPING SPREE: todo gratis');
 G.GUMM.fx = {};
 G.activateGum('insta3'); state.effects.instakill = 0;
 check(G.useHeldGum() && state.effects.instakill > 0 && G.GUMM.held.charges === 2, 'TRIPLE THREAT: T dispara un insta-kill (quedan 2)');
+const hud = G.UI.gumhud.innerHTML;
+check(hud.indexOf('2/3') >= 0 && (hud.match(/#fff /g) || []).length === 2, 'F5.19: HUD del chicle: el contorno marca 2 de 3 cargas');
 G.GUMM.held = null;
+// F5.19: preset obligatorio de 5
+G.PROFILE.xp = 0; G.PROFILE.gums = {}; G.PROFILE.preset = ['shadow', 'beacon'];
+check(G.presetReady(), 'F5.20: con 2 chicles en el preset igual se juega (ya no bloquea)');
+check(Object.keys(CONFIG.GUMS.list).filter(id => G.gumClassic(id) && G.gumCount(id) > 0).length >= 5, 'hay 5 clásicos desde el nivel 1');
+G.PROFILE.preset = []; G.sanitizePreset();
+check(G.presetReady() && G.PROFILE.preset.join() === CONFIG.GUMS.defaultPreset.join(), 'preset vacío = los 5 clásicos, y se juega');
+check(G.blankAccount().preset.length === 5, 'cuenta nueva con los 5 en el preset');
+G.PROFILE.gums.freeall = 1; G.setPresetSlot(0, 'freeall'); G.PROFILE.gums.freeall = 0;
+check(G.presetReady() && G.PROFILE.preset[0] === 'freeall', 'F5.20: si se gastó un chicle del set, queda en el set (gris) y se juega igual');
 G.PROFILE.ink = 3;
 const w = G.rollGumPack(3, () => 0.99);
 check(w && w.length === 3 && G.PROFILE.ink === 0 && w.every(id => G.PROFILE.gums[id] >= 1), 'tienda: 3 monedas = 3 chicles al inventario');

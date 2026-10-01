@@ -13,8 +13,9 @@ const keys = Object.create(null);
 const stamina = { v: 1, exhausted: false, idleT: 0 };
 
 function initPlayer() {
-  player.pos.set(0, CONFIG.PLAYER.height, 0);   // spawn en R1 PORCHE
-  player.yaw = 0; player.pitch = 0;
+  const S = CONFIG.START;                        // F5.20: spawn en el garaje (antes, R1 porche)
+  player.pos.set(S.x, CONFIG.PLAYER.height, S.z);
+  player.yaw = S.yaw; player.pitch = 0;
   player.grounded = true; player.airTop = 0;
   player.pushT = 0; player.pushX = player.pushZ = 0; player.dazeT = 0;   // F5
   player.crouch = false; player.crouchK = 0;                            // F5.18
@@ -26,6 +27,7 @@ function updatePlayer(dt) {
   if (dt <= 0) return;
   const P = CONFIG.PLAYER, F = CONFIG.FEEL;
   if (DEBUG.noclip) { updateNoclip(dt); updateCameraFeel(dt); return; }   // modo debug: vuelo sin colisiones
+  if (BUNK.travel) { player.vel.set(0, 0, 0); updateCameraFeel(dt); return; }   // F5.19c: bajando al búnker / en el portal
 
   // input local
   let fx = 0, fz = 0;
@@ -33,6 +35,10 @@ function updatePlayer(dt) {
   if (keys['KeyS']) fz += 1;
   if (keys['KeyA']) fx -= 1;
   if (keys['KeyD']) fx += 1;
+  // F5.23: la lengua de la planta te arrastra (no caminás). F5.28: el tentáculo de la Bestia, igual
+  const byBeast = beastGrabbed(), grabbed = plantGrabbed() || byBeast;
+  const rooted = plantRooted();                 // F5.24: la jaula de raíces te tiene quieto
+  if (grabbed || rooted) fx = fz = 0;
   const len = Math.hypot(fx, fz);
   if (len > 0) { fx /= len; fz /= len; }
 
@@ -57,7 +63,8 @@ function updatePlayer(dt) {
             * (player.dazeT > 0 ? CONFIG.BOSS.dazeMul : 1)    // F5: silbido del Sombrerón
             * (playerLevel() === 0 ? wetSandMul(player.pos.x, player.pos.z) : 1)    // F5.8: arena mojada
             * (player.crouch ? CR.speedMul : 1)                                     // F5.18: agachado
-            * (DOWN.on ? CONFIG.PERKS.lastStand.speedMul : 1);                     // F5.18: arrastrándose
+            * (DOWN.on ? CONFIG.PERKS.lastStand.speedMul : 1)                      // F5.18: arrastrándose
+            * (gumActive('heavyboots') ? 0.75 : 1);                                // F5.20: HEAVY BOOTS
 
   // input local rotado por +yaw
   const sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
@@ -73,7 +80,7 @@ function updatePlayer(dt) {
 
   // gravedad / salto
   v.y -= P.gravity * dt;
-  if (keys['Space'] && player.grounded && !player.crouch && !DOWN.on) { v.y = P.jump; player.grounded = false; }
+  if (keys['Space'] && player.grounded && !player.crouch && !DOWN.on && !grabbed && !rooted) { v.y = P.jump; player.grounded = false; }
 
   // movimiento + colisión. Si una pared frena, se pierde esa componente (no queda "cargada")
   const x0 = player.pos.x, z0 = player.pos.z;
@@ -88,10 +95,15 @@ function updatePlayer(dt) {
     moveAxis('x', player.pushX * CONFIG.BOSS.pushTime * k);
     moveAxis('z', player.pushZ * CONFIG.BOSS.pushTime * k);
   }
+  if (grabbed) { if (byBeast) beastDragStep(dt); else plantDragStep(dt); }   // F5.23: con colisión, hacia la boca
+  else unstickPlayer();                         // F5.24: nunca quedar metido adentro de un sólido
   if (player.dazeT > 0) player.dazeT = Math.max(0, player.dazeT - dt);
   player.speedNow = Math.hypot(v.x, v.z);
 
   const vyBefore = v.y, feetBefore = player.pos.y - P.height;
+  if (grabbed) {                                // F5.23: la lengua te levanta hacia la boca (sin gravedad ni piso)
+    player.pos.y = byBeast ? beastLiftY() : plantLiftY(); v.y = 0; player.grounded = false; player.airTop = player.pos.y - P.height;
+  } else {
   player.pos.y += v.y * dt;
   // piso: el terreno (0 salvo la piscina) o el tope del mueble en el que estás parado (F2.8). Con los pies de
   // ANTES de moverse: si caés rápido sobre una mesa, un frame la atravesaría
@@ -107,6 +119,7 @@ function updatePlayer(dt) {
     // no aterrizaba ni contaba la altura de la caída
     player.grounded = false;
     player.airTop = Math.max(player.airTop || 0, feetBefore);
+  }
   }
 
   // regeneración
@@ -241,7 +254,8 @@ function resetFeel() {
 function standable(c) {
   const t = c.tag;
   return !!c.mesh && t !== 'wall' && t !== 'rail' && t !== 'poolRim' && !t.startsWith('door:') && !t.startsWith('bound:') &&
-         t !== 'roofrail' && t !== 'hedge' && t !== 'plant' && t !== 'pwall' && t !== 'shell';   // F5.6: barandas del techo, cerco, macetas · F5.16 · F5.17: borde del caparazón
+         t !== 'roofrail' && t !== 'hedge' && t !== 'plant' && t !== 'pwall' && t !== 'shell' &&   // F5.6: barandas del techo, cerco, macetas · F5.16 · F5.17: borde del caparazón
+         t !== 'prop:labpod';   // F5.24 (bug de Diego): la cápsula del laboratorio, debajo del hueco: arriba los zombies no llegaban
 }
 // hay lugar para el cuerpo parado arriba de c en (x, z)
 function headroom(c, x, z) {
@@ -299,6 +313,14 @@ function moveAxis(axis, delta) {
       player.pos.y = c.maxY + P.height; feet = c.maxY; head = player.pos.y;
       continue;
     }
+    // F5.24 (bug de la escalera del muelle): si ya estaba metido de antes (la penetración es más que este paso), empujar en
+    // el eje que se movió lo mandaba a la PUNTA de una tira fina (6 m escalera abajo). Se lo saca de costado, por el otro eje
+    const pen = axis === 'x' ? (delta > 0 ? x + r - c.minX : c.maxX - (x - r)) : (delta > 0 ? z + r - c.minZ : c.maxZ - (z - r));
+    if (pen > Math.abs(delta) + 0.05) {
+      if (axis === 'z') { const a = x + r - c.minX, b = c.maxX - (x - r); player.pos.x = a < b ? c.minX - r - 0.001 : c.maxX + r + 0.001; }
+      else              { const a = z + r - c.minZ, b = c.maxZ - (z - r); player.pos.z = a < b ? c.minZ - r - 0.001 : c.maxZ + r + 0.001; }
+      continue;
+    }
     // colisión: empujar en el eje que se movió (ver también el costado de la escalera, abajo)
     if (axis === 'x') player.pos.x = delta > 0 ? c.minX - r - 0.001 : c.maxX + r + 0.001;
     else              player.pos.z = delta > 0 ? c.minZ - r - 0.001 : c.maxZ + r + 0.001;
@@ -312,11 +334,18 @@ function moveAxis(axis, delta) {
     const V = flightV(S), x = S.axis === 'z' ? z0 : x0, z = S.axis === 'z' ? x0 : z0;   // F5.13: rampas en z
     if (!(z + r > V.z1 && z - r < V.z2 && x + r > V.x1 && x - r < V.x2)) return null;
     const k = V.dir < 0 ? (V.x2 - Math.max(V.x1, x - r)) : (Math.min(V.x2, x + r) - V.x1);
-    return [UP.y * Math.min(1, Math.max(0, k / (V.x2 - V.x1))), Math.min(z + r - V.z1, V.z2 - (z - r))];
+    const y0 = S.y0 || 0, y1 = S.toLevel === 2 ? UP2.y : UP.y;      // F5.22: del nivel 1 al 2
+    // F5.24: también la más baja que toca el cuerpo (el borde de atrás), para pasar por debajo de las escaleras abiertas
+    const k2 = V.dir < 0 ? (V.x2 - Math.min(V.x2, x + r)) : (Math.max(V.x1, x - r) - V.x1), L = V.x2 - V.x1;
+    return [y0 + (y1 - y0) * Math.min(1, Math.max(0, k / L)), Math.min(z + r - V.z1, V.z2 - (z - r)),
+            y0 + (y1 - y0) * Math.min(1, Math.max(0, k2 / L))];
   };
   for (const S of UP.flights) {
     const now = rampTouch(px, pz, S);
     if (!now || !(now[0] - feet > P.stepUp + 1e-3 && now[0] > feet)) continue;
+    // F5.24 (Diego: "no puedo pasar debajo de las escaleras del caparazón"): en las escaleras abiertas (sin nada debajo), si
+    // toda la parte de la rampa que queda sobre el cuerpo está más alta que la cabeza, se pasa por abajo
+    if (S.open && now[2] > head + 0.05) continue;
     const was = rampTouch(bx, bz, S);
     if (!was || now[0] > was[0] + 1e-6 || now[1] > was[1] + 1e-6) { player.pos[axis] = before; break; }
   }
@@ -324,6 +353,22 @@ function moveAxis(axis, delta) {
 }
 
 // los cuerpos de zombie bloquean al jugador (respeta paredes vía moveAxis)
+// F5.24 (soak.js lo encontró una vez: el jugador quedó adentro de una cabeza colosal del templo): si por algo que mueve al
+// jugador sin colisión (la jaula de raíces, la lengua, un teletransporte) el CENTRO queda adentro de un sólido a la altura
+// del cuerpo, se lo saca por el lado más corto. Solo corrige lo metido de verdad: el roce normal lo resuelve moveAxis
+function unstickPlayer() {
+  const P = player.pos, r = CONFIG.PLAYER.radius, feet = P.y - CONFIG.PLAYER.height;
+  for (const c of collidersNear(P.x - r, P.x + r, P.z - r, P.z + r)) {
+    if (!c.solid || c.zombieOnly || c.overhead || c.tag === 'poolRim') continue;
+    if (c.maxY < feet + 0.4 || c.minY > feet + 1.2) continue;             // no está a la altura del cuerpo
+    if (!(P.x > c.minX && P.x < c.maxX && P.z > c.minZ && P.z < c.maxZ)) continue;
+    const out = [[c.minX - r - 0.02 - P.x, 'x'], [c.maxX + r + 0.02 - P.x, 'x'], [c.minZ - r - 0.02 - P.z, 'z'], [c.maxZ + r + 0.02 - P.z, 'z']]
+      .sort((a, b) => Math.abs(a[0]) - Math.abs(b[0]))[0];
+    if (out[1] === 'x') P.x += out[0]; else P.z += out[0];
+    return true;
+  }
+  return false;
+}
 function pushPlayerFromZombies() {
   const pl = playerLevel();
   for (const z of state.zombies) {
@@ -366,19 +411,32 @@ function fallDamage(drop) {
   STATS.damageTaken += dmg;
   state.health -= dmg;
   state.lastDamageTime = clock.elapsedTime;              // la regeneración espera como con un golpe
-  flashDamage(); sfxHurt(); addTrauma(0.5);
+  hurtHit();                                             // F5.28e: la caída también pinta una esquina (abajo)
+  flashDamage(); sfxHurt(false); addTrauma(0.5);                   // F5.19: la caída, sin golpe de zombie
 }
 // ignoreIframe (F2.7): la granada propia pega aunque un zombie te haya golpeado recién
-function damagePlayer(dmg, fromX, fromZ, ignoreIframe) {
-  if (state.gameOver || DOWN.on) return;                          // F5.18: tirado sos invulnerable
+// F5.19: src = 'zombie' solo para el golpe de un zombie humano (suena el golpe de zombie); el resto, sin ese sonido
+function damagePlayer(dmg, fromX, fromZ, ignoreIframe, src) {
+  if (state.gameOver || DOWN.on || BUNK.travel) return;           // F5.18: tirado sos invulnerable (F5.19c: y viajando)
   const t = clock.elapsedTime;
   if (!ignoreIframe && t - state.lastDamageTime < CONFIG.PLAYER.hitIframe) return;   // i-frame
   if (gumActive('hardskin')) dmg *= 0.5;                          // F5.18b: HARD SKIN
+  if (gumActive('undying')) return;                               // F5.20: UNDYING (nada te lastima)
+  if (gumActive('bonearmor')) { gumArmorHit(t); return; }         // F5.28d: BONE ARMOR se come el golpe entero
+  if (gumActive('glasscannon')) dmg *= 2;                         // F5.20: GLASS CANNON (el contra)
+  dmg = armorAbsorb(dmg);                                         // F5.26: la armadura de caparazón se come una parte
+  if (dmg >= state.health && gumActive('secondwind')) {          // F5.20: SECOND WIND: el golpe que te tiraba te deja lleno
+    delete GUMM.fx.secondwind; state.health = maxHealth(); state.lastDamageTime = t + 1; showBanner('SECOND WIND', 1.6);
+    if (typeof gumEnded === 'function') gumEnded(); updateGumHUD(); return;
+  }
   STATS.damageTaken += Math.min(dmg, state.health);
   state.health = Math.max(0, state.health - dmg);
+  if (dmg > 0) hurtHit(fromX, fromZ);                               // F5.28e: una esquina de sangre más
+  if (fromX !== undefined) { DEATH.hitX = fromX; DEATH.hitZ = fromZ; }   // F5.28e: la muerte busca al que te pegó
   state.lastDamageTime = t;
+  DEV.lastHit = dmg; DEV.lastHitT = t; DEV.lastSrc = src || '';   // F5.19c: la barra de vida del modo dev lo muestra
   flashDamage();
-  sfxHurt();
+  sfxHurt(src === 'zombie');
   feelOnHurt(fromX, fromZ);
   if (state.health <= 0 && !tryRevive()) gameOver();   // F2: Quick Revive
 }

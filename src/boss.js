@@ -22,13 +22,14 @@ const BOSS_SUIT = 0x17161c, BOSS_SILVER = 0xcfd0d8, BOSS_SKIN = 0x4a3326, BOSS_W
 const BOSS_EYE = { normal: 0xff8a20, yellow: 0xfff23a, red: 0xff1a10 };
 
 function bossSpeed(z) {
+  if (z.variant === 'bestia') return CONFIG.BEAST.speed;           // F5.26: excepción aprobada por Diego (5.0)
   const B = CONFIG.BOSS, f = z.maxHealth > 0 ? z.health / z.maxHealth : 1;
   const k = Math.max(0, Math.min(1, (1 - f) / (1 - B.fastFrac)));
   const v = B.speedMin + (B.speedMax - B.speedMin) * k;
   return Math.min(z.gun === 'spin' || z.gun === 'fire' ? v * B.gunWalkMul : v, CONFIG.PLAYER.speed);
 }
 function bossAlive() { return BOSS.pool.some(z => z.active && z.alive); }
-function bossName(z) { return z.variant === 'calamar' ? CONFIG.BOSS.calamar.name : CONFIG.BOSS.name; }
+function bossName(z) { return z.variant === 'bestia' ? CONFIG.BEAST.name : z.variant === 'calamar' ? CONFIG.BOSS.calamar.name : CONFIG.BOSS.name; }
 
 //--- modelo ---
 function bossDetail(mb, parent) {
@@ -211,7 +212,7 @@ function bossSpawnPoint(n) {
 function attachHat(z) {
   const H = z.hatFly;
   H.flying = false; H.life = 0;
-  if (z.variant === 'calamar') { z.hatOn = false; z.hitParts = z.partsBare; z.hatG.visible = false; return; }
+  if (z.variant !== 'sombrero') { z.hatOn = false; z.hitParts = z.partsBare; z.hatG.visible = false; return; }   // Calamarón y Bestia (F5.26)
   z.head.add(z.hatG);
   z.hatG.position.set(0, 0.32, 0); z.hatG.rotation.set(0, 0, 0); z.hatG.visible = true;
   z.hatOn = true; z.hitParts = z.partsHat;
@@ -239,7 +240,10 @@ function spawnBoss(variant) {
   state.zombies.push(z);
   BOSS.fogT = B.fogTime;
   showBanner(bossName(z), 3);
-  sfxBossRoar();
+  // F5.19: los sonidos de Diego para cada boss (si no están, el rugido procedural)
+  if (!playSample(z.variant === 'calamar' ? 'sonido_de_spawn_de_boss_2' : 'silvido_de_spawn_del_sombreron')) sfxBossRoar();
+  if (z.variant !== 'calamar') voice('audio_personaje_al_ver_al_boss1', 1, 30);
+  z.nearSfxT = 6;
   return true;
 }
 
@@ -247,10 +251,12 @@ function spawnBoss(variant) {
 // F5.9: ojos según la vida (amarillos debajo de eyeYellow, rojos con lágrimas debajo de eyeRed)
 function bossEyes(z) {
   const B = CONFIG.BOSS, f = z.maxHealth > 0 ? z.health / z.maxHealth : 1;
-  z.eyeMat.color.setHex(f < B.eyeRed ? BOSS_EYE.red : f < B.eyeYellow ? BOSS_EYE.yellow : BOSS_EYE.normal);
+  // F5.28: los ojos de la Bestia (el Lich) son verdes con la vida llena
+  z.eyeMat.color.setHex(f < B.eyeRed ? BOSS_EYE.red : f < B.eyeYellow ? BOSS_EYE.yellow : z.variant === 'bestia' ? 0x9aff3a : BOSS_EYE.normal);
   z.tears.visible = f < B.eyeRed;
 }
 function bossDamaged(z, dmg, hat) {
+  if (z.variant === 'bestia') return beastDamaged(z, dmg);        // F5.26 (beast.js)
   const B = CONFIG.BOSS;
   if (hat && z.hatOn) { z.hatDmg += dmg; if (z.hatDmg >= B.hatFrac * z.maxHealth) knockHat(z); }
   if (z.phase < 3 && z.health < B.rageFrac * z.maxHealth) {       // fase 3: si tenía el sombrero, se le cae
@@ -285,19 +291,23 @@ function bossDeath(z) {
   STATS.bosses++;
   addXP(CONFIG.PROGRESSION.xp.boss);        // F5.18
   trySpawnPickup(z.px, z.pz, 'maxammo');
-  dropString(z);                                                  // F5.5: la cuerda de guitarra (una vez)
+  if (z.variant === 'bestia') beastDeath(z);                      // F5.26: la guarida vuelve a tener barriles
+  else dropString(z);                                             // F5.5: la cuerda de guitarra (una vez)
+  bossTrophies(z.variant, z.px, z.pz, z.level || 0);              // F5.26: los trofeos (y la cuenta)
   z.gun = 'idle'; z.gunModel.visible = false;                     // los cocos en vuelo terminan su recorrido
   z.tears.visible = false;
   const perk = freePerk();
   const pts = B.reward.points + (perk ? 0 : B.reward.noPerkPoints);
   state.points += pts; STATS.pointsEarned += pts; pendingPts += pts;   // fijo: el doble puntos no lo duplica
   z.act = null;
+  if (z.variant !== 'bestia') playSample(z.variant === 'calamar' ? 'muerte_del_2do_boss' : 'muerte_sombreron');   // F5.19
+  playSample('ruido_al_matar_al_boss_2', { dest: AUDIO.master });                       // F5.19c: el golpe de la victoria
   showBanner(bossName(z) + ' IS DOWN', 3);
   sfxBossRoar();
 }
 // perk gratis al azar que no tengas (aunque no haya power). null = ya tenés el máximo o no queda ninguno
 function freePerk() {
-  if (state.perks.length >= CONFIG.PERKS.max) return null;
+  if (state.perks.length >= perkMax()) return null;
   const opts = PERK_KEYS.filter(k => !hasPerk(k) && !(PERKM.machines[k] && PERKM.machines[k].gone));
   if (!opts.length) return null;
   const k = opts[Math.floor(Math.random() * opts.length)];
@@ -316,6 +326,7 @@ function startAct(z, kind, t) {
   else if (kind === 'windup') sfxBossRoar();
 }
 function bossTryAttack(z, distP, pl, minTop) {
+  if (z.variant === 'bestia') return beastTryAttack(z, distP, pl, minTop);   // F5.26: zarpazo
   const B = CONFIG.BOSS, P = player.pos;
   if ((z.level || 0) === pl && distP < B.slamRange && z.attackCd <= 0 &&
       segmentClear(z.px, z.pz, P.x, P.z, 0.02, false, minTop, pl)) startAct(z, 'slam', B.slamWind);
@@ -331,7 +342,7 @@ function bossHitPlayer(z, nx, nz, dmg, shield) {
 function bossSlam(z) {
   const B = CONFIG.BOSS, P = player.pos, lv = z.level || 0;
   const dx = P.x - z.px, dz = P.z - z.pz, d = Math.hypot(dx, dz) || 1e-4;
-  BOSS.ring.position.set(z.px, (lv === 1 ? UP.y : groundY(z.px, z.pz)) + 0.04, z.pz);
+  BOSS.ring.position.set(z.px, (lv ? lvY(lv) : groundY(z.px, z.pz)) + 0.04, z.pz);
   BOSS.ringT = B.slamFx; BOSS.ring.visible = true;
   spawnSplashFx(z.px, BOSS.ring.position.y + 0.3, z.pz, 0xc8b48a, B.slamRadius * 0.5);
   addTrauma(0.6 * Math.max(0, 1 - d / 14));
@@ -360,7 +371,13 @@ function inWhistle(z) {
 }
 // true = el boss hizo algo propio este frame (updateZombies no lo mueve)
 function bossTick(z, dt) {
+  if (z.variant === 'bestia') return beastTick(z, dt);            // F5.26 (beast.js)
   const B = CONFIG.BOSS;
+  // F5.19: el Calamarón cerca suena (el sample de Diego), cada tanto
+  if (z.variant === 'calamar' && (z.nearSfxT = (z.nearSfxT || 0) - dt) <= 0) {
+    z.nearSfxT = 9 + Math.random() * 5;
+    playSample('sonido_del_2do_boss_cuando_esta_cerca', { pos: [z.px, 2.5, z.pz], maxDist: 22, vol: 2 });
+  }
   if (z.act) { bossAct(z, dt); return true; }
   if (z.phase === 4) bossGun(z, dt);
   z.speed = bossSpeed(z);                                          // (la minigun lo frena mientras gira)
@@ -606,6 +623,7 @@ function updateBossShots(dt) {
 
 //--- animación ---
 function animateBoss(z, dt, v) {
+  if (z.variant === 'bestia') return animateBeast(z, dt, v);      // F5.26 (beast.js)
   const k = Math.min(1, v / 1.2);
   z.walkT += dt * (2.2 + v * 1.4);
   const s = Math.sin(z.walkT);
@@ -686,7 +704,13 @@ function updateBoss(dt) {
       const d = Math.hypot(q.px - player.pos.x, q.pz - player.pos.z);
       if (d < bd) { bd = d; z = q; }
     }
-    UI.boss.style.display = z ? 'block' : 'none';
+    const plant = !z && typeof plantBossBar === 'function' && plantBossBar();   // F5.20: la planta del templo
+    UI.boss.style.display = z || plant ? 'block' : 'none';
+    if (plant) {
+      UI.bossName.textContent = CONFIG.PLANTBOSS.name;
+      UI.bossFill.style.width = (Math.max(0, PLANTB.hp / PLANTB.max) * 100).toFixed(1) + '%';
+      UI.bossHat.style.width = '0%';
+    }
     if (z) {
       UI.bossName.textContent = bossName(z);
       UI.bossFill.style.width = (Math.max(0, z.health / z.maxHealth) * 100).toFixed(1) + '%';
@@ -706,7 +730,8 @@ function resetBoss() {
   if (BOSS.fogBase && scene.fog) { scene.fog.far = BOSS.fogBase.far; scene.fog.near = BOSS.fogBase.near; }
   for (const z of BOSS.pool) {
     z.act = null; z.phase = 1; z.hatDmg = 0; z.gun = 'idle'; attachHat(z);
-    z.gunModel.visible = false; z.tears.visible = false; z.eyeMat.color.setHex(BOSS_EYE.normal);
+    z.gunModel.visible = false; z.tears.visible = false;
+    if (z.variant !== 'bestia') z.eyeMat.color.setHex(BOSS_EYE.normal);   // F5.28: la Bestia dormida tiene los ojos apagados
   }
   BOSS.ringT = 0; if (BOSS.ring) BOSS.ring.visible = false;
   for (const G of BOSS.guitars) { G.active = false; G.g.visible = false; }

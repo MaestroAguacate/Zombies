@@ -41,7 +41,9 @@ const indoor = G.ROOMS.filter(r => !r.outdoor);   // (F5.17: R21 ya es el capara
 check(indoor.every(r => G.roofAt((r.x1 + r.x2) / 2, (r.z1 + r.z2) / 2)), 'todos los cuartos cerrados tienen techo', indoor.map(r => r.id).join(','));
 check([[8.5, 16], [15, 16], [17, 19], [0, 29]].every(([x, z]) => G.roofAt(x, z)), 'los huecos entre cuartos están tapados');
 const T = CONFIG.TEMPLE.top;
-check(UP.flights.every(S => S.stone || S === CONFIG.SHELL.ramp) && UP.flights.length === CONFIG.TEMPLE.ramps.length + 1, 'F5.16: sin escaleras en la casa (F5.17: las rampas del templo y la escalera del caparazón)');
+const extra = CONFIG.SQUIDBAY.decks.flights.concat(CONFIG.SQUIDHEAD.deck.flights, [CONFIG.SHELL.lab2.flight]);   // F5.22: + el laboratorio   // F5.21: embarcadero y cabeza del calamar
+check(UP.flights.every(S => S.stone || S === CONFIG.SHELL.ramp || extra.includes(S)) && UP.flights.length === CONFIG.TEMPLE.ramps.length + 1 + extra.length,
+  'F5.16: sin escaleras en la casa (F5.17: las rampas del templo y la escalera del caparazón; F5.21: embarcadero y cabeza del calamar)');
 check([[20, 25], [11, 25], [11, 10], [0, 11], [-7.5, 11], [-10, 24]].every(([x, z]) => !G.walkAt(x, z) && G.roofAt(x, z)) &&
       G.walkAt((T.x1 + T.x2) / 2 - 3, (T.z1 + T.z2) / 2 - 5), 'F5.16: el techo de la casa no se camina; la cima del templo sí');
 check(!WORLD.colliders.some(c => c.tag === 'roofrail' && c.maxX > -17 && c.minX < 36 && c.maxZ > 3 && c.minZ < 41), 'F5.16: sin barandas en el techo de la casa (quedan las del templo y del caparazón)');

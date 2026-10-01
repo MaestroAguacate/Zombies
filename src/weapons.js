@@ -35,9 +35,23 @@ function updateAds(dt) {
   ADS.k = want ? Math.min(1, ADS.k + dt / at) : Math.max(0, ADS.k - dt / at);
   const fov = A.baseFov - (A.baseFov - ((def && def.adsFov) || A.fov)) * ADS.k;
   if (Math.abs(camera.fov - fov) > 1e-4) { camera.fov = fov; camera.updateProjectionMatrix(); }
+  // F5.19: mira telescópica (armas con def.scope) o punto de mira al centro (rojo con la mira réflex)
+  const scoped = !!(def && def.scope && ADS.k >= A.scopeAt);
+  if (scoped !== ADS.scoped) {
+    ADS.scoped = scoped;
+    if (UI.scope) UI.scope.style.display = scoped ? 'block' : 'none';
+    if (weaponsState.group) weaponsState.group.visible = !scoped;
+  }
+  if (UI.adsdot) {
+    const dot = !scoped && ADS.k > 0.6 && def && !def.flame, red = !!(def && def.att && def.att.reflex);
+    const cls = dot ? (red ? 'on red' : 'on') : '';
+    if (UI.adsdot.className !== cls) UI.adsdot.className = cls;
+  }
 }
 function resetAds() {
-  ADS.on = false; ADS.k = 0;
+  ADS.on = false; ADS.k = 0; ADS.scoped = false;
+  if (UI.scope) UI.scope.style.display = 'none';
+  if (weaponsState.group) weaponsState.group.visible = true;
   if (camera) { camera.fov = CONFIG.ADS.baseFov; camera.updateProjectionMatrix(); }
 }
 
@@ -95,10 +109,78 @@ function box(w, h, d, color, x, y, z) {
   m.position.set(x, y, z);
   return m;
 }
+// F5.19: cilindro a lo largo de z (cañones) o de x (tambores), y caja que brilla (MeshBasic: sin luces)
+function cylZ(r, len, color, x, y, z) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), new THREE.MeshLambertMaterial({ color }));
+  m.rotation.x = Math.PI / 2; m.position.set(x, y, z); return m;
+}
+function cylX(r, len, color, x, y, z) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 16), new THREE.MeshLambertMaterial({ color }));
+  m.rotation.z = Math.PI / 2; m.position.set(x, y, z); return m;
+}
+function boxGlow(w, h, d, color, x, y, z) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color }));
+  m.position.set(x, y, z); return m;
+}
 function buildWeaponModel(def) {
   const g = new THREE.Group();
   const B = def.bodyColor, W = def.gripColor, D = 0x15171b;
   let grip;
+  // F5.19: las 3 LMG nuevas
+  if (def.model === 'chopper') {                                    // vieja y oxidada, con tambor
+    g.add(box(0.10, 0.11, 0.46, B,     0, 0.02, -0.03));             // cajón
+    for (const [x, y, z, c] of [[0.051, 0.05, 0.05, 0x9a5a2a], [-0.051, -0.01, -0.12, 0x5a2a12], [0.051, -0.02, -0.16, 0x6a3a1a], [-0.051, 0.04, 0.12, 0x9a6a3a]])
+      g.add(box(0.004, 0.035, 0.07, c, x, y, z));                    // manchas de óxido
+    g.add(box(0.085, 0.085, 0.30, 0x3a2a1e, 0, 0.03, -0.40));        // camisa del cañón
+    for (let i = 0; i < 5; i++) for (const s of [-1, 1]) g.add(box(0.004, 0.03, 0.03, 0x0a0806, s * 0.043, 0.03, -0.30 - i * 0.05));   // agujeros
+    g.add(cylZ(0.022, 0.26, D, 0, 0.03, -0.66));                     // cañón
+    g.add(cylZ(0.032, 0.05, 0x2a2018, 0, 0.03, -0.80));              // bocacha
+    g.add(cylX(0.105, 0.075, 0x4a3a2a, 0, -0.14, -0.06));            // tambor
+    g.add(cylX(0.035, 0.08, 0x8a6a3a, 0, -0.14, -0.06));             // tapa del tambor
+    g.add(box(0.02, 0.02, 0.18, 0x2a2018, 0, 0.13, -0.02));          // asa de transporte
+    for (const z of [-0.1, 0.06]) g.add(box(0.02, 0.05, 0.02, 0x2a2018, 0, 0.1, z));
+    for (const s of [-1, 1]) { const b = box(0.012, 0.012, 0.22, D, s * 0.03, -0.04, -0.52); b.rotation.x = 0.12; g.add(b); }   // bípode plegado
+    grip = box(0.07, 0.15, 0.09, W,    0, -0.12, 0.15); g.add(grip);
+    g.add(box(0.08, 0.11, 0.26, W,     0, -0.04, 0.33));             // culata de madera
+    g.add(box(0.082, 0.004, 0.16, 0x2a1a0a, 0, -0.01, 0.34));        // rajadura
+    g.add(box(0.022, 0.03, 0.03, D,    0, 0.1, -0.72));              // mira
+    g.userData.muzzle = new THREE.Vector3(0, 0.03, -0.83);
+  } else if (def.model === 'pigiron') {                             // pesada, remachada, caja de cinta al costado
+    g.add(box(0.13, 0.13, 0.52, B,     0, 0.02, -0.04));             // cajón grueso
+    for (let i = 0; i < 6; i++) for (const s of [-1, 1]) g.add(box(0.006, 0.014, 0.014, 0x9a9aa0, s * 0.066, 0.06 - (i % 2) * 0.06, -0.24 + Math.floor(i / 2) * 0.16));   // remaches
+    g.add(box(0.11, 0.11, 0.34, 0x2e2e32, 0, 0.03, -0.45));          // camisa gruesa
+    for (let i = 0; i < 7; i++) g.add(box(0.13, 0.13, 0.012, 0x222226, 0, 0.03, -0.32 - i * 0.042));   // aletas de enfriamiento
+    g.add(cylZ(0.03, 0.2, D, 0, 0.03, -0.72));                       // cañón
+    g.add(box(0.075, 0.055, 0.07, 0x1a1a1c, 0, 0.03, -0.85));        // freno de boca
+    for (const s of [-1, 1]) g.add(box(0.004, 0.03, 0.012, 0x050505, s * 0.038, 0.03, -0.85));
+    g.add(box(0.09, 0.17, 0.2, 0x4a4a2e, 0.1, -0.06, -0.04));         // caja de munición al costado
+    for (let i = 0; i < 5; i++) g.add(box(0.03, 0.012, 0.02, 0xb8903a, 0.05, 0.03 - i * 0.012, -0.04 + i * 0.01));   // cinta
+    g.add(box(0.03, 0.012, 0.44, 0x1a1a1c, 0, 0.09, -0.08));          // riel
+    g.add(box(0.022, 0.035, 0.02, D,   0, 0.11, -0.28)); g.add(box(0.04, 0.03, 0.02, D, 0, 0.11, 0.12));   // miras de hierro
+    grip = box(0.075, 0.16, 0.09, W,   0, -0.13, 0.17); g.add(grip);
+    g.add(box(0.03, 0.03, 0.28, W,     0, 0.02, 0.35)); g.add(box(0.03, 0.03, 0.28, W, 0, -0.08, 0.35));   // culata de caño
+    g.add(box(0.07, 0.14, 0.03, W,     0, -0.03, 0.49));
+    g.userData.muzzle = new THREE.Vector3(0, 0.03, -0.89);
+  } else if (def.model === 'leviathan') {                           // la buena: negra con franjas que brillan
+    const E = def.flashColor || 0x6af0ff;
+    g.add(box(0.10, 0.12, 0.50, B,     0, 0.02, -0.04));             // cajón
+    for (const s of [-1, 1]) { g.add(boxGlow(0.004, 0.012, 0.42, E, s * 0.052, 0.05, -0.04)); g.add(boxGlow(0.004, 0.012, 0.2, E, s * 0.052, -0.02, 0.06)); }   // franjas
+    g.add(box(0.095, 0.095, 0.36, 0x10181c, 0, 0.03, -0.46));        // camisa ventilada
+    for (let i = 0; i < 6; i++) for (const s of [-1, 1]) g.add(boxGlow(0.004, 0.04, 0.025, E, s * 0.048, 0.03, -0.33 - i * 0.05));
+    g.add(cylZ(0.024, 0.2, 0x0a0e10, 0, 0.03, -0.72));               // cañón
+    g.add(cylZ(0.036, 0.07, 0x1c2a30, 0, 0.03, -0.84));              // bocacha
+    g.add(boxGlow(0.05, 0.05, 0.004, E, 0, 0.03, -0.876));
+    g.add(cylX(0.125, 0.09, 0x14202a, 0, -0.16, -0.05));             // tambor grande
+    g.add(new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.008, 6, 20), new THREE.MeshBasicMaterial({ color: E })));   // anillo del tambor
+    g.children[g.children.length - 1].position.set(0.047, -0.16, -0.05); g.children[g.children.length - 1].rotation.y = Math.PI / 2;
+    g.add(cylZ(0.03, 0.2, 0x0e1418, 0, 0.12, -0.02));                // mira
+    g.add(boxGlow(0.04, 0.04, 0.004, 0x9affd0, 0, 0.12, -0.121));
+    for (const z of [-0.08, 0.04]) g.add(box(0.02, 0.04, 0.02, D, 0, 0.09, z));
+    g.add(box(0.035, 0.12, 0.04, W,    0, -0.08, -0.4));             // empuñadura delantera
+    grip = box(0.07, 0.15, 0.09, W,    0, -0.12, 0.16); g.add(grip);
+    g.add(box(0.075, 0.1, 0.22, B,     0, -0.02, 0.33)); g.add(box(0.075, 0.05, 0.12, B, 0, -0.1, 0.4));   // culata angulosa
+    g.userData.muzzle = new THREE.Vector3(0, 0.03, -0.88);
+  } else
   if (def.model === 'shotgun') {
     g.add(box(0.075, 0.075, 0.90, B,   0, 0.02, -0.28));   // cañón
     g.add(box(0.10, 0.10, 0.30, B,     0, -0.01, 0.06));   // recámara
@@ -156,6 +238,33 @@ function buildWeaponModel(def) {
     g.add(grip);
     g.add(box(0.065, 0.12, 0.30, W,    0, -0.05, 0.36));   // culata
     g.userData.muzzle = new THREE.Vector3(0, 0.035, -0.95);
+  } else if (def.model === 'marksman') {                    // F5.19c: moderno, negro, cargador de 3 y mira grande con lente
+    g.add(box(0.07, 0.08, 0.34, B,     0, 0.02, -0.02));    // cajón
+    g.add(box(0.075, 0.07, 0.36, D,    0, 0.0, -0.36));     // guardamanos con rieles
+    for (let k = 0; k < 5; k++) g.add(box(0.08, 0.01, 0.03, 0x1a1a1c, 0, 0.04, -0.22 - k * 0.07));
+    g.add(box(0.03, 0.03, 0.46, D,     0, 0.03, -0.72));    // cañón
+    g.add(box(0.05, 0.045, 0.08, D,    0, 0.03, -0.97));    // freno de boca
+    g.add(box(0.06, 0.06, 0.34, 0x202226, 0, 0.13, -0.06)); // mira
+    g.add(box(0.07, 0.07, 0.04, 0x202226, 0, 0.13, -0.24)); // campana de la mira
+    g.add(boxGlow(0.05, 0.05, 0.005, 0x4ab8ff, 0, 0.13, -0.262));   // lente
+    g.add(box(0.05, 0.10, 0.08, 0x1a1a1c, 0, -0.08, -0.08)); // cargador corto (3)
+    grip = box(0.055, 0.14, 0.07, W,   0, -0.11, 0.12);
+    g.add(grip);
+    g.add(box(0.06, 0.1, 0.26, B,      0, -0.02, 0.34));    // culata esqueleto
+    g.add(box(0.06, 0.03, 0.2, D,      0, 0.06, 0.34));
+    g.userData.muzzle = new THREE.Vector3(0, 0.03, -1.02);
+  } else if (def.model === 'farmhand') {                    // F5.19c: rifle de granja viejo, madera gastada y mira chica
+    g.add(box(0.06, 0.075, 0.62, W,    0, -0.005, -0.22));  // madera larga
+    g.add(box(0.065, 0.06, 0.16, 0x5a5a5a, 0, 0.035, 0.03)); // cerrojo
+    g.add(box(0.018, 0.018, 0.06, 0x7a7a7a, 0.045, 0.04, 0.06)); // manija del cerrojo
+    g.add(box(0.026, 0.026, 0.5, 0x4a4a4a, 0, 0.03, -0.66)); // cañón
+    g.add(box(0.035, 0.035, 0.18, 0x3a3a3a, 0, 0.11, -0.04)); // mira chica y vieja
+    g.add(box(0.03, 0.02, 0.04, 0x8a6a3a, 0, 0.05, -0.2));  // cinta atada
+    grip = box(0.06, 0.12, 0.08, W,    0, -0.1, 0.14);
+    g.add(grip);
+    g.add(box(0.065, 0.13, 0.3, W,     0, -0.06, 0.37));    // culata
+    g.add(box(0.07, 0.02, 0.1, 0x3a2a1a, 0, 0.0, 0.3));     // remiendo
+    g.userData.muzzle = new THREE.Vector3(0, 0.03, -0.92);
   } else if (def.model === 'flamethrower') {
     g.add(box(0.07, 0.07, 0.55, B,     0, 0.02, -0.22));   // tubo
     g.add(box(0.06, 0.06, 0.10, D,     0, 0.02, -0.53));   // boquilla
@@ -300,6 +409,7 @@ function buildMacheteModel() {
 // el arma de cuerpo a cuerpo vigente: cuchillo o, si lo compraste, machete (mismo cooldown, alcance y swing)
 let MACHETE_DEF = null;
 function meleeDef() {
+  if (TROPH.claws) return clawsDef();                    // F5.26: las garras de la Bestia (Altar de Huesos)
   if (!state.machete) return CONFIG.KNIFE;
   return MACHETE_DEF || (MACHETE_DEF = Object.assign({}, CONFIG.KNIFE,
     { name: CONFIG.MACHETE.name, damage: CONFIG.MACHETE.damage, headshotMul: CONFIG.MACHETE.headshotMul }));
@@ -314,9 +424,16 @@ function papDef(id) {
   const b = CONFIG.WEAPONS[id], P = CONFIG.PAP, d = Object.assign({}, b);
   if (b.damage !== undefined) d.damage = b.damage * P.dmgMul;
   if (b.dps !== undefined) d.dps = b.dps * P.dmgMul;
-  d.magSize = Math.ceil(b.magSize * P.ammoMul);
+  d.magSize = Math.ceil(b.magSize * P.ammoMul) * (b.papDual ? 2 : 1);   // F5.19c: dos pistolas = el doble de cargador
   d.reserveMax = Math.ceil(b.reserveMax * P.ammoMul);
   d.name = b.papName; d.pap = true;
+  if (b.lmg && d.magSize + d.reserveMax > P.lmgCap) d.reserveMax = Math.max(0, P.lmgCap - d.magSize);   // F5.19d: tope de las LMG
+  if (b.papDual) { d.dual = true; if (b.papFireRate) d.fireRate = b.papFireRate; d.handRate = b.papHandRate || d.fireRate; }
+  if (b.papOneShot) d.oneShot = b.papOneShot;                           // F5.24: un tiro mata hasta esa ronda
+  // F5.19d (Diego): GRAVE WHISPER pega papDmgMul más (bala y explosión)
+  const xm = b.papDmgMul || 1;
+  if (xm !== 1 && d.damage !== undefined) d.damage *= xm;
+  if (b.papExplosive) d.explosive = xm !== 1 ? Object.assign({}, b.papExplosive, { damage: b.papExplosive.damage * xm, perRound: b.papExplosive.perRound * xm }) : b.papExplosive;
   return (PAP_DEFS[id] = d);
 }
 // el def que rige un slot del inventario (mejorado o no). Todo lo que lee munición o daño pasa por acá
@@ -390,6 +507,13 @@ function equipModel(def) {
   if (def.pap) applyCamo(weaponsState.model);
   else if (def.camo) tintModel(weaponsState.model, def.camo);        // F5.18: camuflaje de la carga
   if (def.att) addAttachmentModels(weaponsState.model, def.att, def);      // F5.18: accesorios (cubos)
+  weaponsState.dualModel = null;
+  if (def.dual) {                                     // F5.19c: la pistola con PaP son dos: la otra en la mano izquierda
+    const m2 = applyCamo(buildWeaponModel(def));
+    m2.position.set(-0.46, -0.02, 0.04); m2.rotation.z = 0.08;
+    weaponsState.model.add(m2);
+    weaponsState.dualModel = m2; weaponsState.dualKick = 0;             // F5.24: la izquierda retrocede sola
+  }
   weaponsState.group.add(weaponsState.model);
   const mz = weaponsState.model.userData.muzzle;
   weaponsState.muzzleSprite.position.copy(mz).add(new THREE.Vector3(0, 0, -0.04));
@@ -418,7 +542,7 @@ function giveWeapon(id) {
 
 function switchWeapon(dir) {
   if (state.weapons.length < 2 || DOWN.on) return;
-  if (weaponsState.phase === 'switching' || weaponsState.phase === 'grenade') return;
+  if (weaponsState.phase === 'switching' || weaponsState.phase === 'grenade' || weaponsState.phase === 'drink') return;
   const n = state.weapons.length;
   weaponsState.pendingSlot = (state.currentWeapon + (dir || 1) + n) % n;
   weaponsState.phase = 'switching';
@@ -428,7 +552,7 @@ function switchWeapon(dir) {
 // F3a: teclas 1 y 2. Con el escudo equipado, guarda el escudo y saca esa arma
 function selectWeapon(i) {
   const W = weaponsState;
-  if (DOWN.on || i >= state.weapons.length || W.phase === 'switching' || W.phase === 'grenade' || W.phase === 'melee') return;
+  if (DOWN.on || i >= state.weapons.length || W.phase === 'switching' || W.phase === 'grenade' || W.phase === 'melee' || W.phase === 'drink') return;
   if (i === state.currentWeapon && W.phase !== 'shield') return;
   if (W.phase === 'reloading') UI.reload.style.opacity = '0';
   W.pendingSlot = i; W.phase = 'switching'; W.phaseT = 0;
@@ -463,7 +587,7 @@ function meleeAttack() {
   const K = meleeDef(), W = weaponsState;              // F3b: cuchillo o machete
   const now = performance.now();
   if (now - meleeState.lastAttack < K.cooldown) return;
-  if (W.phase === 'switching' || W.phase === 'melee' || W.phase === 'grenade' || W.phase === 'shield') return;
+  if (W.phase === 'switching' || W.phase === 'melee' || W.phase === 'grenade' || W.phase === 'shield' || W.phase === 'drink') return;   // F5.19c: tomando el perk
 
   meleeState.lastAttack = now;
   W.phase = 'melee'; W.phaseT = 0;
@@ -480,12 +604,17 @@ function meleeAttack() {
     if (!z.alive) continue;
     for (let k = 0; k < z.hitParts.length; k++) targets.push(z.hitParts[k]);
   }
+  // F5.23: agarrado por la lengua de la planta, el cuchillazo va a la lengua si la estás mirando (no hace falta el rayo)
+  if (plantTongueStab(dir)) return;
+  if (beastTentacleStab(dir)) return;                   // F5.28: el tentáculo de la Bestia, igual
+  if (plantRootCut()) return;                           // F5.24: encerrado por las raíces, el cuchillo corta la jaula
   const hits = raycaster.intersectObjects(targets, false);
   if (!hits.length) return;
 
   const h = hits[0], t = h.object.userData.type;
   if (t === 'generator') { hitGenerator(h.object.userData.gen); return; }   // F2.5: solo el cuchillo lo prende
   if (hitPalm(h.object)) return;                                            // F5.5: el machete voltea la palmera
+  if (t === 'plantBoss' && plantBossHit(K.damage * (gumActive('sharpedge') ? 4 : 1), !!h.object.userData.head, h.point)) return;   // F5.20
   if (t !== 'zombieHead' && t !== 'zombieBody') { addImpactDecal(h); return; }
 
   const head = t === 'zombieHead';
@@ -500,14 +629,17 @@ function meleeAttack() {
 }
 
 //--- DISPARO (hitscan) ---
-function fireWeapon() {
+// F5.24: hand = 'L' | 'R' para las dos pistolas de la GRAVE WHISPER (clic izquierdo / derecho), cada una con su cadencia
+function fireWeapon(hand) {
   const s = curSlot(), def = curDef();
-  if (!s || !def || !state.running) return;
+  if (!s || !def || !state.running || BUNK.travel) return;       // F5.19c: no se dispara en el viaje
   if (weaponsState.phase !== 'idle') return;
 
   const now = performance.now();
   const rate = def.fireRate / perkRate();                // F2: Double Tap acorta el intervalo
-  if (now - weaponsState.lastShot < rate) return;
+  const H = def.dual ? (hand === 'L' ? 'L' : 'R') : null, HS = weaponsState.handShot || (weaponsState.handShot = { L: -1e9, R: -1e9 });
+  if (H) { if (now - HS[H] < def.handRate / perkRate()) return; }
+  else if (now - weaponsState.lastShot < rate) return;
 
   if (s.mag <= 0) {
     if (s.reserve > 0) reloadWeapon(); else sfxDry();
@@ -520,8 +652,9 @@ function fireWeapon() {
 
   // fuego sostenido: el reloj avanza de a fireRate, no salta a "ahora". Si no, la cadencia se redondea
   // al frame siguiente (SMG 90ms -> 100ms a 60fps, -10% dps). Tras una pausa larga, arranca de cero.
-  W.lastShot = now - W.lastShot < rate * 2 ? W.lastShot + rate : now;
-  if (!gumActive('freefire')) s.mag--;                            // F5.18b: FREE FIRE
+  if (H) { HS[H] = now; W.lastShot = now; }                // F5.24: cada mano con su reloj
+  else W.lastShot = now - W.lastShot < rate * 2 ? W.lastShot + rate : now;
+  if (!gumActive('freefire')) s.mag = Math.max(0, s.mag - (gumActive('halfmag') ? 2 : 1));   // F5.18b: FREE FIRE (F5.20: HALF MAG gasta 2)
 
   // F5.11: bazooka: un cohete que vuela y explota (no es hitscan, no cuenta para precisión)
   if (def.rocket) {
@@ -583,6 +716,11 @@ function fireWeapon() {
   weaponsState.muzzleUntil = now + CONFIG.FX.muzzleMs;
   weaponsState.muzzleSprite.visible = true;
   weaponsState.muzzleSprite.rotation.z = Math.random() * Math.PI;
+  if (H && weaponsState.model) {                          // F5.24: el fogonazo sale de la pistola que disparó
+    const mz = weaponsState.model.userData.muzzle;
+    weaponsState.muzzleSprite.position.copy(mz).add(_mzOff.set(H === 'L' ? -0.46 : 0, H === 'L' ? -0.02 : 0, -0.04));
+    if (H === 'L') weaponsState.dualKick = 1;
+  }
   weaponsState.muzzleLightView.intensity = 2.6;
   weaponsState.muzzleLightWorld.intensity = 2.2;
   weaponsState.muzzleLightWorld.position.copy(origin)
@@ -658,6 +796,8 @@ function updateRockets(dt) {
       const at = hit ? hit.point.clone().addScaledVector(R.d, -0.2) : R.p;
       R.active = false; R.m.visible = false;
       explodeAt(at.x, at.y, at.z, { damage: R.def.damage * perkDmg(), radius: R.def.radius, self: R.def.selfDamage, src: R.def.id });
+      // F5.20: el impacto de Diego (el de PaP si está mejorada), en 3D
+      playSample(R.def.pap ? 'bazooka_cuando_pega_pap' : 'bazooka_cuando_pega', { pos: [at.x, at.y, at.z], maxDist: 60, vol: 1.2 });
       continue;
     }
     R.p.addScaledVector(R.d, step);
@@ -681,7 +821,8 @@ function traceShot(origin, dir, def) {
     for (let k = 0; k < z.hitParts.length; k++) targets.push(z.hitParts[k]);
   }
 
-  const hits = raycaster.intersectObjects(targets, false);
+  // F5.20: las balas pasan por el hueco de las ventanas de barricada (la pared invisible sigue ahí, pero no cuenta)
+  const hits = raycaster.intersectObjects(targets, false).filter(h => h.object.userData.zombie || !inWindowHole(h.point));
   if (!hits.length) return null;
   if (def.pierce) return tracePierce(hits, dir, def);  // F3b: ballesta
 
@@ -693,16 +834,60 @@ function traceShot(origin, dir, def) {
     const head = t === 'zombieHead';
     const z = h.object.userData.zombie;
     shotImpact.zombie = z;
-    const dmg = def.damage * (head ? def.headshotMul : 1) * perkDmg();   // F2: Double Tap
+    let dmg = def.damage * (head ? def.headshotMul : 1) * perkDmg();   // F2: Double Tap
+    if (def.oneShot && state.round <= def.oneShot && !z.boss) dmg = Math.max(dmg, z.health);   // F5.24: GRAVE WHISPER
+    const hp0 = z.health;
     damageZombie(z, dmg, head, undefined, undefined, h.object.userData.part);   // F4/F5: piernas, sombrero
     feelOnZombieHit(z, h, dir, dmg, head);
-    return { head, kill: !z.alive };
+    let kill = !z.alive;
+    // F5.19c (Diego): la bala del sniper que le sobra daño sigue al zombie de atrás, si está pegado (penGap m)
+    if (def.penetrate && kill && dmg > hp0) kill = penetrateShot(hits, 1, h, z, dmg - hp0, dir, def) || kill;
+    if (def.explosive) explosiveRound(h.point, def);              // F5.19c: la pistola con PaP
+    return { head, kill };
   }
 
+  if (t === 'plantTongue') { plantTongueShot(h.point); return null; }   // F5.23: la lengua de la planta te suelta
+  if (t === 'beastTentacle') { beastTentacleShot(h.point); return null; }   // F5.28: el tentáculo de la Bestia
   if (t === 'questShell' && shootShell()) return null;   // F5.9: la caracola brillante se cae de la tortuga
-  if (t === 'tomb') shootTomb();                          // F5.16: la tumba del templo sangra y se abre el portal
+  if (t === 'tomb') shootTomb();                         // F5.16: la tumba del templo sangra y se abre el portal
+  if (t === 'barrel') shootBarrel(h.object);             // F5.26: barril de gasolina del búnker
+  if (t === 'beastSleep') { wakeBeast(); return null; }  // F5.26: le disparaste a la Bestia dormida
+  // F5.20: la planta jefa del templo (cuenta como impacto para la precisión)
+  if (t === 'plantBoss' && plantBossHit(def.damage * perkDmg(), !!h.object.userData.head, h.point)) {
+    if (def.explosive) explosiveRound(h.point, def);
+    return { head: !!h.object.userData.head, kill: PLANTB.dead };
+  }
   addImpactDecal(h);
+  if (def.explosive) explosiveRound(h.point, def);        // F5.19c: explota también contra la pared o el piso
   return null;                           // impacto en mundo no cuenta como "hit" de precisión
+}
+// F5.19c: sigue por los impactos después del zombie muerto: el siguiente zombie distinto, antes de cualquier pared y a
+// menos de CONFIG.WEAPONS_PEN.gap m del anterior, recibe el daño que sobró. Hasta def.penetrate zombies más
+function penetrateShot(hits, _i, prevHit, prevZ, left, dir, def) {
+  let kill = false, n = 0, last = prevHit.point, seen = new Set([prevZ]);
+  for (const h of hits) {
+    if (h.distance <= prevHit.distance) continue;
+    const t = h.object.userData.type;
+    if (t !== 'zombieHead' && t !== 'zombieBody') break;           // una pared corta
+    const z = h.object.userData.zombie;
+    if (seen.has(z) || !z.alive) continue;
+    if (h.point.distanceTo(last) > CONFIG.PENETRATE.gap) break;      // el de atrás tiene que estar pegado
+    seen.add(z);
+    const hp0 = z.health, hd = t === 'zombieHead';
+    damageZombie(z, left, hd, undefined, undefined, h.object.userData.part);
+    feelOnZombieHit(z, h, dir, left, hd);
+    if (!z.alive) kill = true;
+    left -= hp0; last = h.point;
+    if (left <= 0 || z.alive || ++n >= def.penetrate) break;
+  }
+  return kill;
+}
+// F5.19c: bala explosiva (la M1911 con PaP): una granada chica en el punto de impacto, sin daño propio
+function explosiveRound(p, def) {
+  const E = def.explosive;
+  explodeAt(p.x, p.y, p.z, { damage: E.damage + E.perRound * state.round, radius: E.radius, self: 0, small: true, src: 'm1911', color: 0xff7a3a });
+  // F5.24 (Diego): el impacto suena como la bazooka con PaP (un poco más bajo: son muchas balas)
+  playSample('bazooka_cuando_pega_pap', { pos: [p.x, p.y, p.z], maxDist: 50, vol: 0.75 });
 }
 
 // F3b: atraviesa hasta def.pierce zombies (cada uno una vez, aunque el rayo toque varias partes) y frena en
@@ -714,6 +899,11 @@ function tracePierce(hits, dir, def) {
     const t = h.object.userData.type;
     if (t !== 'zombieHead' && t !== 'zombieBody') {
       if (t === 'tomb') shootTomb();                    // F5.16
+      if (t === 'barrel') shootBarrel(h.object);        // F5.26
+      if (t === 'beastSleep') { wakeBeast(); shotImpact.point.copy(h.point); break; }
+      if (t === 'plantTongue') { plantTongueShot(h.point); shotImpact.point.copy(h.point); break; }   // F5.23
+      if (t === 'beastTentacle') { beastTentacleShot(h.point); shotImpact.point.copy(h.point); break; }   // F5.28
+      if (t === 'plantBoss' && plantBossHit(def.damage * perkDmg(), !!h.object.userData.head, h.point)) { n++; shotImpact.point.copy(h.point); break; }   // F5.20
       if (!(t === 'questShell' && shootShell())) addImpactDecal(h);
       shotImpact.point.copy(h.point); break;
     }
@@ -732,7 +922,7 @@ function tracePierce(hits, dir, def) {
 
 //--- RAY GUN: área alrededor del impacto (el impactado directo ya recibió daño completo en traceShot) ---
 // Sin línea libre (segmentClear) no hay daño: el área no atraviesa paredes. No daña al jugador.
-const _sp = new THREE.Vector3();
+const _sp = new THREE.Vector3(), _mzOff = new THREE.Vector3();
 function applySplash(def, dir) {
   const I = shotImpact;
   if (!I.valid) return null;
@@ -996,12 +1186,50 @@ function updateBlood(dt) {
 }
 
 //--- actualización por frame del arma ---
+// F5.19c (Diego): al comprar un perk te lo tomás: el arma baja, la botella del color del perk sube, se inclina a la boca y
+// baja (CONFIG.PERKS.drinkTime s). Mientras tanto no disparás, ni acuchillás, ni cambiás de arma. La botella va en la
+// escena del arma, construida una vez
+function startDrink(color) {
+  const W = weaponsState;
+  if (!W.bottle) {
+    const g = new THREE.Group(), glass = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x111111 });
+    const add = (w, h, d, m, x, y, z) => { const q = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); q.position.set(x, y, z); g.add(q); return q; };
+    add(0.075, 0.16, 0.075, glass, 0, 0, 0);                                     // cuerpo
+    add(0.045, 0.06, 0.045, glass, 0, 0.11, 0);                                  // hombro
+    add(0.03, 0.06, 0.03, glass, 0, 0.165, 0);                                   // pico
+    add(0.036, 0.016, 0.036, new THREE.MeshLambertMaterial({ color: 0xd8c040 }), 0, 0.2, 0);   // tapita
+    add(0.078, 0.07, 0.078, new THREE.MeshLambertMaterial({ color: 0xf4f0e0 }), 0, -0.01, 0);  // etiqueta
+    const hand = new THREE.MeshLambertMaterial({ color: 0xc8906a });
+    add(0.1, 0.06, 0.09, hand, 0.02, -0.04, 0.02);                               // mano
+    for (let k = 0; k < 3; k++) add(0.02, 0.02, 0.07, hand, -0.035, -0.02 + k * 0.03, 0.04);   // dedos
+    W.bottle = g; W.bottleMat = glass; g.visible = false; weaponScene.add(g);
+  }
+  W.bottleMat.color.setHex(color); W.bottleMat.emissive.setHex(color).multiplyScalar(0.25);
+  W.bottle.visible = true;
+  ADS.on = false;
+  W.phase = 'drink'; W.phaseT = 0;
+  UI.reload.style.opacity = '0';
+  animateBottle(0);
+}
+function animateBottle(p) {
+  const b = weaponsState.bottle;
+  if (!b) return;
+  const up = Math.min(1, p / 0.2), down = p > 0.8 ? (p - 0.8) / 0.2 : 0, tilt = p < 0.2 ? 0 : p > 0.8 ? 1 - down : Math.min(1, (p - 0.2) / 0.15);
+  const e = up * up * (3 - 2 * up) * (1 - down * down);
+  b.position.set(0.16 - 0.14 * e, -0.55 + 0.42 * e, -0.42 + 0.14 * tilt);
+  b.rotation.set(1.9 * tilt + Math.sin(p * 40) * 0.03 * tilt, 0.3, -0.25 * e);
+}
 function updateWeapon(dt) {
   // F2b: sin arma (está en el Pack-a-Punch) igual corre: el cuchillo y las granadas necesitan las fases
   const def = curDef();
   const W = weaponsState;
   if (!def && W.phase === 'reloading') { W.phase = 'idle'; W.phaseT = 0; }
+  if (def && def.dual) ADS.on = false;                 // F5.24: con las dos pistolas el clic derecho dispara (sin ADS)
   updateAds(dt);                                       // F3b
+  if (W.dualModel) {                                   // F5.24: la pistola izquierda retrocede cuando dispara
+    W.dualKick = Math.max(0, (W.dualKick || 0) - dt * 9);
+    W.dualModel.position.z = 0.04 + W.dualKick * 0.07; W.dualModel.rotation.x = W.dualKick * 0.28;
+  }
   const now = performance.now();
 
   // apagar fogonazo
@@ -1102,6 +1330,12 @@ function updateWeapon(dt) {
       updateAmmoHUD();
     }
     if (p >= 1) { W.phase = 'idle'; W.phaseT = 0; }
+  } else if (W.phase === 'drink') {                    // F5.19c: tomándose el perk (sin disparar)
+    W.phaseT += dt * 1000;
+    const T = CONFIG.PERKS.drinkTime * 1000, p = Math.min(1, W.phaseT / T);
+    phY = -0.7; phRotX = -1.0;
+    animateBottle(p);
+    if (p >= 1) { W.phase = 'idle'; W.phaseT = 0; if (W.bottle) W.bottle.visible = false; }
   } else if (W.phase === 'shield') {
     phY = -0.7; phRotX = -1.0;                         // F3a: con el escudo el arma queda fuera de vista
   } else if (W.phase === 'grenade') {

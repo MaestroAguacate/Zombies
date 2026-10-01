@@ -41,7 +41,7 @@ function buildGrenades() {
 // G apretada: saca el pin. true = empezó a cocinar
 function startCook() {
   const W = weaponsState;
-  if (!state.running || state.gameOver || GREN.cooking || GREN.throwT > 0 || DOWN.on) return false;
+  if (!state.running || state.gameOver || GREN.cooking || GREN.throwT > 0 || DOWN.on || W.phase === 'drink') return false;   // F5.19c
   if (state.grenades <= 0) { sfxDry(); return false; }
   if (W.phase === 'switching' || W.phase === 'melee' || W.phase === 'shield') return false;
   if (W.phase === 'reloading') UI.reload.style.opacity = '0';   // se corta (la munición pasa recién al completarse)
@@ -61,8 +61,10 @@ function releaseGrenade() {
   // sale a 0.25 m del ojo: menos que el radio del jugador (0.35), así nunca nace dentro de una pared
   const e = feel.eye;
   sfxSwing();
-  return spawnGrenade(e.x + dir.x * 0.25, e.y + dir.y * 0.25 - 0.1, e.z + dir.z * 0.25,
+  const g = spawnGrenade(e.x + dir.x * 0.25, e.y + dir.y * 0.25 - 0.1, e.z + dir.z * 0.25,
     dir.x * G.throwSpeed, dir.y * G.throwSpeed + G.throwUp, dir.z * G.throwSpeed, G.fuse - GREN.cookT);
+  if (g) { g.slime = TROPH.slime > 0; if (g.slime) TROPH.slime--; }   // F5.26: bomba de slime (Altar de Huesos)
+  return g;
 }
 function spawnGrenade(x, y, z, vx, vy, vz, fuse) {
   const g = GREN.pool.find(q => !q.active);
@@ -129,17 +131,20 @@ function explodeAt(x, y, z, opts) {
   let hits = 0, kills = 0;
   for (const q of state.zombies.slice()) {
     if (!q.alive || (q.level || 0) !== gl || (o.skipBoss && q.boss)) continue;   // el techo separa: arriba no daña abajo ni al revés
-    const cy = (q.level === 1 ? UP.y : groundY(q.px, q.pz)) + 1.0;  // centro del cuerpo
+    const cy = (q.level ? lvY(q.level) : groundY(q.px, q.pz)) + 1.0;  // centro del cuerpo (F5.22: niveles 1 y 2)
     const d = Math.hypot(q.px - x, cy - y, q.pz - z);
     // línea libre, sin contar lo más bajo que la explosión o que el centro del cuerpo (mesas, sofás)
     if (d > R || !segmentClear(x, z, q.px, q.pz, 0, true, gl ? undefined : Math.max(y, cy), gl)) continue;
-    const dmg = center * (1 - (1 - G.edgeMul) * d / R);
+    // F5.26: opts.bossFrac (barriles del búnker): a los bosses, esa fracción de su vida máxima (con la misma caída)
+    const dmg = (q.boss && o.bossFrac ? q.maxHealth * o.bossFrac : center) * (1 - (1 - G.edgeMul) * d / R);
     damageZombie(q, dmg, false);
     spawnDamageNumber(q, _gp.set(q.px, cy + 0.6, q.pz), dmg, false);
     hits++;
     if (!q.alive) kills++;
   }
   STATS.src = prevSrc;
+  hits += plantBossBlast(x, y, z, center, R, gl);                  // F5.20: la planta jefa del templo
+  barrelBlast(x, y, z, R);                                         // F5.26: prende los barriles de gasolina de al lado
   // jugador: daño propio ignorando el i-frame (puede matar) y shake por distancia
   const pc = player.pos.y - CONFIG.PLAYER.height / 2;
   const dp = Math.hypot(player.pos.x - x, pc - y, player.pos.z - z);
@@ -148,10 +153,10 @@ function explodeAt(x, y, z, opts) {
     self = selfDmg;
     damagePlayer(selfDmg, x, z, true);
   }
-  addTrauma(G.shakeMax * Math.max(0, 1 - dp / G.shakeDist));
+  addTrauma(G.shakeMax * (o.small ? 0.25 : 1) * Math.max(0, 1 - dp / G.shakeDist));   // F5.19c: small = bala explosiva
   spawnSplashFx(x, y + 0.3, z, o.color || 0xffa040, R * 0.6);
   GREN.light.position.set(x, y + 0.6, z); GREN.lightT = G.lightTime;
-  sfxExplosion(dp);
+  sfxExplosion(o.small ? dp + 14 : dp);
   if (hits) onHitConfirm(false, kills > 0);
   return { hits, kills, self };
 }
@@ -215,7 +220,7 @@ function throwMonkey() {
 function monkeyLure() {
   let best = null;
   for (const m of MONKEY.pool) if (m.state === 'dance' && (!best || m.t > best.t)) best = m;
-  return best ? { x: best.p.x, z: best.p.z } : null;
+  return best ? { x: best.p.x, z: best.p.z } : mariachiLure();   // F5.19: la tortuga mariachi de la trampa del claro
 }
 function updateMonkeys(dt) {
   const M = CONFIG.MONKEY;
@@ -282,6 +287,7 @@ function updateGrenades(dt) {
     if (g.fuse <= 0) {
       g.active = false; g.mesh.visible = false;
       explodeAt(g.p.x, g.p.y, g.p.z);
+      if (g.slime) { g.slime = false; slimeZone(g.p.x, g.p.z, levelAt(g.p.x, g.p.z, g.p.y - 0.2)); }   // F5.26
     }
   }
   if (GREN.lightT > 0) {

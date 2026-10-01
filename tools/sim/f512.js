@@ -13,11 +13,12 @@ function setPlayer(x, z) { player.pos.set(x, G.groundY(x, z) + P.height, z); G.u
 const nearNav = (x, z) => { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (G.flowAt(Math.floor(x) + dx, Math.floor(z) + dz) >= 0) return true; return false; };
 
 // 1) cercos que se queman
-fresh(); ['D11', 'D14'].forEach(G.openDoor); setPlayer(0, 50);            // F5.16: se prueba con H6 (jardines norte -> templo)
+// F5.16: se prueba con H6 (F5.19: del jardín trasero al sendero largo del templo)
+fresh(); ['D1', 'D3', 'D17'].forEach(G.openDoor); setPlayer(10, 35);
 const H4 = state.doors.H6;
 check(CONFIG.BURN.hedges.every(h => state.doors[h.id] && state.doors[h.id].burn), 'F5.16: 3 lianas que se queman (H2, H6, H8)', CONFIG.BURN.hedges.map(h => h.id).join(' '));
 check(CONFIG.BURN.hedges.length === 3 && !nearNav(70, 60), 'con H6 cerrado no se llega al templo');
-player.pos.set(30.5, P.height, 56.8); G.updateInteract();
+player.pos.set(30.5, P.height, 38.8); G.updateInteract();
 check(G.interactState.kind === 'door' && G.interactState.target === H4 && G.promptFor(G.interactState).text === '[F] Burn the vines - 2000', 'cartel: "Quemar el cerco - 2000"');
 const pts = state.points;
 check(G.interact() && H4.burning && !H4.open && state.points === pts - 2000, 'cobra y empieza a arder (todavía cerrado)');
@@ -27,30 +28,32 @@ const c = H4.mesh.material.color;
 check(H4.flames.every(f => f.visible) && c.r < 0.8 && H4.collider.solid, 'arde: llamas, se pone negro y sigue frenando');
 for (let i = 0; i < 60 * CONFIG.BURN.time; i++) { G.tick(dt); G.updateGarden(dt); }
 check(H4.open && !H4.burning && !H4.collider.solid && !H4.mesh.parent && H4.flames.every(f => !f.visible), 'al terminar de quemarse se abre y desaparece');
-setPlayer(0, 50);
-check(nearNav(70, 60), 'ahora se pasa de los jardines al templo');
+setPlayer(10, 35);
+check(nearNav(70, 60), 'ahora se pasa del jardín trasero al templo');
 G.resetGame();
 check(!H4.open && H4.collider.solid && H4.mesh.parent && H4.mesh.material.color.getHex() === 0xffffff, 'resetGame: el cerco vuelve, verde');
 
 // 2) la jungla
-fresh(); G.debugOpenAllDoors(); setPlayer(0, 50);
-// F5.15: la jungla vieja es espesura; quedan áreas (R15/R17/R18/R19/R20) unidas por senderos
-check(G.roomAt(0, 50).id === 'R15' && G.roomAt(-60, 60).id === 'R17' && !G.roomAt(45, 10) && G.inThicket(45, 10) && !G.roomAt(-50, 10), 'áreas de la jungla (norte, claro) y espesura entre medio (F5.16: el campamento es espesura)');
-check(nearNav(-70, 70) && nearNav(57, 95) && nearNav(-70, -55) && !nearNav(50, 30), 'se llega a las 3 puntas (claro, templo, calamar); al campamento no');
+fresh(); G.debugOpenAllDoors(); setPlayer(10, 35);
+// F5.15: la jungla vieja es espesura; quedan áreas unidas por senderos (F5.19: sin jardín norte: el sendero del templo)
+// F5.28e: el sendero del templo pasó a ser la bajada a las catacumbas (R23)
+check(G.roomAt(30.5, 50).id === 'R23' && !G.roomAt(0, 50) && G.roomAt(-60, 60).id === 'R17' && !G.roomAt(45, 10) && G.inThicket(45, 10) && !G.roomAt(-50, 10), 'áreas de la jungla (sendero del templo, claro) y espesura entre medio (F5.16: el campamento es espesura)');
+check(nearNav(-70, 70) && nearNav(57, 95) && nearNav(-59, -45) && !nearNav(50, 30), 'se llega a las 3 puntas (claro, templo, embarcadero); al campamento no');
 const trees = G.JUNGLE.trees;
-check(trees.length > 20 && trees.every(t => G.PROPS.some(p => p.id === t.id && p.collider)), 'árboles con tronco sólido', `(${trees.length})`);
-check(trees.every(t => G.roomAt(t.x, t.z) && ['R15', 'R17', 'R20'].includes(G.roomAt(t.x, t.z).id)), 'todos adentro de un área de jungla (F5.15: y el templo)');
-check(G.SPAWN_POINTS.filter(s => ['R15', 'R17'].includes(s.room)).every(s => s.valid && G.flowAt(s.cx, s.cz) >= 0), 'spawns de la jungla válidos y alcanzables');
-// el borde de afuera frena
-player.pos.set(-73, P.height, 30); player.vel.set(0, 0, 0); player.yaw = Math.PI / 2; G.keys.KeyW = true;
+check(trees.length >= 8 && trees.every(   // F5.19: sin el jardín norte quedan pocos (claro y templo)
+t => G.PROPS.some(p => p.id === t.id && p.collider)), 'árboles con tronco sólido', `(${trees.length})`);
+check(trees.every(t => G.roomAt(t.x, t.z) && ['R17', 'R20'].includes(G.roomAt(t.x, t.z).id)), 'todos adentro de un área de jungla (F5.15: y el templo)');
+check(G.SPAWN_POINTS.filter(s => ['R17'].includes(s.room)).every(s => s.valid && G.flowAt(s.cx, s.cz) >= 0), 'spawns de la jungla válidos y alcanzables');
+// el borde de afuera frena (F5.19: al oeste del tortugario, en x -86)
+player.pos.set(-84, P.height, 25); player.vel.set(0, 0, 0); player.yaw = Math.PI / 2; G.keys.KeyW = true;
 for (let i = 0; i < 90; i++) { G.tick(dt); G.updatePlayer(dt); }
 G.keys.KeyW = false;
-check(player.pos.x > -75, 'el borde de la jungla frena (F5.13: x -75)', `(x ${player.pos.x.toFixed(2)})`);
+check(player.pos.x > -86, 'el borde de la jungla frena (F5.19: x -86)', `(x ${player.pos.x.toFixed(2)})`);
 
 // 3) el búnker se mudó bajo el mar y sigue andando
 const B = CONFIG.BUNKER;
-check(B.z2 < -60 && G.roomAt(-24, -78).id === 'R16' && G.groundY(-24, -78) === B.y, 'el búnker está bajo el mar, al sur del muelle');
-fresh(); G.debugOpenAllDoors(); G.openBunker(); setPlayer(-10, 50);
+check(B.z2 <= -60 && G.roomAt(-24, -78).id === 'R16' && G.groundY(-24, -78) === B.y, 'el búnker está bajo el mar, al sur del muelle');
+fresh(); G.debugOpenAllDoors(); G.openBunker(); setPlayer(B.hatch.out[0], B.hatch.out[1] - 3);   // F5.19: la entrada, en el choque
 check(nearNav(-24, -80), 'con la escotilla abierta se llega al búnker');
 
 // 4) langostino: rebota poco, brilla, 10 s

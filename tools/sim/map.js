@@ -55,13 +55,15 @@ rr = reachable(['D11', 'D13']);
 check(rr === 'R1,R10,R4,R5,R8,R9', 'D11 + D13: porche, playa y piscina (y por los arcos, la caseta, el dormitorio y el pasillo)', rr);
 // F5.15: la jungla son áreas con entradas: el jardín oeste ya no lleva a la jungla (el rancho es por el lazo)
 rr = reachable(['D11', 'D14']);
-check(rr === 'R1,R10,R12,R13,R15', 'D11 + D14: del jardín oeste por el techo al jardín trasero y los jardines norte', rr);
+// F5.19: sin los jardines norte, el jardín oeste y el trasero ya no se unen por atrás
+check(rr === 'R1,R10,R12', 'D11 + D14: solo el jardín oeste (F5.19: sin jardín norte no llega al trasero)', rr);
 rr = reachable(['D1', 'D3', 'D17']);
-check(rr === 'R1,R12,R13,R15,R2,R4,R5,R8,R9', 'D17: del pasillo al jardín trasero (y por el techo al oeste)', rr);
-check(reachable(['D1', 'D2', 'D8', 'D15']).includes('R12'), 'F5.8: D15 (pared norte de la piscina) -> jardín trasero -> techo -> jardín oeste');
+check(rr === 'R1,R13,R2,R4,R5,R8,R9', 'D17: del pasillo al jardín trasero (F5.19: no sigue al oeste)', rr);
+check(reachable(['D1', 'D2', 'D8', 'D15']).includes('R13') && !reachable(['D1', 'D2', 'D8', 'D15']).includes('R12'), 'F5.8: D15 (pared norte de la piscina) -> jardín trasero (F5.19: ya no al oeste)');
 check(reachable(['D1', 'D2', 'D8', 'D15']).includes('R13') && reachable(['D1', 'D3', 'D6', 'D7', 'D16']).includes('R13'),
   'al jardín trasero también desde la piscina (D15) y el sótano (D16)');
 check(reachable(['D11']) === 'R1,R10', 'solo D11: porche + playa');
+const start0 = G.CONFIG.START.room; G.CONFIG.START.room = 'R1';   // F5.20: se arranca en el garaje; esto mira desde el porche
 G.resetGame(); ['D11', 'D12'].forEach(G.openDoor);
 check(G.openRooms().sort().join() === 'R1,R10,R11', 'openRooms() sigue DOOR_LINKS');
 G.resetGame(); ['D11', 'D13'].forEach(G.openDoor);
@@ -69,7 +71,10 @@ rr = G.openRooms().sort().join();
 check(rr === 'R1,R10,R4,R5,R8,R9', 'openRooms() incluye D13 (y los arcos de la casa, F5.15)', rr);
 G.resetGame(); ['D11', 'D14'].forEach(G.openDoor);
 rr = G.openRooms().sort().join();
-check(rr === 'R1,R10,R12,R13,R15', 'openRooms() incluye el techo (jardín oeste -> jardín trasero) y los jardines norte', rr);
+check(rr === 'R1,R10,R12', 'openRooms() con D11 + D14: playa y jardín oeste (F5.19: sin jardín norte)', rr);
+G.CONFIG.START.room = start0;
+G.resetGame();
+check(G.openRooms().join() === 'R6', 'F5.20: con todo cerrado, desde el garaje solo el garaje');
 
 // F1.1: D13 no es atajo. Ruta más barata desde el porche a cada cuarto, con y sin D13 (Dijkstra sobre puertas)
 // F5.6: el techo es un paso gratis entre sus dos escaleras (ROOF; F5.8: jardín trasero y jardín oeste)

@@ -27,7 +27,7 @@ function atWall(wb, floor) {                               // 1.2 m frente a la 
 // 1) números del ROADMAP
 check(W.revolver.damage === 110 && W.revolver.magSize === 6, 'revólver: 110, 6 balas');
 check(W.doublebarrel.damage === 45 && W.doublebarrel.pellets === 10 && W.doublebarrel.magSize === 2, 'doble cañón: 45 × 10, 2 balas');
-check(W.crossbow.damage === 400 && W.crossbow.pierce === 3 && CONFIG.BOX.pool.includes('crossbow') && wbOf('crossbow') && wbOf('crossbow').room === 'R20', 'ballesta: 400, atraviesa 3, en la caja y (F5.16) en el templo');
+check(W.crossbow.damage === 400 && W.crossbow.pierce === 3 && CONFIG.BOX.pool.includes('crossbow') && wbOf('crossbow') && wbOf('crossbow').room === 'R24', 'ballesta: 400, atraviesa 3, en la caja y (F5.28e) en la cueva');
 check(CONFIG.MACHETE.damage === 500 && CONFIG.MACHETE.cost === 3000, 'machete: 500, 3000');
 check(['revolver', 'doublebarrel', 'crossbow'].every(id => /^[A-Z ]+$/.test(W[id].papName)), 'papName en inglés', ['revolver', 'doublebarrel', 'crossbow'].map(id => W[id].papName).join(' · '));
 
@@ -39,7 +39,8 @@ for (const [id, cost, room] of [['revolver', 900, 'la torre de la playa oeste (F
   const pts = state.points;
   check(G.interact() && state.points === pts - cost && G.curDef().id === id, `${id}: cobra ${cost} y la da`);
 }
-check(!CONFIG.WALLBUYS.find(w => w.weapon === 'doublebarrel').level && G.roomAt(-54.5, 39).id === 'R14', 'F5.16: doble cañón en el piso, en el cerco del rancho');
+{ const db = CONFIG.WALLBUYS.find(w => w.weapon === 'doublebarrel');   // F5.19: el rancho se corrió al oeste
+  check(!db.level && G.roomAt(db.x, db.z - 0.8).id === 'R14', 'F5.16: doble cañón en el piso, en el cerco del rancho'); }
 
 // 3) machete: reemplaza al cuchillo, una vez, 500 parejo; resetGame vuelve al cuchillo
 fresh(); const wm = wbOf('machete'); atWall(wm);

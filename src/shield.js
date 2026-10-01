@@ -10,14 +10,65 @@
 const SHIELDST = { pieces: {}, spot: {}, craftT: 0, bashT: -99, bashAnim: 0, bench: null, benchModel: null, view: null };
 const SHIELD_PARTS = Object.keys(CONFIG.SHIELD.parts);
 
-// el escudo armado: puerta de alacena + franja de tabla de surf + manija atrás (frente = +z)
+// el escudo armado. F5.24 (Diego: "mejorar cómo se ve"): en cubos y con detalle. Atrás (+z, lo que ves en primera
+// persona): 4 tablas de la puerta de alacena con vetas, dos travesaños clavados, la manija de metal con la empuñadura
+// encintada, la correa de cuero del antebrazo y cinta gris en los bordes. Adelante (-z, hacia los zombies): la tabla de
+// surf cruzada con su franja azul y la aleta, esquineros de metal con remaches, clavos oxidados que asoman, una calavera
+// pintada y manchas de sangre. `cracks` (grietas) se prende con poca durabilidad
 function shieldModel() {
-  const g = new THREE.Group();
-  g.add(box(0.7, 0.95, 0.06, 0x7a5a34, 0, 0, 0));                     // puerta (tablas)
-  for (let i = -1; i <= 1; i++) g.add(box(0.02, 0.93, 0.065, 0x5a4024, i * 0.23, 0, 0.002));   // juntas
-  g.add(box(0.74, 0.2, 0.07, 0xd8c060, 0, 0.28, 0.01));                // franja de tabla de surf
-  g.add(box(0.74, 0.05, 0.075, 0x3a7ab8, 0, 0.2, 0.012));
-  g.add(box(0.3, 0.05, 0.05, 0x8a8a88, 0, -0.05, -0.08));              // manija
+  const g = new THREE.Group(), mb = new MeshBuilder(), ck = new MeshBuilder(), rr = mulberry(34);
+  const WOOD = [0x7a5a34, 0x6a4a2a, 0x8a6a40, 0x70502e], GRAIN = 0x4a3018, MET = 0x8a8a90, METD = 0x5a5a62, RUST = 0x8a4a22;
+  // tablas (con el borde de arriba desparejo)
+  for (let i = 0; i < 4; i++) {
+    const x = -0.27 + i * 0.18, top = 0.48 + (rr() - 0.5) * 0.06, h = top + 0.5;
+    mb.box(x, top - h / 2, 0, 0.17, h, 0.06, WOOD[i]);
+    for (let k = 0; k < 3; k++) mb.box(x + (rr() - 0.5) * 0.1, top - h * (0.2 + k * 0.3), 0.031, 0.012, h * 0.22, 0.004, GRAIN);   // vetas atrás
+    for (let k = 0; k < 2; k++) mb.box(x + (rr() - 0.5) * 0.1, top - h * (0.3 + k * 0.35), -0.031, 0.012, h * 0.2, 0.004, GRAIN); // y adelante
+  }
+  // atrás: travesaños clavados, manija, correa y cinta
+  for (const y of [0.3, -0.3]) {
+    mb.box(0, y, 0.05, 0.72, 0.1, 0.04, 0x5a3e22);
+    for (let i = 0; i < 5; i++) mb.box(-0.3 + i * 0.15, y, 0.072, 0.02, 0.02, 0.01, 0xc8c8cc);          // cabezas de clavos
+  }
+  for (let d = 0; d < 7; d++) mb.box(-0.24 + d * 0.08, -0.21 + d * 0.07, 0.05, 0.09, 0.05, 0.035, 0x4e3620);   // diagonal en escalera
+  mb.box(0, -0.02, 0.13, 0.3, 0.04, 0.04, MET);                                                              // manija
+  for (const s of [-1, 1]) mb.box(s * 0.13, -0.02, 0.09, 0.04, 0.05, 0.08, METD);
+  for (let k = 0; k < 6; k++) mb.box(-0.1 + k * 0.04, -0.02, 0.13, 0.035, 0.05, 0.048, k % 2 ? 0x2a2a2e : 0x1c1c20);   // empuñadura encintada
+  mb.box(0, 0.16, 0.085, 0.36, 0.07, 0.025, 0x5a3a1c); mb.box(0.12, 0.16, 0.1, 0.05, 0.08, 0.02, 0xb0a070);    // correa y hebilla
+  for (const s of [-1, 1]) for (let k = 0; k < 5; k++) mb.box(s * 0.36, 0.4 - k * 0.2, 0, 0.03, 0.14, 0.075, k % 2 ? 0x9a9a9e : 0x8a8a8e);   // cinta
+  // adelante: la tabla de surf cruzada (con franja y aleta)
+  for (let i = 0; i < 9; i++) {
+    const x = -0.36 + i * 0.09, w = i === 0 || i === 8 ? 0.05 : 0.09;
+    mb.box(x, 0.12, -0.05, w, 0.22, 0.04, 0xe0c870);
+    mb.box(x, 0.06, -0.072, w, 0.04, 0.006, 0x3a7ab8);
+    if (i % 3 === 1) mb.box(x, 0.18, -0.072, 0.03, 0.03, 0.006, 0xf0e0a0);                              // cera
+  }
+  for (let k = 0; k < 4; k++) mb.box(0.22, 0.12 + k * 0.02, -0.08 - k * 0.018, 0.03, 0.04, 0.03, 0x2a5a8a);    // aleta
+  // esquineros de metal con remaches
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+    const cx = sx * 0.3, cy = sy === 1 ? 0.43 : -0.47;
+    mb.box(cx, cy, -0.036, 0.14, 0.04, 0.012, MET); mb.box(sx * 0.35, cy - sy * 0.05, -0.036, 0.04, 0.13, 0.012, MET);
+    for (const [ox, oy] of [[0, 0], [sx * 0.05, -sy * 0.08]]) mb.box(cx + ox, cy + oy, -0.044, 0.02, 0.02, 0.01, 0x3a3a40);
+  }
+  // clavos oxidados que asoman (pinchos)
+  for (let i = 0; i < 9; i++) {
+    const x = -0.3 + rr() * 0.6, y = -0.4 + rr() * 0.8;
+    if (y > 0.0 && y < 0.25) continue;                                                                   // no sobre la tabla de surf
+    for (let k = 0; k < 3; k++) mb.box(x, y, -0.04 - k * 0.025, 0.018 - k * 0.004, 0.018 - k * 0.004, 0.025, k ? RUST : 0x6a6a70);
+  }
+  // calavera pintada y sangre
+  const skull = [[0, 1, 1, 1, 0], [1, 1, 1, 1, 1], [1, 0, 1, 0, 1], [1, 1, 1, 1, 1], [0, 1, 0, 1, 0]];
+  skull.forEach((row, j) => row.forEach((v, i) => { if (v) mb.box(-0.12 + i * 0.03, -0.12 - j * 0.03, -0.034, 0.03, 0.03, 0.004, 0xe8e0d0); }));
+  for (let i = 0; i < 14; i++) mb.box(0.05 + rr() * 0.25, -0.2 - rr() * 0.25, -0.034, 0.02 + rr() * 0.04, 0.02 + rr() * 0.06, 0.004, 0x6a0a08);
+  const m = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
+  if (m) { scene.remove(m); m.matrixAutoUpdate = true; m.userData.theme = false; g.add(m); }
+  // grietas (de los dos lados): con poca durabilidad
+  for (let c = 0; c < 3; c++) {
+    let x = -0.2 + c * 0.2, y = 0.45;
+    for (let k = 0; k < 9; k++) { for (const zz of [0.032, -0.032]) ck.box(x, y, zz, 0.018, 0.06, 0.004, 0x140a04); x += (rr() - 0.5) * 0.06; y -= 0.06; }
+  }
+  const cm = ck.mesh(new THREE.MeshBasicMaterial({ vertexColors: true }));
+  if (cm) { scene.remove(cm); cm.matrixAutoUpdate = true; cm.visible = false; g.add(cm); g.userData.cracks = cm; }
   return g;
 }
 function buildShield() {
@@ -129,6 +180,7 @@ function shieldBlocks(fx, fz, dmg) {
   if (!blocked) return false;
   S.hp -= dmg;
   sfxShieldHit(); addTrauma(0.12);
+  SHIELDST.hitT = 0.22;                                                  // F5.24: el escudo se sacude en primera persona
   if (S.hp <= 0) breakShield();
   updateShieldHUD();
   return true;
@@ -173,7 +225,7 @@ function updateShield(dt) {
   if (ready && interactState.kind === 'bench' && keys['KeyF']) {
     SHIELDST.craftT += dt;
     if (SHIELDST.craftT >= C.craftTime) {
-      SHIELDST.craftT = 0; S.built = true;
+      SHIELDST.craftT = 0; S.built = true; voice('audio_personaje_al_construir_escudo', 1, 0);   // F5.19
       for (const k of SHIELD_PARTS) SHIELDST.pieces[k].visible = false;
       takeShield();
       showBanner('SHIELD BUILT', 1.4);
@@ -183,13 +235,23 @@ function updateShield(dt) {
   if (SHIELDST.craftT > 0) UI.craftBar.style.width = (100 * SHIELDST.craftT / C.craftTime).toFixed(1) + '%';
   // modelos: en el banco si está armado y no lo tenés; en primera persona si está equipado
   SHIELDST.benchModel.visible = S.built && !S.has;
-  const eq = W.phase === 'shield';
-  SHIELDST.view.visible = eq;
+  const eq = W.phase === 'shield', V = SHIELDST.view;
+  V.visible = eq;
   if (SHIELDST.bashAnim > 0) SHIELDST.bashAnim = Math.max(0, SHIELDST.bashAnim - dt);
-  if (eq) {
-    const k = SHIELDST.bashAnim > 0 ? Math.sin(Math.PI * (1 - SHIELDST.bashAnim / 0.25)) : 0;
-    SHIELDST.view.position.z = -0.62 - 0.25 * k;
-  }
+  if (SHIELDST.hitT > 0) SHIELDST.hitT = Math.max(0, SHIELDST.hitT - dt);
+  // F5.24 (Diego: "mejorar la animación cuando lo pongo de frente"): sube desde abajo a la izquierda girando (raise, con
+  // un rebote al final), se balancea al caminar, se sacude cuando para un golpe y el empujón lo tira adelante y abajo
+  if (!eq) { SHIELDST.raise = 0; return; }
+  SHIELDST.raise = Math.min(1, (SHIELDST.raise || 0) + dt / C.raiseTime);
+  const r = SHIELDST.raise, e = 1 - Math.pow(1 - r, 3), over = Math.sin(r * Math.PI) * 0.06;   // entra rápido y rebota un poco
+  const t = clock.elapsedTime, sp = Math.min(1, (player.speedNow || 0) / CONFIG.PLAYER.speed), bob = Math.sin(t * 9) * 0.012 * sp;
+  const bash = SHIELDST.bashAnim > 0 ? Math.sin(Math.PI * (1 - SHIELDST.bashAnim / 0.25)) : 0;
+  const hit = SHIELDST.hitT > 0 ? Math.sin(SHIELDST.hitT * 60) * (SHIELDST.hitT / 0.22) : 0;
+  V.position.set(0.02 + (1 - e) * 0.32 + Math.cos(t * 4.5) * 0.008 * sp + hit * 0.02,
+                 -0.3 - (1 - e) * 0.62 + over + bob - bash * 0.06,
+                 -0.62 + (1 - e) * 0.12 - bash * 0.28 + Math.abs(hit) * 0.05);
+  V.rotation.set(0.05 + (1 - e) * 0.9 - bash * 0.18 + hit * 0.06, 0.12 + (1 - e) * 0.7, (1 - e) * -0.55 + hit * 0.08);
+  if (V.userData.cracks) V.userData.cracks.visible = S.hp < CONFIG.SHIELD.durability * 0.5;
 }
 
 function updateShieldHUD() {

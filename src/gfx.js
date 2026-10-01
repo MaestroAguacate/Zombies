@@ -24,19 +24,90 @@ function buildGfx() {
   };
   GFX.sunDisk = disk(C.sunDisk, 'rgba(255,240,200,1)', 'rgba(255,140,60,0.35)');
   GFX.moon = disk(C.moon, 'rgba(255,255,255,1)', 'rgba(170,190,255,0.25)');
-  // grano: una textura de ruido chica que se repite (la mueve updateGfx)
-  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
-  const g = cv.getContext('2d');
-  if (g && g.createImageData) {
-    const img = g.createImageData(128, 128);
-    for (let i = 0; i < img.data.length; i += 4) { const v = Math.random() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
-    g.putImageData(img, 0, 0);
-  }
+  // F5.28f (Diego): sin grano ni viñeta por CSS: el div #post queda siempre apagado
   GFX.el = document.getElementById('post');
-  if (GFX.el && GFX.el.style && cv.toDataURL) GFX.el.style.setProperty('--grain', 'url(' + cv.toDataURL() + ')');
+  if (GFX.el && GFX.el.style) GFX.el.style.display = 'none';
   if (WORLD.sun && WORLD.sun.target) scene.add(WORLD.sun.target);         // el sol apunta al jugador (sombras)
   GFX.sunBase = WORLD.sun ? WORLD.sun.position.clone().normalize() : new THREE.Vector3(-0.7, 0.3, -0.5);
   buildSkyDome();
+  buildGrade();                                                            // F5.28e: la corrección de color (sin WebGL: no)
+}
+//--- F5.28e/f: la corrección de color. El mundo se dibuja a una textura (con MSAA si hay WebGL2) y un solo shader le
+// aplica el revelado de Diego (CONFIG.GFX.grade, escala -100..100 como Lightroom), en este orden: nitidez (vecinos a 1 px),
+// claridad (contraste local de los medios tonos, vecinos a 8 px), balance de blancos (temperatura y tono, sin cambiar el
+// brillo), luces / sombras / blancos / negros (sobre la luminancia), contraste y saturación. F5.28f (Diego: "no me gusta
+// el gris de interferencia como tv vieja"): sin grano, aberración, viñeta, negro levantado ni perfiles por zona. El arma
+// se dibuja después, sin el filtro, y el HUD es HTML. En calidad Bajo (post off) no se usa
+const GRADE = { on: false, rt: null, quad: null, cam: null, u: null, size: null };
+const GRADE_KEYS = ['temp', 'tint', 'con', 'high', 'shad', 'white', 'black', 'sat', 'sharp', 'clarity'];
+function buildGrade() {
+  if (typeof renderer === 'undefined' || !renderer || !renderer.capabilities || !renderer.setRenderTarget || !renderer.getDrawingBufferSize ||
+      typeof THREE.WebGLRenderTarget === 'undefined') return false;       // (sin WebGL de verdad, como en los tests: no hay corrección)
+  try {
+    const opt = { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat, depthBuffer: true };
+    GRADE.rt = renderer.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget
+      ? Object.assign(new THREE.WebGLMultisampleRenderTarget(4, 4, opt), { samples: CONFIG.GFX.gradeSamples }) : new THREE.WebGLRenderTarget(4, 4, opt);
+    const u = GRADE.u = { tDiffuse: { value: GRADE.rt.texture }, res: { value: new THREE.Vector2(4, 4) } };
+    for (const k of GRADE_KEYS) u[k] = { value: 0 };
+    const m = new THREE.ShaderMaterial({ uniforms: u, depthTest: false, depthWrite: false,
+      vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+      fragmentShader: [
+        'uniform sampler2D tDiffuse; uniform vec2 res; uniform float ' + GRADE_KEYS.join(', ') + ';',
+        'varying vec2 vUv;',
+        'vec3 tx(vec2 uv) { return texture2D(tDiffuse, uv).rgb; }',
+        'float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }',
+        'void main() {',
+        '  vec2 px = 1.0 / res;',
+        '  vec3 c = tx(vUv);',
+        '  vec3 b1 = (tx(vUv + vec2(px.x, 0.0)) + tx(vUv - vec2(px.x, 0.0)) + tx(vUv + vec2(0.0, px.y)) + tx(vUv - vec2(0.0, px.y))) * 0.25;',
+        '  c += (c - b1) * sharp * 1.5;',                                              // nitidez (- suaviza)
+        '  vec2 q = px * 7.0;',                                                        // (4 diagonales: más barato que 8)
+        '  vec3 b8 = (tx(vUv + q) + tx(vUv - q) + tx(vUv + vec2(q.x, -q.y)) + tx(vUv + vec2(-q.x, q.y))) * 0.25;',
+        '  float l0 = luma(c);',
+        '  c += (c - b8) * clarity * 1.2 * (1.0 - abs(l0 * 2.0 - 1.0));',              // claridad: solo los medios tonos
+        '  l0 = max(luma(c), 1e-4);',
+        '  c *= vec3(1.0 + 0.16 * temp + 0.04 * tint, 1.0 + 0.02 * temp - 0.10 * tint, 1.0 - 0.24 * temp + 0.04 * tint);',
+        '  c *= l0 / max(luma(c), 1e-4);',                                             // (el balance no cambia el brillo)
+        '  float l = max(luma(c), 1e-4);',
+        '  float d = high * 0.35 * smoothstep(0.35, 1.0, l) * l',                      // luces
+        '          + shad * 0.3 * smoothstep(0.0, 0.12, l) * (1.0 - smoothstep(0.12, 0.5, l)) * l',   // sombras
+        '          + white * 0.25 * smoothstep(0.6, 1.0, l);',                         // blancos
+        '  c *= max(l + d, 0.0) / l;',
+        '  c += black * 0.12 * (1.0 - smoothstep(0.0, 0.25, l));',                     // negros
+        '  c = (c - 0.45) * (1.0 + con * 0.6) + 0.45;',                                // contraste
+        '  float ls = luma(c);',
+        '  c = mix(vec3(ls), c, 1.0 + sat);',                                          // saturación
+        '  gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);',
+        '}'].join('\n') });
+    GRADE.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), m); GRADE.quad.frustumCulled = false;
+    GRADE.scene = new THREE.Scene(); GRADE.scene.add(GRADE.quad);
+    GRADE.cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    GRADE.size = new THREE.Vector2();
+    return true;
+  } catch (e) { GRADE.rt = null; return false; }
+}
+// los valores de CONFIG (-100..100) al shader (-1..1): se leen cada frame, así se pueden probar desde la consola
+function updateGrade() {
+  const G = CONFIG.GFX.grade, u = GRADE.u;
+  for (const k of GRADE_KEYS) u[k].value = (G[k] || 0) / 100;
+}
+// el frame entero (animate): mundo (a la textura, si hay corrección), la corrección a la pantalla, y el arma encima
+function renderFrame(dt) {
+  GRADE.on = GFX.post && !!GRADE.rt;
+  if (!GRADE.on) {                                                        // (el destino siempre queda en la pantalla)
+    renderer.clear();
+    renderer.render(scene, camera);
+  } else {
+    renderer.getDrawingBufferSize(GRADE.size);
+    if (GRADE.rt.width !== GRADE.size.x || GRADE.rt.height !== GRADE.size.y) { GRADE.rt.setSize(GRADE.size.x, GRADE.size.y); GRADE.u.res.value.copy(GRADE.size); }
+    updateGrade();
+    renderer.setRenderTarget(GRADE.rt); renderer.clear();
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null); renderer.clear();
+    renderer.render(GRADE.scene, GRADE.cam);
+  }
+  renderer.clearDepth();                                                  // el arma nunca la corta una pared
+  renderer.render(weaponScene, weaponCamera);
 }
 // F5.17b (Diego: "¿es muy costoso ver el cielo?"): lo caro no es el cielo sino ver lejos (más geometría). El cielo es
 // un domo que sigue a la cámara, más chico que camera.far, dibujado primero sin profundidad: detrás de todo. Abajo
@@ -71,6 +142,18 @@ function buildSkyDome() {
   scene.add(SKYDOME.mesh);
 }
 const _skyC = new THREE.Color(), _skyN = new THREE.Color(), _skyP = new THREE.Color();
+// F5.20 (Diego): el sol está hacia XZ (4, -66) y va bajando de la R1 a la R8 (sunPath.elev0 -> elev1); después es noche
+// (darkBy). Mueve la luz del sol (y la base de las sombras), el disco y el sol del domo del cielo
+const _sunV = new THREE.Vector3();
+function setSunForRound(n) {
+  const S = CONFIG.GFX.sunPath, k = Math.max(0, Math.min(1, (n - 1) / Math.max(1, S.lastRound - 1)));
+  const e = S.elev0 + (S.elev1 - S.elev0) * k, h = Math.hypot(S.dir[0], S.dir[1]);
+  _sunV.set(S.dir[0] / h * Math.cos(e), Math.sin(e), S.dir[1] / h * Math.cos(e)).normalize();
+  if (WORLD.sun) WORLD.sun.position.copy(_sunV).multiplyScalar(60);
+  if (GFX.sunBase) GFX.sunBase.copy(_sunV);
+  if (GFX.sunDisk) { GFX.sunDisk.position.copy(_sunV).multiplyScalar(280); GFX.sunDisk.lookAt(0, 0, 0); }
+  if (SKYDOME.u && SKYDOME.u.sunDir) SKYDOME.u.sunDir.value.copy(_sunV);
+}
 function updateSkyDome() {
   const D = SKYDOME.mesh;
   if (!D) return;
@@ -93,7 +176,7 @@ function gfxMarkShadows() {
     const lit = !m.isMeshBasicMaterial && !m.transparent;
     o.receiveShadow = lit;
     o.castShadow = lit && o.visible;
-    if (m === FOLI.mat) o.customDepthMaterial = FOLI.depth;          // F5.17: la sombra de las hojas respeta el alfa (si no, cuadrados)
+    if (m === FOLI.mat && FOLI.depth) o.customDepthMaterial = FOLI.depth;          // F5.17: la sombra de las hojas respeta el alfa (si no, cuadrados)
   });
 }
 // F5.16: distancia de la niebla elegida en Ajustes (dura la sesión). camera.far la sigue (lo de más allá no se
@@ -109,11 +192,19 @@ function setFog(far) {
   if (typeof camera !== 'undefined' && camera) { camera.far = far + (F.clip - F.far); camera.updateProjectionMatrix(); }
   return far;
 }
+// F5.19d (optimización): escala de resolución (Ajustes). El juego se dibuja a scale × la resolución y el navegador lo
+// estira: con una placa integrada es lo que más FPS da (70% = la mitad de píxeles)
+function renderScale(base) { return base * (SETTINGS.scale || 1); }
+function setRenderScale(s) {
+  SETTINGS.scale = Math.max(0.4, Math.min(1, +s || 1));
+  applyQuality(GFX.quality || CONFIG.GFX.quality);
+  return SETTINGS.scale;
+}
 function applyQuality(name) {
   const C = CONFIG.GFX, Q = C.presets[name] || C.presets.medio;
   GFX.quality = name in C.presets ? name : 'medio';
   if (typeof renderer !== 'undefined' && renderer) {
-    renderer.setPixelRatio(Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, Q.pixelRatio));
+    renderer.setPixelRatio(renderScale(Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, Q.pixelRatio)));
     renderer.setSize(window.innerWidth, window.innerHeight);
     setShadows(Q.shadows, Q.shadowMap || 1024);
   }
@@ -146,19 +237,32 @@ function setShadows(on, size) {
 }
 function setPost(on) {
   GFX.post = !!on;
-  if (GFX.el) GFX.el.style.display = GFX.post ? 'block' : 'none';
+  // F5.28f: el div del grano y la viñeta queda siempre apagado
+  if (GFX.el) GFX.el.style.display = 'none';
   GFX.filter = null;                                                      // lo rearma updateGfx
 }
 // el filtro CSS del canvas: color según la hora (post) + blur del silbido
 function gfxFilter() {
   const P = CONFIG.GFX.post, k = typeof NIGHT !== 'undefined' ? NIGHT.k : 0;
-  let f = GFX.blur > 0 ? 'blur(' + GFX.blur.toFixed(1) + 'px)' : '';
-  if (GFX.post) {
+  // F5.23: la lengua de la planta te nubla la vista (GFX.fog 0..1) mientras te lleva a la boca
+  const fog = GFX.fog || 0, TF = CONFIG.PLANTBOSS.tongue, blur = Math.max(GFX.blur, fog * TF.blurMax);
+  let f = blur > 0 ? 'blur(' + blur.toFixed(1) + 'px)' : '';
+  if (fog > 0) f += (f ? ' ' : '') + 'brightness(' + (1 - TF.darkMax * fog).toFixed(3) + ')';
+  if (GFX.post && !GRADE.rt) {                                             // (F5.28e: con GRADE el color lo hace el shader)
     const warm = 1 - k;
     f += (f ? ' ' : '') + 'contrast(' + P.contrast + ') saturate(' + (1.02 + 0.1 * warm).toFixed(3) + ') sepia(' +
          (P.warm * warm).toFixed(3) + ') hue-rotate(' + (-P.cold * k).toFixed(1) + 'deg)';
   }
-  if (typeof DOWN !== 'undefined' && DOWN.on) f += (f ? ' ' : '') + 'grayscale(1) brightness(0.8)';   // F5.18: tirado
+  // F5.28d: NIGHT EYES: visión nocturna verde (sube el brillo: se ve también lo pintado a oscuras, como el búnker)
+  if (typeof gumActive === 'function' && gumActive('nighteyes')) f += (f ? ' ' : '') + CONFIG.GUMS.list.nighteyes.filter;
+  // F5.19b: muerte. F5.28e: mientras te comen, se va oscureciendo (GFX.deathK 0..1 hasta ROUNDS.death.dark). F5.28f
+  // (Diego: "que se vaya poniendo poco a poco borrosa hasta quedar en negro"): y cada vez más borrosa (hasta death.blur px)
+  if (typeof DEATH !== 'undefined' && DEATH.on) {
+    const D = CONFIG.ROUNDS.death, k = GFX.deathK || 0, b = 0.8 - (0.8 - D.dark) * k;
+    f += (f ? ' ' : '') + 'blur(' + (Math.round(k * D.blur * 2) / 2).toFixed(1) + 'px) saturate(' + (0.45 - 0.25 * k).toFixed(2) +
+         ') brightness(' + (Math.round(b * 40) / 40).toFixed(3) + ') contrast(1.15)';
+  }
+  else if (typeof DOWN !== 'undefined' && DOWN.on) f +=(f ? ' ' : '') + 'grayscale(1) brightness(0.8)';   // F5.18: tirado
   else if (typeof MENU !== 'undefined' && MENU.mode === 'main' && !state.running) f += (f ? ' ' : '') + 'grayscale(1) brightness(0.75) contrast(1.15)';   // F5.18: menú
   return f;
 }
@@ -186,12 +290,6 @@ function updateGfx(dt) {
     S.target.updateMatrixWorld();
   }
   gfxApplyFilter();                                                       // solo toca el DOM cuando cambia
-  // grano: salta de lugar cada 2 frames
-  if (GFX.post && GFX.el && (GFX.grainT += dt) > 0.033) {
-    GFX.grainT = 0;
-    GFX.el.style.setProperty('--gx', Math.floor(Math.random() * 128) + 'px');
-    GFX.el.style.setProperty('--gy', Math.floor(Math.random() * 128) + 'px');
-  }
   updateSkyDome();                                                        // F5.17b
   // sol y luna
   const k = typeof NIGHT !== 'undefined' ? NIGHT.k : 0, M = CONFIG.GFX.moon;

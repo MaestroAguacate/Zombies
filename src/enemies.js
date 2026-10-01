@@ -555,6 +555,7 @@ function setNight(on) { NIGHT.target = on ? 1 : 0; }
 function setSky(n, mob) {
   const W = CONFIG.WEATHER;
   NIGHT.target = mob ? 1 : W.darkBy(n);
+  if (typeof setSunForRound === 'function') setSunForRound(Math.max(1, n));   // F5.20: el sol baja por ronda
   NIGHT.pTarget = n >= W.purpleFrom ? 1 : 0;
   NIGHT.rain = !!mob || n >= W.rainFrom;
   NIGHT.storm = mob ? 'mob' : W.thunder.some(r => n >= r[0] && n <= r[1]) ? 'storm' : null;
@@ -570,30 +571,65 @@ function lightning() {
 function applyNight(k, f, p) {
   const B = NIGHT.base, T = NIGHT.night, W = WORLD, Lg = CONFIG.DOGS.lightning, P = NIGHT.purple;
   p = p || 0;
-  W.hemi.intensity = B.hemi + (T.hemi - B.hemi) * k + Lg.hemiBoost * f;
+  // F5.19: zona oscura (el claro del caparazón): NIGHT.zd 0..1 baja la luz y oscurece la niebla, sin luces nuevas
+  const DZ = CONFIG.WEATHER.darkZone, zl = 1 - (1 - DZ.light) * (NIGHT.zd || 0);
+  W.hemi.intensity = (B.hemi + (T.hemi - B.hemi) * k) * zl + Lg.hemiBoost * f;
   // F7a: los colores recorren la paleta del ciclo (atardecer -> anochecer -> noche); las intensidades, parejo
   paletteAt('hemiSky', k, W.hemi.color).lerp(P.hemiSky, p * 0.6).lerp(NIGHT.white, f * 0.6);
   W.hemi.groundColor.copy(B.hemiGround).lerp(T.hemiGround, k);
-  W.sun.intensity = B.sun + (T.sun - B.sun) * k;
+  W.sun.intensity = (B.sun + (T.sun - B.sun) * k) * zl;
   paletteAt('sun', k, W.sun.color);
-  paletteAt('fog', k, scene.fog.color).lerp(P.fog, p).lerp(NIGHT.white, f * 0.4);
+  paletteAt('fog', k, scene.fog.color).lerp(P.fog, p).lerp(NIGHT.white, f * 0.4).multiplyScalar(1 - (1 - DZ.fog) * (NIGHT.zd || 0));
   paletteAt('sky', k, W.sky.material.color).lerp(P.sky, p).lerp(NIGHT.white, f * 0.7);
+  nightTint(k, f);                                         // F5.28f: el follaje y las bajadas de las catacumbas
+}
+// F5.20: oscuridad de la casa (0 afuera o con energía; HOUSE.dark adentro; HOUSE.litDark con el farol del cuarto prendido)
+// F5.28f (Diego: "si la prendo y veo a los otros cuartos, salen iluminados"): el farol ya no aclara la zona (eso aclaraba
+// toda la escena, también los otros cuartos): alumbra solo su lámpara, de cerca (updateTheme, HOUSE.lanternDist)
+function houseDark(r) {
+  const H = CONFIG.HOUSE;
+  if (!r || state.power || !H.rooms.includes(r.id) || playerLevel() !== 0) return 0;
+  // (cerca de una puerta abierta que da afuera, entra un poco de luz: DOORLIGHT.spill 0..1)
+  return H.dark * (1 - H.doorLight * (typeof DOORLIGHT !== 'undefined' ? DOORLIGHT.spill : 0));
 }
 function updateNight(dt) {
   if (!captureDay()) return;
   const W = CONFIG.WEATHER;
-  const step = dt / CONFIG.DOGS.night.fade, k0 = NIGHT.k, p0 = NIGHT.p, ps = dt / W.purple.fade;
+  const step = dt / CONFIG.DOGS.night.fade, k0 = NIGHT.k, p0 = NIGHT.p, ps = dt / W.purple.fade, zd0 = NIGHT.zd || 0;
+  const zr = roomAt(player.pos.x, player.pos.z);                               // F5.19
+  // F5.20: la casa sin energía. F5.24 (Diego): el caparazón (R21) sin energía, bastante más oscuro que el claro
+  // F5.28 (Diego): el búnker, mucho más oscuro (sin luces que se prendan). F5.28d: el templo, oscuro y con tormenta
+  let zt = zr && zr.id === 'R16' ? CONFIG.BUNKER.dark.zd
+           : zr && (zr.id === 'R23' || zr.id === 'R24') ? CONFIG.CATA.zd       // F5.28e: catacumbas y cueva
+           : zr && zr.id === 'R20' ? CONFIG.TEMPLE.storm.zd
+           : zr && zr.id === 'R21' && !state.power ? CONFIG.SHELL.unpoweredDark : zr && zr.dark ? 1 : houseDark(zr);
+  if (gumActive('nighteyes')) zt *= CONFIG.GUMS.list.nighteyes.zdMul;   // F5.28d: NIGHT EYES (el filtro verde, gfxFilter)
+  // F5.24 (Diego: "los cambios de luces se ven muy abruptos"): un resorte críticamente amortiguado en vez de lineal:
+  // arranca de a poco, frena de a poco y se asienta en ~darkZone.fade s
+  {
+    const w = 8 / W.darkZone.fade, zv = NIGHT.zv || 0;                  // (ω·t = 8: a los fade s queda a menos de 0.3%)
+    let v = zv + (w * w * (zt - zd0) - 2 * w * zv) * dt, z = zd0 + v * dt;
+    if (Math.abs(zt - z) < 0.003 && Math.abs(v) < 0.02) { z = zt; v = 0; }
+    NIGHT.zd = z; NIGHT.zv = v;
+  }
   NIGHT.k = NIGHT.target > NIGHT.k ? Math.min(NIGHT.target, NIGHT.k + step) : Math.max(NIGHT.target, NIGHT.k - step);
   NIGHT.p = NIGHT.pTarget > NIGHT.p ? Math.min(NIGHT.pTarget, NIGHT.p + ps) : Math.max(NIGHT.pTarget, NIGHT.p - ps);
   if (NIGHT.storm && state.running && roundState.phase === 'active' && (NIGHT.thunderT -= dt) <= 0) {   // tormenta
     NIGHT.thunderT = randIn(NIGHT.storm === 'mob' ? W.mobThunderEvery : W.thunderEvery);
     lightning();
   }
+  // F5.28d (Diego: "el templo más oscuro, que llueva y relámpagos"): en el templo hay tormenta siempre, en cualquier ronda
+  if (zr && zr.id === 'R20' && state.running && !state.gameOver) {
+    if ((NIGHT.templeT = (NIGHT.templeT || randIn(CONFIG.TEMPLE.storm.every)) - dt) <= 0) {
+      NIGHT.templeT = randIn(CONFIG.TEMPLE.storm.every);
+      lightning();
+    }
+  }
   updateRain(dt);
   updateStars();                                           // F5.10
   let f = 0;
   if (NIGHT.flash > 0) { NIGHT.flash = Math.max(0, NIGHT.flash - dt); f = NIGHT.flash / CONFIG.DOGS.lightning.time; }
-  if (NIGHT.k === k0 && NIGHT.p === p0 && f === 0 && !NIGHT.dirty) return;
+  if (NIGHT.k === k0 && NIGHT.p === p0 && NIGHT.zd === zd0 && f === 0 && !NIGHT.dirty) return;
   NIGHT.dirty = f > 0;                                     // un frame más para apagar el relámpago
   applyNight(NIGHT.k, f, NIGHT.p);
 }
@@ -648,13 +684,13 @@ function rainDrop(i, top) {
   a[o] = x; a[o + 1] = y; a[o + 2] = z;
   a[o + 3] = x - R.wind * R.len / R.speed; a[o + 4] = y + R.len; a[o + 5] = z;
 }
-// altura donde frena una gota: techo de la casa, techo del santuario del templo (F5.16) o el piso
+// altura donde frena una gota: techo de la casa, la plancha del templo o el piso (F5.19: sin santuario)
 function rainRoof(x, z) {
-  const S = CONFIG.TEMPLE.sanctum;
-  if (x > S.x1 && x < S.x2 && z > S.z1 && z < S.z2) return UP.y + S.h;
   // F5.17: la cúpula del caparazón frena la lluvia, salvo el tragaluz de arriba (por ahí entra hasta el piso)
   const k = shellK(x, z), c = Math.cos(CONFIG.SHELL.skylight);
   if (k < 1 && k > c * c) return CONFIG.SHELL.h * Math.sqrt(1 - k);
+  const tr = templeRoofAt(x, z);                                   // F5.28e: la bóveda de la nave del templo
+  if (tr) return tr;
   return roofAt(x, z) ? UP.y : groundY(x, z);
 }
 // F5.16: áreas donde llueve siempre, sea la ronda que sea (CONFIG.WEATHER.rainRooms)
@@ -668,6 +704,9 @@ function updateRain(dt) {
   if (on && !RAIN.lines.visible) for (let i = 0; i < RAIN.n; i++) rainDrop(i, false);
   RAIN.lines.visible = on;
   if (!on) return;
+  // F5.28d: en la tormenta del templo la lluvia se ve más cerrada
+  const rz = roomAt(player.pos.x, player.pos.z);
+  RAIN.lines.material.opacity = CONFIG.WEATHER.rain.opacity * (rz && rz.id === 'R20' ? CONFIG.TEMPLE.storm.rainOpacity : 1);
   const R = CONFIG.WEATHER.rain, a = RAIN.pos, dy = R.speed * dt, dx = R.wind * dt, P = player.pos, h = R.area / 2;
   for (let i = 0; i < RAIN.n; i++) {
     const o = i * 6;
@@ -684,6 +723,7 @@ function resetEnemies() {
   roundState.nextDog = randIn(CONFIG.DOGS.firstRound);
   NIGHT.target = 0; NIGHT.k = 0; NIGHT.flash = 0; NIGHT.dirty = false;
   NIGHT.p = NIGHT.pTarget = 0; NIGHT.rain = false; NIGHT.storm = null; NIGHT.thunderT = 0;   // F5.9
+  NIGHT.templeT = 0;                                                                          // F5.28d
   roundState.mobCount = 0; roundState.mob = null;
   resetSquids();
   resetGiant();                                            // F5.11

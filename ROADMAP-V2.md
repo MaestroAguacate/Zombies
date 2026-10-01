@@ -731,26 +731,207 @@ claro (que crece).
 - Accesorios por arma (arco propio) con vista previa 3D, cuentas locales, modo dev (X), chicles con moneda, tienda,
   preset y chicleras cúbicas, conchas cúbicas que ofrecen el arma.
 
-### PLAN VIGENTE (2026-09-26) — leer esto primero al retomar
-Todo lo de arriba está hecho, commiteado y pusheado en `claude/compassionate-knuth-tcnxws`. Orden de lo que sigue:
-1. **Playtest de Diego** de F5.16–F5.18b y arreglos. Qué mirar:
-   - FPS en Alto (sombras + follaje) y en el menú (renderer extra de la vista previa de armas).
-   - Chicles: SHOPPING SPREE con 0 puntos en puerta, perk, caja, pared y PaP (todo pasa por `spendPoints`, confirmar);
-     chicle en la bandeja cuando te tira el Quick Revive (no debe gastarse); T con TRIPLE THREAT.
-   - Last stand: volver con las armas correctas (PaP en curso, recargando, escudo en mano).
-   - Accesorios en cada arma (que no floten) y la vista previa.
-   - Choque del templo: zombies trabados entre los autos (overlay `L`).
-   - Conchas: el arma flotante se agarra con F y se va a los 10 s.
-2. **Sonidos de Diego:** subirá `sonidos/` (archivos). Plan: embeberlos en base64 dentro de `index.html` (sigue siendo
-   un solo archivo; hay que documentar que se levanta la regla "sin assets externos"), cargarlos con
-   `decodeAudioData` en `audio.js` y reemplazar/sumar a los procedurales según la lista que mande. Cuidar el peso.
-3. **Tanda E** (abajo).
-4. Entorno que sigue de cajas: estatuas de la cámara del calamar, máquinas de perks, PaP (los personajes quedan en cubos
-   por pedido de Diego).
-5. **F8** cierre V2: `CONFIG.DEBUG_MODE = false`, P9 balance (chicles incluidos: chance de moneda 14%, costos 500/1000/2000),
-   tag.
+### PLAN VIGENTE (2026-09-28) — leer esto primero al retomar
+Hecho hasta **F5.23** (lengua de la planta, cara que te sigue, vida baja estilo CoD; ver `CLAUDE.md`). La carpeta local
+no es un repo git: lo hecho desde F5.19 **no está subido**. Orden de lo que sigue:
 
-### Tanda E — Calamar y embarcadero
+**0. Deuda de tests: HECHO (2026-09-28).** `f515.js` y `f519.js` miden los tamaños de F5.22. `boss.js` busca el
+   destino de cada embestida cerca del origen. De paso: animación de tragar y sonidos `pb_*` de la planta (ver F5.23).
+
+**1. F5.24 — pedido del 2026-09-28: HECHO (los 7 puntos, ver la sección F5.24 de `CLAUDE.md`).** Lo pedido:
+   - **Planta jefa:**
+     - Charcos de ácido con más diseño: borde irregular en cubos, burbujas que revientan, humo.
+     - Raíces con más alcance (radio y cantidad).
+     - Ataque nuevo, **raíces que te atrapan**: te dejan quieto unos segundos con daño por segundo; con el cuchillo te
+       soltás antes.
+     - Lengua más seguido (más alcance, menos espera, más ancha para acertar). **Te levanta** por el aire siguiendo la
+       lengua hasta la boca y te traga: muerte a pocos metros de la boca.
+   - **Muerte de la planta:** sonido ×2, explota y deja un **charco amarillo** que es el portal. Queda solo el charco y
+     su cabeza tirada en una esquina del templo.
+     - **Las dos puntas son charcos** (templo y playa del calamar; decisión de Diego). Se viaja **saltando adentro**,
+       sin F. El arco de piedra y la tumba se van.
+   - **Cabeza del calamar:** las 3 estatuas de la cámara más chicas.
+   - **GRAVE WHISPER:**
+     - Mata de un tiro hasta la R9 (vida 950).
+     - Clic izquierdo dispara la pistola izquierda y clic derecho la derecha; **sin ADS con esa arma** (decisión de Diego).
+     - El impacto suena como la bazooka.
+   - **Sonidos de disparo:** revisar qué armas no tienen (LMG nuevas, snipers MARKSMAN/FARMHAND, etc.) y darles uno bueno.
+   - **Caparazón:**
+     - **HECHO (2026-09-28):** que no se pueda rodear: los costados y la parte de atrás del patio pasan a espesura, y solo se entra por adelante.
+       Se mudan los spawns de atrás.
+     - El interior más oscuro hasta prender la energía (tinte, sin luces nuevas).
+   - **Mapa con la tecla 5: HECHO (2026-09-28, adelantado)** (decisión de Diego; se abre y cierra con la misma tecla):
+     - Vista de arriba con tu posición y hacia dónde mirás.
+     - Negro donde no exploraste (niebla de guerra que se destapa al caminar).
+     - Abajo, tus ítems: piezas del escudo, piezas de la Ola y demás.
+   - **HUD:** los slots de granadas y del langostino pasan a íconos dibujados (una granada y un langostino).
+
+**1b. F5.25 — Todo el entorno en cubos, "ultra bien diseñado" (pedido del 2026-09-28). HECHO A–F el 2026-09-29 (ver
+CLAUDE.md F5.25); falta el playtest de Diego y medir FPS en el navegador.** B–F se hicieron sobre todo cambiando las
+primitivas del `MeshBuilder`, más la palapa, las sombrillas y la cabeza del calamar a mano.
+Da vuelta lo de F5.17 ("menos Minecraft": formas curvas y hojas con alfa). El nivel a igualar es el del charco de ácido, el
+laboratorio del caparazón y la planta jefa. Va por tandas, de lo que más se ve a lo que menos, cada una con capturas y FPS:
+   - **A. Árboles y palmeras** (jungla, jardines, playa, templo). Troncos de cubos con corteza, raíces y ramas en cadena;
+     copas de cubos con varios tonos y hojas sueltas; lianas y frutas. **Rendimiento:** unas 6 variantes armadas una vez y
+     repetidas con `InstancedMesh` por celda del mapa (así el frustum y la niebla descartan lo lejano); copas huecas
+     (solo la cáscara).
+   - **B. Arbustos, espesura, rocas y pasto** (las paredes de la espesura, los cercos, los helechos).
+   - **C. Muebles de la casa** (sofá, cama, TV, heladera, mesas, estantes), hoy con cantos redondeados (F5.17c).
+   - **D. Playa y muelle** (sombrillas, botes, castillo, troncos, cangrejos, faroles, pilotes).
+   - **E. Rancho, tortugario y templo** (palapa, tiki bar, billar, cabezas colosales, estelas, braseros).
+   - **F. La cabeza del calamar por fuera y el resto** (lo que quede curvo).
+   - Los **colliders (PROPS) no cambian**: solo el dibujo. Cada tanda se mira con `tools/shots.js` y con el soak (frames).
+
+**1c. F5.26 — La Bestia del búnker y los trofeos de boss (pedido del 2026-09-29, decisiones de Diego tomadas). HECHO
+A–D el 2026-09-29 (ver CLAUDE.md F5.26; se sumó una 6ta receta, SERENADE, para la guitarra rara). Falta el playtest.**
+   - **A. Búnker grande y barriles:** x −46..−2, z −90..−60 (antes 28×24), 7 m de alto (antes 4), poco detalle (cajas,
+     pilares, luz pintada; ninguna luz nueva). Barriles de gasolina sólidos: un tiro los hace explotar (`explodeAt`, mucho
+     daño a bosses, daño propio de cerca); vuelven al terminar la pelea.
+   - **B. La Bestia** (`variant 'bestia'` en `BOSS.pool`; negra y café, grotesca, estilo la bestia de Ben 10):
+     - **Una vez por partida.** Duerme en una esquina y se despierta si le disparás o te acercás.
+     - Lo primero que hace es correr a la escalera y romperla: los pedazos quedan en el piso. Con la escalera rota no se
+       sube, y los zombies no cruzan por la escotilla. Se reconstruye manteniendo F, como el banco del escudo.
+     - Grita (aturde y llama a las crías).
+     - Corre a **5.0 m/s: excepción aprobada por Diego** (más que caminar, menos que correr).
+     - Zarpazo que te lanza por el aire. Baba slime negro (charcos que frenan y lastiman). Muy letal.
+   - **C. Crías:** mini-bestias a **4.7 (como los perros, excepción aprobada)** que te persiguen, en un pool propio.
+   - **D. Trofeos y Altar de Huesos:**
+     - Cada boss suelta un trofeo común y, con baja chance, uno raro:
+       - Sombrerón: ala del sombrero / guitarra embrujada;
+       - Calamarón: saco de tinta / ojo del abismo;
+       - planta jefa: semilla negra / corazón de raíz;
+       - Bestia: garra / glándula de slime.
+     - Se craftean en un altar afuera, manteniendo F. Las 5 recetas:
+       - Garras de la Bestia (melee);
+       - granada de slime;
+       - talismán (5to perk);
+       - cría domesticada (pelea de tu lado 2 rondas);
+       - armadura de caparazón (−25% de daño hasta romperse).
+     - Entre partidas: cada trofeo da KRAKEN INK y XP, y un camo más una placa en PROFILE por matar a cada boss 1, 5 y 25
+       veces.
+   - Cada tanda con tests y capturas.
+
+**1d. F5.28 — Pedido del 2026-09-29. HECHO A–C el mismo día (detalle en `HISTORIAL-FASES.md`, sección F5.28). Falta el
+playtest.**
+Diego ya dio el visto bueno a SHOPPING SPREE, la lengua y la planta jefa. Tandas, en orden:
+   - **A. Sacar el lanzallamas:** config (arma, nombre PaP, caja), `weapons.js` (cono) y `audio.js` (su loop). Adaptar
+     `mysterybox.js` y `audio.js`. Las cuentas que lo tengan en su carga se limpian solas.
+   - **B. Ítems en el perfil** (reemplaza al Altar de Huesos y su crafteo en la partida):
+     - los bosses siguen soltando trofeos, que van al perfil y son la **moneda** de una tienda nueva (menú);
+     - cada ítem (garras, bombas de slime, talismán, cría, armadura, serenata) cuesta ciertos trofeos, se compra para UNA
+       partida y se acumula en el perfil;
+     - **se equipa 1 por partida**, antes de jugar;
+     - en la partida aparece en **su lugar fijo del mapa desde el inicio** y hay que ir a buscarlo.
+   - **C. La Bestia estilo el Lich de Hora de Aventura:**
+     - cráneo gigante con tentáculos, carne abierta y sangre; corre a 5.0;
+     - latigazo de tentáculos en arco con aviso, tentáculos del piso debajo tuyo y alrededor (como las raíces), embestida
+       y escupitajo;
+     - **el tentáculo te agarra, te arrastra y te traga** (como la lengua de la planta); te soltás con cuchillazos o tiros
+       al tentáculo, más duro que la lengua;
+     - se queda lo del búnker: duerme, rompe la escalera, barriles, slime negro, una por partida.
+     - Las crías quedan, con el modelo nuevo en chico.
+
+**1e. F5.28b–e — HECHO (2026-09-29/30; detalle en `HISTORIAL-FASES.md`).** La Bestia pulpo, búnker oscuro, 10 chicles
+y tambor 3D, tormenta en el templo; y en F5.28e: catacumbas mayas (R23) con la puerta de 3 palancas, cueva (R24) con la
+entrada del búnker, Speed Cola, chiclera y ballesta; HUD de golpes, pantalla de carga con wallpaper, muerte nueva, color
+de horror retro por zona (`GRADE`), caja en cualquier lugar, playa con cadáveres, techo maya del templo. Test `f528.js`.
+Para el playtest, además de lo de abajo: perderse en la cueva (¿demasiado oscura?), las 3 palancas, FPS con `GRADE`.
+
+**1f. F5.28f y F8 (2026-09-30).** Muchos ajustes de luz, color, rendimiento, muerte y menú (ver `HISTORIAL-FASES.md`).
+Diego jugó varias veces y dio el OK (punto 2 hecho). El compañero CPU queda para V3 (punto 3). F8 en curso:
+`DEBUG_MODE` apagado (el harness lo prende), soak de 8 partidas sin errores; falta la suite en verde, subir y el tag.
+**Siguiente: el segundo mapa YALUW** (`DISEÑO-MAPA2.md`).
+
+**2. Playtest definitivo de Diego** de todo lo hecho desde F5.16 y arreglar lo que salga. Mirar sobre todo:
+   - FPS: en Alto (sombras y follaje), en el caparazón (3 niveles) y en el templo (planta, raíces y lengua).
+   - Planta: si la lengua y las raíces son justas.
+   - Tercer nivel: zombies trabados en las escaleras del caparazón (overlay `L`).
+   - Chicles: SHOPPING SPREE con 0 puntos, y que el chicle de la bandeja no se gaste si te tira el Quick Revive.
+   - Last stand: volver con las armas correctas.
+
+**3. Compañero CPU** ("de último, si no es muy difícil"). Sin empezar. Hay que decidir si entra en V2 o queda afuera.
+
+**4. F8, cierre de V2:**
+   - `CONFIG.DEBUG_MODE = false`.
+   - Balance P9 (chicles incluidos).
+   - Suite entera en verde.
+   - `CLAUDE.md` y `MEMORIA-CHAT.md` al día.
+   - Subir todo al repo (`git init` o subida web) y poner el tag.
+
+### F5.19 — Pedidos del 2026-09-25 (aprobado por Diego) — reemplaza a la tanda E y va antes del playtest
+1. **Chicles y autos:** 5 clásicos desde el nivel 1 (SHADOW STEP, BEACON, QUICK HANDS, IRON LUNGS, SHARP EDGE); PLAY
+   exige 5 chicles con stock en el preset (cuentas nuevas arrancan con esos 5). La chiclera tarda 3 s en darlo. HUD:
+   círculo del color del chicle a la derecha, arriba de todo; el contorno = cargas que quedan (3/3 → 2/3) o tiempo. Los
+   autos volcados sin fuego ni humo.
+2. **Oeste:** rancho y tortugario 15 m más al oeste con todo lo suyo (borde del mapa en x −95): el sendero del lazo D20
+   pasa de 15 a ~30 m. El sendero al claro (H2) sale del tortugario al lado de la cueva y sube al norte (se borra el de
+   x −46..−42). El caparazón ~7 m al norte: más patio en la entrada.
+3. **Claro del caparazón:** piso rocoso con charcos de sangre verde que brilla (como adentro), más oscuro que el resto
+   (sin luces nuevas). **Trampa nueva** en la entrada del caparazón: mini tortugas salen de los charcos a morder zombies y
+   una **tortuga mariachi** más grande da vueltas en el patio y atrae a todos los zombies mientras dura (como el
+   langostino; el boss no). La trampa de la cueva se queda. El taller de la Ola se muda al costado del caparazón; el
+   banco del escudo sigue en la casa.
+4. **Calamar:** la cabeza pasa a (−87.9, −44.3), en el mar, con un corredor de rocas para llegar. Donde estaba va el
+   **embarcadero**: la arena pasa a ser agua y el muelle va elevado sobre pilotes (para la lógica, piso), con botes rotos
+   y volcados, cadáveres de animales de mar (algunos alienígenas), Double Tap, la LMG y la llegada del portal.
+5. **Norte y templo:** los jardines norte (R15) pasan a espesura; un sendero largo del jardín trasero al templo (H6).
+   Templo: área z 50..100; plancha caminable a 4.3 m de x 80 a 97 en todo el largo, con columnas, el PaP en el medio y la
+   tumba/portal en la punta de z 100; 3 rampas de x 70 a 80 (z ≈ 50, 75, 100). El río se queda sin cruzar el templo, con
+   un **tiburón** que cruza cada puente de lado a lado (50 si te toca) en vez de pirañas. **Entrada del búnker** (con
+   las estatuas) a (30.3, 88.7), en el área del choque; los autos (sin fuego) a los bordes, así se camina el medio.
+6. **Torre de salvavidas** igual, en (14.4, −22), con el revólver.
+7. **Perks y PaP** con mucho más diseño (solo visual, sin luces nuevas).
+8. **Sonidos** de `sonidos/` embebidos en base64 (index.html ~14–15 MB; comprimir el soundtrack si se puede).
+9. **Pedidos del 2026-09-25 (segunda tanda, Diego: "no me esperes, avisame al final"):**
+   - Nivel POR ARMA: la XP de kills con un arma sube el nivel de esa arma y desbloquea SUS accesorios. El nivel general
+     desbloquea chicles y a veces da KRAKEN INK.
+   - Miras mejor diseñadas (la del francotirador casi no sirve: overlay de mira telescópica).
+   - Sin perros del jardín antes de la R10.
+   - Menú: sin siluetas; el juego se llama solo "ZOMBIES".
+   - Tienda de KRAKEN INK en una pestaña aparte, con una tómbola de bingo que saca los chicles.
+   - Fondo de cada carta de chicle por rareza: clásico gris, raro verde, ultra rojo, épico morado; la cantidad arriba a la
+     derecha, más grande. Los paneles de GUMS y WEAPONS ocupan todo el espacio a la derecha, todo más grande.
+   - 3 LMG nuevas (mucha munición, recarga larga): dos malas y una muy buena, con buen diseño.
+   - Al final (si no es muy difícil): jugar con un compañero CPU con dificultad configurable.
+10. **Tercera tanda (2026-09-26):**
+   - Soundtrack solo en el menú de inicio. Al morir, cinemática que dura la música de muerte, con un recuadro de resumen
+     de la partida estilo BO3.
+   - Rondas: la R1 arranca con el audio de ronda y los zombies salen a los 12 s. Al matar al último zombie suena el
+     audio, el número cambia a los 10 s y los zombies salen a los 12 s.
+   - Sonidos: calamares, perros (mordida), caídas y el Sombrerón (guitarras, cocos) sin sonido de zombie; la pared no
+     suena doble; la caja sin el segundo de silencio.
+   - Caparazón: la mariachi es una tortuga chica con sombrero de mariachi; charcos más grandes y rocas grises grandes.
+   - Embarcadero: la baranda al corredor de rocas se compra (1500); el portal va en las rocas; rocas altas de z -23 a
+     -10 y detrás de la chiclera; piso de roca con rocas en toda la orilla. Franja de lodo y rocas en x -26, z -24..-3.
+   - PaP: diseño calamaresco, mítico, azteca, colores brillantes y surreal. Templo: 3 plantas carnívoras moradas
+     majestuosas (estatuas) que escupen chorros morados "espaciales"; las cabezas de piedra pasan a estatuas cúbicas de
+     plantas carnívoras con jeroglíficos.
+   - **Barricadas estilo BO:** los zombies entran por ventanas de 5 tablas (se reparan con F, 10 puntos por tabla, las
+     primeras 5 de cada ronda dan puntos). Donde no hay pared: escotillas en el piso, o entran saltando desde el mar o
+     la jungla. En el porche solo 2 entradas: la laguna y una escotilla en el piso (reparable).
+   - **Estado (2026-09-26): HECHO** salvo el compañero CPU (pendiente, al final). Ver la sección F5.19b de `CLAUDE.md`.
+     Test nuevo: `f519b.js`.
+
+### F5.20 — Quinta tanda (2026-09-27, aprobada por Diego) — en 3 tandas: A–C, D–F, G
+- **A. Bugs y chicos:** ESC bajando al búnker (el viaje tapaba la pausa), cinemática de muerte sin saltear, trampilla
+  que te pega al repararla, sin la voz de inicio de la playa, cartel "RANCHO DE DON DIEGO" hacia afuera, sin la caja de
+  almas de la casa (el PaP pide 2), plantas del templo sin ojos, ballesta en una pared, lodo ×1.4, catarata a x −79.
+- **B. Sonidos (`Nuevos sonidos 2`):** gruñidos naturales en vez de los procedurales, recargas nuevas, disparo de
+  escopeta, impacto de bazooka, sonidos de la planta boss.
+- **C. Chicles:** los que no tenés quedan en el set en gris (la chiclera los ofrece pero no se agarran; PLAY no se
+  bloquea), 10 chicles nuevos (algunos malos), 3 sets guardables, pestañas POR NIVEL / KRAKEN INK.
+- **D. Casa:** spawn en el garaje (Quick Revive y la chiclera del porche ahí), casa oscura hasta la energía con faroles
+  de 2 min con F, ventanas con hueco real en la pared, una ventana del garaje pasa a trampilla y la otra a gotera verde,
+  caparazones y huesos.
+- **E. Zombies:** variantes (golpeados, shorts; horribles desde R10; negros explosivos de ojos rojos desde R15), nadie
+  sale caminando del mar (ahogados del piso), arrastrados en el caparazón.
+- **F. Mapa:** barco volcado en (−55, −68) con cadáveres y humo, portal de piedras del espacio, sol hacia (4, −66) que
+  baja de la R1 a la R8, pared sólida z 78..100 al este del templo, lápida con poema en (26.4, 84) y estatua que cambia
+  al cumplir su parte.
+- **G. Planta boss del templo** en (97.4, 98): vida de Sombrerón, 3 fases (escupitajos ×2, chorro de calamar con más
+  alcance, hordas de calamares), se pone negra al bajar la vida, al morir escupe el PaP y abre el portal (burbuja).
+
+### Tanda E — Calamar y embarcadero (absorbida por F5.19)
 - Embarcadero amplio y oscuro, sobre la arena al costado de la cabeza del calamar.
 - Cadáveres de animales de mar, algunos medio alienígenas.
 - Double Tap, LMG y el portal de llegada.

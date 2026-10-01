@@ -58,7 +58,8 @@ check(G.renderer.domElement.style.filter.indexOf('blur(3.0px)') === 0 && /sepia/
 GFX.blur = 0;
 
 // 3) ciclo de luz: paradas de color por ronda, intensidades como antes
-G.resetGame(); state.running = true; settle(0.2);
+G.resetGame(); state.running = true;
+player.pos.set(0, CONFIG.PLAYER.height, -10); settle(3);   // F5.20: afuera (la casa sin energía está oscura)
 const hemiDay = WORLD.hemi.intensity, skyDay = WORLD.sky.material.color.clone();
 const col = n => { G.setSky(n, false); settle(12); return { sky: WORLD.sky.material.color.clone(), fog: G.scene.fog.color.clone(), hemi: WORLD.hemi.intensity }; };
 const r5 = col(5), r10 = col(10), r15 = col(15);

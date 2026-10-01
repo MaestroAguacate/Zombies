@@ -27,17 +27,17 @@ const nearNav = (x, z) => { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; d
 fresh(false);
 const D20 = state.doors.D20;
 check(D20 && D20.cost === 1500 && !D20.open, 'lazo D20: 1500, cerrado');
-check(G.roomAt(-49, 29).id === 'R14' && G.roomAt(-34, 29).id === 'R14' && G.roomAt(-26, 29).id === 'R12', 'F5.13: el rancho (R14) va de x -56 a -42 (F5.15: con su sendero hasta el lazo)');
+check(G.roomAt(-64, 29).id === 'R14' && G.roomAt(-34, 29).id === 'R14' && G.roomAt(-26, 29).id === 'R12', 'F5.13: el rancho (R14) va de x -71 a -57 (F5.19: con su sendero de 30 m hasta el lazo)');
 Object.keys(state.doors).filter(id => id !== 'D20' && !/^H\d$/.test(id)).forEach(G.openDoor);   // todo abierto menos el lazo (F5.12: y los cercos del rancho)
 setPlayer(-22, 29);
-const dClosed = G.flowAt(-49, 36);
+const dClosed = G.flowAt(-64, 36);
 check(dClosed < 0 || dClosed > 30, 'F5.13: con el lazo cerrado el rancho queda lejos (se llega solo dando la vuelta por la jungla)', `(${dClosed})`);
 player.pos.set(-25.5, P.height, 29); G.updateInteract();
 check(G.interactState.kind === 'door' && G.interactState.target === D20, 'se compra desde el jardín');
 state.points = 1500;
 check(G.interact() && D20.open && state.points === 0, 'cobra 1500 y abre');
 G.buildNavGrid(); setPlayer(-22, 29);
-check(nearNav(-49, 36) && nearNav(-53.5, 38.5), 'abierto se llega a todo el rancho');
+check(nearNav(-64, 36) && nearNav(-68.5, 38.5), 'abierto se llega a todo el rancho');
 // frena al jugador cerrado y las balas pasan por encima
 fresh(false); G.scene.updateMatrixWorld(true);
 player.pos.set(-25.5, P.height, 29); player.vel.set(-P.speed, 0, 0);
@@ -58,25 +58,26 @@ const ids = CONFIG.RANCHO.props.map(p => p.id);
 check(ids.every(id => G.PROPS.find(p => p.id === id && p.collider)), 'billar, barra y postes son sólidos', ids.join(', '));
 const bil = G.PROPS.find(p => p.id === 'billar').box;
 check(nearNav(bil[0] - 1, (bil[2] + bil[3]) / 2) && nearNav(bil[1] + 1, (bil[2] + bil[3]) / 2), 'se rodea el billar por los dos lados');
+// F5.28e: Speed Cola se mudó a la cueva de las catacumbas (R24; f528.js la mira)
 const sp = CONFIG.PERKS.list.speed;
-check(sp.room === 'R14' && nearNav(sp.x + 1.2, sp.z), 'Speed Cola en el rancho y se llega');
+check(sp.room === 'R24', 'Speed Cola ya no está en el rancho (F5.28e: en la cueva)');
 const bs = CONFIG.BOX.spots.R14;
 check(bs && G.roomAt(bs.x, bs.z).id === 'R14' && nearNav(bs.x, bs.z - 1.2), 'lugar de la caja en el rancho y se llega');
 const spR14 = G.SPAWN_POINTS.filter(s => s.room === 'R14');
 // (F5.11: +2 en el rancho hasta el mar)
 check(spR14.length >= 3 && spR14.every(s => s.valid && G.flowAt(s.cx, s.cz) >= 0), 'spawns del rancho válidos y alcanzables');
-player.pos.set(sp.x, P.height, sp.z - 1.2); G.updateInteract();
-check(G.interactState.kind === 'perk' && G.interactState.target.key === 'speed', 'cartel de Speed Cola desde el rancho');
+player.pos.set(sp.x, G.groundY(sp.x, sp.z + 1.2) + P.height, sp.z + 1.2); G.updateInteract();
+check(G.interactState.kind === 'perk' && G.interactState.target.key === 'speed', 'cartel de Speed Cola desde la cueva');
 
 // 2) trampa de tortugas
-fresh(true); clearZ(); setPlayer(-45, 36);
+fresh(true); clearZ(); setPlayer(-60, 36);
 const TT = TRAPS.turtles, TC = CONFIG.TRAPS.turtles;
 check(G.roomAt(TC.lever.x, TC.lever.z).id === 'R14', 'palanca del tortugario en el rancho');
 player.pos.set(TC.lever.x + 1, P.height, TC.lever.z + 0.5); G.updateInteract();
 check(G.interactState.kind === 'trap' && G.promptFor(G.interactState).text === '[F] Activate TURTLES' && G.promptFor(G.interactState).cost === TC.cost,
   'cartel: activar tortugas, ' + TC.cost);
-setPlayer(-45, 36);
-const prey = [zombieAt(-47, 22, 5000), zombieAt(-45, 26, 5000), zombieAt(-50, 31, 5000)];
+setPlayer(-60, 36);
+const prey = [zombieAt(-62, 22, 5000), zombieAt(-60, 26, 5000), zombieAt(-65, 31, 5000)];
 const far = zombieAt(-20, 36, 5000);                            // en el jardín, fuera del alcance
 state.health = 100;
 G.useTrap(TT);
@@ -95,9 +96,9 @@ check(TT.list.some(tu => tu.g.visible), 'andan por el rancho');
 for (let i = 0; i < 60 * (TC.time - 12 + 6); i++) { G.tick(dt); G.updateTraps(dt); }
 check(TT.phase === 'cool' && TT.list.every(tu => tu.state === 'off' && !tu.g.visible), 'al terminar vuelve a la cueva y se esconde (F5.16)');
 fresh(true); clearZ(); CONFIG.BOSS.enabled = true; state.round = 12;
-G.spawnBoss(); const b = BOSS.z; b.px = -47; b.pz = 24; b.state = 'walk'; const bh = b.health;
+G.spawnBoss(); const b = BOSS.z; b.px = -62; b.pz = 24; b.state = 'walk'; const bh = b.health;
 G.useTrap(TT);
-for (let i = 0; i < 60 * 8; i++) { G.tick(dt); G.updateTraps(dt); b.px = -47; b.pz = 24; b.act = null; }
+for (let i = 0; i < 60 * 8; i++) { G.tick(dt); G.updateTraps(dt); b.px = -62; b.pz = 24; b.act = null; }
 check(b.alive && b.health === bh, 'al boss no');
 CONFIG.BOSS.enabled = false; clearZ();
 
@@ -149,7 +150,13 @@ G.debugKey('KeyO', false);
 check(state.points === p0 + CONFIG.DEBUG.unlockPoints, 'O: +' + CONFIG.DEBUG.unlockPoints);
 check(Object.values(state.doors).every(d => d.open), 'abre todas las puertas');
 check(Object.values(state.generators).every(Boolean) && state.power, 'prende los generadores y la energía');
-check(Object.values(state.souls).every(v => v >= CONFIG.SOULS.need) && G.RELICS.papOn, 'llena las cajas de almas y prende el Pack-a-Punch');
+// F5.27: equipo de dios
+check(state.weapons[0].id === 'raygun' && state.weapons[1].id === 'leviathan' && state.weapons.slice(0, 2).every(w => w.pap && w.mag > 0),
+  'O: Ray Gun y LEVIATHAN con Pack-a-Punch', `(${state.weapons.map(w => w.id + (w.pap ? '*' : '')).join(', ')})`);
+check(G.MONKEY.has && G.MONKEY.count === CONFIG.MONKEY.max && state.shield.built && state.shield.has, 'O: langostinos y el escudo armado');
+check(G.PERK_KEYS.every(k => G.hasPerk(k)) && state.health === G.maxHealth(), 'O: Perkaholic (todos los perks)', `(${state.perks.join(', ')})`);
+// F5.20: 2 cajas
+check(Object.keys(CONFIG.SOULS.spots).every(k => state.souls[k] >= CONFIG.SOULS.need) && G.RELICS.papOn, 'llena las cajas de almas y prende el Pack-a-Punch');
 check(PLANTS.every(p => p.fed === 0) && QUEST.shell.phase === 'dull', 'no toca las plantas (la caracola sigue opaca)');
 G.updateQuest(dt);
 check(QUEST.shrimp.visible, 'aparece el langostino');

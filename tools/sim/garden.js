@@ -49,27 +49,36 @@ check(q.alive && q.health === 500, 'a los zombies no les hace nada');
 // 2b) F5.7: pirañas en la primera mitad de cada tronco del muelle y en el puente
 const PZ = GD.piranhas;
 // F5.13: +3 zonas en el río del templo (sus 3 puentes)
-check(G.PIRANHAS.zones.length === 5 && G.PIRANHAS.zones.every(z => z.fish.length === 3), 'F5.16: 5 zonas (el muelle, el puente y los 3 del río del templo), 3 carriles cada una', `(${G.PIRANHAS.zones.length})`);
+check(G.PIRANHAS.zones.length === 2 && G.PIRANHAS.zones.every(z => z.fish.length === 3), 'F5.19: 2 zonas (el muelle y el puente C13; en el río del templo hay tiburones), 3 carriles cada una', `(${G.PIRANHAS.zones.length})`);
+// (el carril que salta es al azar: con semilla fija, así el test no depende de la suerte)
 function standIn(x, z, secs) {
   fresh(); player.pos.set(x, P.height, z); state.lastDamageTime = -99;
+  const rnd = Math.random; let seed = 12345;
+  Math.random = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
   let hits = 0, prev = 100;
   for (let i = 0; i < Math.round(secs * 60); i++) {
     G.tick(dt); G.updateGarden(dt);
     if (state.health < prev) { hits++; prev = state.health; }
     state.health = 100; prev = 100; state.lastDamageTime = -99;
   }
+  Math.random = rnd;
   return hits;
 }
 const zmain = PZ.zones[0];
 let h = standIn(0, zmain.lanes[1], 9);
 check(h >= 1 && h <= 6, 'parado en un carril del muelle: te tocan las de ese carril (orden al azar)', `(${h} en 9 s)`);
 check(standIn(19, PZ.zones[1].lanes[2], 18) >= 1, 'y en el medio del puente C13');
-// F5.13: en los puentes del río del templo (el oeste va a lo largo de z: carriles en x)
-{ const zw = PZ.zones[2], zs = PZ.zones[4];                          // (F5.15: el templo se mudó al anexo NE)
-  check(standIn(zw.lanes[1], (zw.x1 + zw.x2) / 2, 18) >= 1 && standIn((zs.x1 + zs.x2) / 2, zs.lanes[1], 18) >= 1, 'F5.13: y en los puentes del río del templo'); }
+// F5.19: en los puentes del río del templo, un tiburón que cruza de lado a lado: si te toca, 50
+{ const RV = CONFIG.TEMPLE.river, SH = CONFIG.TEMPLE.shark, br = RV.bridges[1], bx = (RV.w[0] + RV.w[1]) / 2, bz = (br[1] + br[2]) / 2;
+  let big = 0;
+  fresh(); player.pos.set(bx, P.height, bz); state.lastDamageTime = -99;
+  for (let i = 0; i < 60 * 20; i++) { G.tick(dt); G.updateGarden(dt); if (state.health === 100 - SH.damage) big++; state.health = 100; state.lastDamageTime = -99; }
+  check(big >= 1, 'F5.19: parado en un puente del templo, el tiburón te saca ' + SH.damage, `(${big} en 20 s)`);
+  check(standIn(bx - 4, bz, 12) === 0, 'al costado del río (en tierra) no te toca'); }
 // F5.8: orden al azar (nunca el mismo carril dos veces seguidas) y en el puente pasan por encima de la baranda
 fresh();
 const seq = [], zb = G.PIRANHAS.zones[1], PB = PZ.zones[1];
+player.pos.set((PB.x1 + PB.x2) / 2 - 8, P.height, 0);   // F5.20: se arranca en el garaje; a menos de `near` del puente
 let overRail = true;
 for (let i = 0; i < 60 * 30; i++) {
   const before = zb.last; G.tick(dt); G.updateGarden(dt);
@@ -150,16 +159,17 @@ function gardenTries(round, x, z, n) {
   }
   return dogs;
 }
-check(gardenTries(4, 10, 34, 200) === 0, 'en la R4 no salen');
-check(gardenTries(5, 10, 34, 200) === GD.dogs.max, 'desde la R5, con vos en el jardín trasero: salen del jardín, ' + GD.dogs.max + ' por partida');
-check(gardenTries(8, 0, 10, 200) === 0, 'fuera del jardín (en la sala) no salen');
-fresh(); state.round = 6; player.pos.set(10, P.height, 34); G.updateFlowField(true);
+const FR = GD.dogs.fromRound;                                              // F5.19: desde la R10 (antes, R5)
+check(FR >= 10 && gardenTries(FR - 1, 10, 34, 200) === 0, 'en la R' + (FR - 1) + ' no salen (F5.19: nada de perros antes de la R10)');
+check(gardenTries(FR, 10, 34, 200) === GD.dogs.max, 'desde la R' + FR + ', con vos en el jardín trasero: salen del jardín, ' + GD.dogs.max + ' por partida');
+check(gardenTries(FR + 3, 0, 10, 200) === 0, 'fuera del jardín (en la sala) no salen');
+fresh(); state.round = FR + 1; player.pos.set(10, P.height, 34); G.updateFlowField(true);
 let first = 0; for (let i = 0; i < 200 && !first; i++) { const d = G.spawnGardenDog(); if (d) first = i + 1; }
 check(first > 0 && first < 60, 'salen de vez en cuando (~' + (GD.dogs.chance * 100) + '% de los spawns)', `(primero al intento ${first})`);
 G.resetGame();
 check(roundState.gardenDogs === 0, 'resetGame: vuelve a haber ' + GD.dogs.max + ' perros para la partida');
 CONFIG.DOGS.enabled = false;
-check(gardenTries(9, 10, 34, 200) === 0, 'con DOGS.enabled = false tampoco (los tests de rondas no los ven)');
+check(gardenTries(FR + 4, 10, 34, 200) === 0, 'con DOGS.enabled = false tampoco (los tests de rondas no los ven)');
 
 // 4) cercos: frenan al jugador y las balas
 fresh();

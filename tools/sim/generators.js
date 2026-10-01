@@ -16,8 +16,8 @@ function frontOf(sp, S, dist) {
   return { x: sp.x + l * s, z: sp.z + l * c };
 }
 // jugador parado en (x, z) mirando al punto (tx, ty, tz)
-function aimAt(x, z, tx, ty, tz) {
-  player.pos.set(x, 1.7 + G.groundY(x, z), z);
+function aimAt(x, z, tx, ty, tz, base) {                     // base (F5.22): altura del piso donde está parado
+  player.pos.set(x, 1.7 + (base !== undefined ? base : G.groundY(x, z)), z);
   const dx = tx - x, dz = tz - z;
   G.setCam(Math.atan2(-dx, -dz));
   player.pitch = Math.atan2(ty - player.pos.y, Math.hypot(dx, dz));
@@ -61,7 +61,8 @@ function bulletKillAt(x, z) {
 // 1) lugares: dentro de su cuarto, sin cambiar el grid, alcanzables
 fresh();
 const relicCols = WORLD.colliders.filter(c => /^(gen:|souls:|pap$)/.test(c.tag));
-check(relicCols.length === 4 + 3 + 1, '4 generadores + 3 cajas + Pack-a-Punch con collider', `(${relicCols.length})`);
+const NB = Object.keys(SC.spots).length;                            // F5.20: 2 cajas (sin la del pasillo)
+check(relicCols.length === 4 + NB + 1, '4 generadores + ' + NB + ' cajas + Pack-a-Punch con collider', `(${relicCols.length})`);
 const all = [...Object.entries(CONFIG.GENERATORS.spots).map(([k, sp]) => [k, sp, CONFIG.GENERATORS.size]),
              ...Object.entries(SC.spots).map(([k, sp]) => [k, sp, SC.size])];
 check(all.every(([k, sp]) => G.roomAt(sp.x, sp.z) && G.roomAt(sp.x, sp.z).id === sp.room), 'cada uno en su cuarto');
@@ -80,7 +81,7 @@ const unreach = all.filter(([k, sp, S]) => {
 });
 check(unreach.length === 0, 'se llega caminando al frente de cada uno', unreach.length ? JSON.stringify(unreach.map(u => u[0])) : '');
 let minD = 1e9;
-for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) {
+for (let i = 0; i < NB; i++) for (let j = i + 1; j < NB; j++) {
   const a = Object.values(SC.spots)[i], b = Object.values(SC.spots)[j];
   minD = Math.min(minD, Math.hypot(a.x - b.x, a.z - b.z));
 }
@@ -89,8 +90,8 @@ check(SC.radius === 4 && need === 15, 'radio 4 m, 15 almas por caja');
 
 // 2) generador: solo el cuchillo lo prende, de un golpe
 fresh();
-const GS = CONFIG.GENERATORS.size, gp = CONFIG.GENERATORS.spots.garaje, gf = frontOf(gp, GS, 1.1);
-aimAt(gf.x, gf.z, gp.x, 0.7, gp.z);
+const GS = CONFIG.GENERATORS.size, gp = CONFIG.GENERATORS.spots.garaje, gf = frontOf(gp, GS, 1.1), gy = gp.y || 0;   // F5.22: en el anillo del caparazón
+aimAt(gf.x, gf.z, gp.x, gy + 0.7, gp.z, gy);
 shoot(); shoot(); shoot();
 const marks = G.decals.pool.filter(d => d.visible && Math.hypot(d.position.x - gp.x, d.position.z - gp.z) < 1).length;
 check(marks > 0 && !state.generators.garaje, 'las balas le pegan (dejan marca) pero no lo prenden', `(${marks} marcas)`);
@@ -111,27 +112,28 @@ check(state.generators.muelle, 'generador del muelle (plataforma) también');
 
 // 3) cajas: bala y cuchillo dentro del radio suman; fuera, no
 fresh();
-const bp = SC.spots.pasillo, bf = frontOf(bp, SC.size, 1.5);
-check(bulletKillAt(bf.x, bf.z).join() === 'pasillo', 'kill de bala a 1.5 m suma a la caja del pasillo');
+// F5.20: la caja del jardín oeste (clave 'sotano'), la del pasillo ya no está
+const bp = SC.spots.sotano, bf = frontOf(bp, SC.size, 1.5);
+check(bulletKillAt(bf.x, bf.z).join() === 'sotano', 'kill de bala a 1.5 m suma a la caja del jardín oeste');
 const bf2 = frontOf(bp, SC.size, SC.radius - SC.size.d / 2 - 0.2);
-check(bulletKillAt(bf2.x, bf2.z).join() === 'pasillo', 'kill en el borde del radio suma', `(${Math.hypot(bf2.x - bp.x, bf2.z - bp.z).toFixed(2)} m)`);
+check(bulletKillAt(bf2.x, bf2.z).join() === 'sotano', 'kill en el borde del radio suma', `(${Math.hypot(bf2.x - bp.x, bf2.z - bp.z).toFixed(2)} m)`);
 const far = frontOf(bp, SC.size, SC.radius + 0.5);
 check(bulletKillAt(far.x, far.z).length === 0, 'kill fuera del radio no suma', `(${Math.hypot(far.x - bp.x, far.z - bp.z).toFixed(2)} m)`);
-check(bulletKillAt(bp.x - 1.6, bp.z).length === 0, 'kill del otro lado de la pared (garaje, a 1.6 m) no suma');
+check(bulletKillAt(bp.x - 1.6, bp.z).length === 0, 'kill del otro lado del cerco (a 1.6 m) no suma');
 // cuchillo: zombie entre el jugador y la caja
 const kz = frontOf(bp, SC.size, 1.2), kp = frontOf(bp, SC.size, 2.5);
 const zk = zombieAt(kz.x, kz.z);
 aimAt(kp.x, kp.z, kz.x, 1.6, kz.z);
-const s0 = state.souls.pasillo;
+const s0 = state.souls.sotano;
 swing();
-check(!zk.alive && state.souls.pasillo === s0 + 1, 'kill de cuchillo dentro del radio suma', `(${state.souls.pasillo})`);
+check(!zk.alive && state.souls.sotano === s0 + 1, 'kill de cuchillo dentro del radio suma', `(${state.souls.sotano})`);
 free(zk);
 // cuchillo fuera del radio
 const kz2 = frontOf(bp, SC.size, SC.radius + 1), kp2 = frontOf(bp, SC.size, SC.radius + 2.3);
 const zk2 = zombieAt(kz2.x, kz2.z);
 aimAt(kp2.x, kp2.z, kz2.x, 1.6, kz2.z);
 swing();
-check(!zk2.alive && state.souls.pasillo === s0 + 1, 'kill de cuchillo fuera del radio no suma');
+check(!zk2.alive && state.souls.sotano === s0 + 1, 'kill de cuchillo fuera del radio no suma');
 free(zk2);
 // piscina: un zombie que muere dentro de la pileta (el borde invisible no tapa) cuenta
 const pp = SC.spots.piscina;
@@ -139,12 +141,12 @@ check(bulletKillAt(pp.x + 3.7, pp.z).join() === 'piscina', 'kill dentro de la pi
 
 // 4) independientes y con tope
 fresh();
-const sp7 = SC.spots.sotano, sf = frontOf(sp7, SC.size, 1.5);
+const sp7 = SC.spots.piscina, sf = frontOf(sp7, SC.size, 1.5);
 for (let i = 0; i < need + 3; i++) bulletKillAt(sf.x, sf.z);
-check(state.souls.sotano === need, 'la caja del sótano se llena y no pasa de ' + need, `(${state.souls.sotano})`);
-check(state.souls.pasillo === 0 && state.souls.piscina === 0, 'llenar una no toca las otras');
+check(state.souls.piscina === need, 'la caja de la piscina se llena y no pasa de ' + need, `(${state.souls.piscina})`);
+check(state.souls.sotano === 0, 'llenar una no toca la otra');
 bulletKillAt(bf.x, bf.z);
-check(state.souls.pasillo === 1 && state.souls.sotano === need, 'otra caja progresa sola');
+check(state.souls.sotano === 1 && state.souls.piscina === need, 'la otra caja progresa sola');
 check(!RELICS.papOn, 'una caja llena no prende el Pack-a-Punch');
 
 // 5) Pack-a-Punch: bloqueado si falta cualquier cosa
@@ -153,7 +155,7 @@ function setAll(gens, souls) {
   Object.keys(state.generators).forEach(k => { state.generators[k] = gens.includes(k); });
   Object.keys(state.souls).forEach(k => { state.souls[k] = souls[k] !== undefined ? souls[k] : need; });
 }
-const GK = Object.keys(state.generators), SK = Object.keys(state.souls);
+const GK = Object.keys(state.generators), SK = Object.keys(SC.spots);   // F5.20: solo las cajas que existen
 let blocked = true;
 for (const g of GK) { setAll(GK.filter(k => k !== g), {}); if (G.papReady() || G.checkPap()) blocked = false; }
 check(blocked, 'falta 1 generador (cualquiera), con las 3 cajas llenas: bloqueado');
@@ -168,7 +170,7 @@ const pp0 = G.RELICS.pap;
 Object.keys(state.souls).forEach(k => { state.souls[k] = need; });
 ['muelle', 'caseta', 'piscina'].forEach(k => { state.generators[k] = true; });
 check(!RELICS.papOn && pp0.glow.visible === false, 'con 3 generadores sigue apagado');
-aimAt(gf.x, gf.z, gp.x, 0.7, gp.z);
+aimAt(gf.x, gf.z, gp.x, gy + 0.7, gp.z, gy);
 swing();
 check(RELICS.papOn && pp0.glow.visible, 'el 4to generador prende el Pack-a-Punch');
 G.updateRelics(1 / 60);
@@ -176,7 +178,7 @@ check(Object.values(RELICS.boxes).every(b => b.glow.visible), 'las 3 cajas brill
 // y al revés: el último alma lo prende
 fresh();
 GK.forEach(k => { state.generators[k] = true; });
-state.souls.sotano = need; state.souls.piscina = need; state.souls.pasillo = need - 1;
+state.souls.piscina = need; state.souls.sotano = need - 1;
 check(!RELICS.papOn, '4 generadores y 1 alma faltante: apagado');
 bulletKillAt(bf.x, bf.z);
 check(RELICS.papOn, 'la última alma prende el Pack-a-Punch');
@@ -186,7 +188,7 @@ fresh();
 const pap = CONFIG.PAP.spot, pf = frontOf(pap, CONFIG.PAP.size, 0.8);
 player.pos.set(pf.x, (pap.y || 0) + 1.7, pf.z); G.updateInteract();   // F5.13: arriba del templo
 const t0 = G.interactState.kind === 'pap' && G.promptFor(G.interactState).text;
-check(t0 === 'Pack-a-Punch off - 4 generators and 3 soul boxes missing', 'cartel del PaP con lo que falta', `("${t0}")`);
+check(t0 === 'Pack-a-Punch off - 4 generators and ' + NB + ' soul boxes missing', 'cartel del PaP con lo que falta', `("${t0}")`);
 const pts = state.points;
 check(G.interact() === false && state.points === pts, 'F sobre el PaP no hace nada ni cobra');
 GK.forEach(k => { state.generators[k] = true; }); SK.forEach(k => { state.souls[k] = need; }); G.checkPap();
@@ -200,9 +202,9 @@ check(G.interactState.kind !== 'gen', 'prendido ya no muestra cartel');
 
 // 7) barra de sangre: cerca y a la vista sí, lejos o detrás de la pared no
 fresh();
-state.souls.pasillo = 6;
+state.souls.sotano = 6;
 player.pos.set(bf.x, 1.7, bf.z); G.updateRelics(1 / 60);
-const B = RELICS.boxes.pasillo;
+const B = RELICS.boxes.sotano;
 check(B.bar.visible && Math.abs(B.fill.scale.x - 6 / need) < 1e-9, 'barra visible cerca, con el progreso', `(${B.fill.scale.x.toFixed(2)})`);
 player.pos.set(bp.x - 1.6, 1.7, bp.z); G.updateRelics(1 / 60);
 check(!B.bar.visible, 'detrás de la pared no se ve');

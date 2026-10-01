@@ -70,11 +70,15 @@ check(!c0.used, 'a los 1.4 s todavía no');
 G.keys.KeyF = false; G.tick(dt); G.updateClams(dt);
 check(CLAMS.holdT === 0, 'soltar F corta');
 hold(1.55);
-check(c0.used && CLAMS.last && c0.openT > 0, 'a los 1.5 s se abre y da el premio', `(${CLAMS.last})`);
+// (F5.18b: si el premio es un arma, queda flotando: `offer` en vez de `openT`)
+check(c0.used && CLAMS.last && (c0.openT > 0 || c0.offer), 'a los 1.5 s se abre y da el premio', `(${CLAMS.last})`);
+if (c0.offer) G.clamDropOffer(c0);
 hold(2);
 check(c0.used && prompt() === 'Empty clam', 'da una sola cosa por color: queda vacía');
+// F5.24 (Diego): al abrirla vuelve a vacía y a las CLAMS.regrow rondas sale VERDE (no sigue su ciclo)
+check(c0.stage === 0 && c0.next === G.state.round + CONFIG.CLAMS.regrow, 'abierta, vuelve a vacía y crece de nuevo en ' + CONFIG.CLAMS.regrow + ' rondas');
 G.clamsRound(c0.next);
-check(c0.stage === 2 && !c0.used, 'al cambiar de color vuelve a dar');
+check(c0.stage === 1 && !c0.used, 'a las ' + CONFIG.CLAMS.regrow + ' rondas sale verde y vuelve a dar');
 
 // 5) pesos por color
 function dist(stage, N) { const o = {}; for (let i = 0; i < N; i++) { const k = G.rollClam(stage).replace(/^weapon:.*/, 'weapon'); o[k] = (o[k] || 0) + 1 / N; } return o; }

@@ -197,9 +197,12 @@ let bad = 0, runs = 0;
 fresh(true);
 const cells = [];
 for (let cz = G.NAV.minZ; cz < G.NAV.minZ + G.NAV.h; cz++) for (let cx = G.NAV.minX; cx < G.NAV.minX + G.NAV.w; cx++) if (G.isNav(cx, cz)) cells.push([cx + 0.5, cz + 0.5]);
-for (let k = 0; k < 2000 && runs < 60; k++) {
-  const a = cells[Math.floor(Math.random() * cells.length)], c = cells[Math.floor(Math.random() * cells.length)];
-  const d = Math.hypot(a[0] - c[0], a[1] - c[1]);
+for (let k = 0; k < 4000 && runs < 60; k++) {
+  // el destino cerca del origen (con el mapa grande, dos celdas al azar casi nunca quedan a menos de chargeRange)
+  const a = cells[Math.floor(Math.random() * cells.length)], ang = Math.random() * Math.PI * 2, r = 4 + Math.random() * (B.chargeRange - 4);
+  const cx = Math.floor(a[0] + Math.cos(ang) * r), cz = Math.floor(a[1] + Math.sin(ang) * r);
+  if (!G.isNav(cx, cz)) continue;
+  const c = [cx + 0.5, cz + 0.5], d = Math.hypot(a[0] - c[0], a[1] - c[1]);
   if (d < 4 || d > B.chargeRange) continue;
   player.pos.set(c[0], P.height, c[1]);
   q = bossAt(a[0], a[1]); q.phase = 3;
@@ -422,7 +425,8 @@ for (let i = 0; i < 60 * 4; i++) {
 }
 check(big === B.calamar.puddleR, 'con poca vida tira un calamar que explota en un charco de ' + B.calamar.puddleR + ' m', `(${big})`);
 G.resetGame();
-check(BOSS.pool.every(z => !z.active && z.hatOn === (z.variant !== 'calamar') && !z.tears.visible) && BOSS.squids.every(s => !s.active),
+// F5.26: la Bestia tampoco tiene sombrero
+check(BOSS.pool.every(z => !z.active && z.hatOn === (z.variant === 'sombrero') && !z.tears.visible) && BOSS.squids.every(s => !s.active),
   'resetGame: todos los bosses afuera, ojos y calamares limpios');
 
 console.log(fail ? `FALLA (${fail})` : 'PASA'); process.exit(fail ? 1 : 0);

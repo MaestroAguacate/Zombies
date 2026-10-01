@@ -1,6 +1,8 @@
 //=== 7. ECONOMY ==========================================================
 function addPoints(p) {
-  const amt = state.effects.doublePoints > 0 || gumActive('beacon') ? p * 2 : p;   // F5.18b: BEACON
+  let amt = state.effects.doublePoints > 0 || gumActive('beacon') ? p * 2 : p;   // F5.18b: BEACON
+  if (gumActive('halfmag')) amt *= 2;                              // F5.20: HALF MAG
+  if (gumActive('heavyboots')) amt = Math.round(amt * 1.5);        // F5.20: HEAVY BOOTS
   state.points += amt;
   STATS.pointsEarned += amt;
   pendingPts += amt;
@@ -10,16 +12,84 @@ function addPoints(p) {
 const PICKUPS = { pool: [] };
 const POWERUP_KEYS = Object.keys(CONFIG.POWERUPS.types);   // ['maxammo','instakill','doublepoints']
 
+// F5.19c (Diego: "que no sea solo un círculo de color"): un modelo por tipo, estilo BO. MAX AMMO = caja de munición con
+// balas; INSTA-KILL = calavera; DOUBLE POINTS = moneda con "x2"; KABOOM = bomba con mecha y el símbolo nuclear. Cada
+// uno lleva un halo aditivo que mira a la cámara y un anillo en el piso, del color del tipo. Todo se arma una vez por
+// slot (geometrías compartidas) y se prende el que toca
+function pickupModelGeo(type) {
+  const b = new MeshBuilder();
+  if (type === 'maxammo') {
+    b.box(0, 0, 0, 0.46, 0.28, 0.3, 0x4a5a2a);                                  // caja
+    b.box(0, 0.15, 0, 0.48, 0.04, 0.32, 0x3a4820);                               // tapa
+    b.box(0, 0, 0.152, 0.46, 0.07, 0.01, 0xf0c030);                               // franja amarilla
+    for (const s of [-1, 1]) b.box(s * 0.2, 0.19, 0, 0.05, 0.04, 0.12, 0x2a2a2a);  // trabas
+    for (let k = 0; k < 5; k++) {                                               // balas arriba
+      const x = -0.14 + k * 0.07;
+      b.cyl(x, 0.17, 0, 0.022, 0.13, 0xd8a838, 1, 8); b.cyl(x, 0.3, 0, 0.022, 0.05, 0xc0703a, 0, 8);
+    }
+  } else if (type === 'instakill') {
+    b.box(0, 0.04, 0, 0.34, 0.3, 0.32, 0xf0ece0);                                // cráneo
+    b.box(0, 0.2, -0.02, 0.3, 0.06, 0.28, 0xe8e2d0);
+    for (const s of [-1, 1]) { b.box(s * 0.08, 0.06, 0.162, 0.1, 0.1, 0.01, 0x140c0c); b.box(s * 0.15, -0.04, 0.12, 0.06, 0.06, 0.08, 0xe0dac8); }   // ojos y pómulos
+    b.box(0, -0.03, 0.163, 0.05, 0.06, 0.01, 0x140c0c);                          // nariz
+    b.box(0, -0.16, 0.02, 0.24, 0.08, 0.26, 0xe8e2d0);                           // mandíbula
+    for (let k = 0; k < 5; k++) b.box(-0.08 + k * 0.04, -0.105, 0.15, 0.028, 0.05, 0.02, 0xfaf8f0);   // dientes
+  } else if (type === 'doublepoints') {
+    b.cyl(0, -0.03, 0, 0.26, 0.06, 0xd8a838, 1, 24, Math.PI / 2, 0, 0);          // moneda de canto
+    b.cyl(0, -0.035, 0, 0.215, 0.07, 0x3aa0ff, 1, 24, Math.PI / 2, 0, 0);        // cara azul
+    b.box(-0.08, 0, 0.045, 0.03, 0.16, 0.02, 0xf4f0e0, 0, 0, 0.7); b.box(-0.08, 0, 0.045, 0.03, 0.16, 0.02, 0xf4f0e0, 0, 0, -0.7);   // x
+    for (const [x, y, w, h] of [[0.08, 0.07, 0.09, 0.025], [0.115, 0.035, 0.025, 0.06], [0.08, 0, 0.09, 0.025], [0.045, -0.035, 0.025, 0.06], [0.08, -0.07, 0.09, 0.025]])
+      b.box(x, y, 0.045, w, h, 0.02, 0xf4f0e0);                                  // 2
+    for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8; b.box(Math.cos(a) * 0.255, Math.sin(a) * 0.255, 0, 0.03, 0.03, 0.075, 0xb88a28); }   // canto dentado
+  } else if (type === 'kaboom') {
+    b.sphere(0, 0, 0, 0.2, 0.2, 0.2, 0x1e1e22, 14);                              // bomba
+    b.cyl(0, 0.17, 0, 0.07, 0.07, 0x3a3a40, 1, 10);                              // boca
+    b.tube([[0, 0.24, 0], [0.04, 0.32, 0.02], [0.1, 0.36, 0.0]], 0.012, 0.01, 0xc8a870, 8, 4);   // mecha
+    b.box(0, 0, 0, 0.42, 0.05, 0.42, 0xd8322a);                                  // franja roja
+    for (let k = 0; k < 3; k++) { const a = k * 2.094 + Math.PI / 2; b.box(Math.cos(a) * 0.08, Math.sin(a) * 0.08, 0.19, 0.08, 0.06, 0.02, 0xf0d020, 0, 0, a); }   // símbolo nuclear
+    b.box(0, 0, 0.2, 0.04, 0.04, 0.02, 0xf0d020);
+  } else if (type === 'carpenter') {                                           // F5.19c: martillo sobre una tabla
+    b.box(0, -0.12, 0, 0.5, 0.06, 0.14, 0x8a6a44, 0, 0, 0.1);                  // tabla
+    for (const x of [-0.18, 0.18]) b.box(x, -0.085, 0.03, 0.025, 0.02, 0.025, 0x9a9aa0);   // clavos
+    b.box(0.02, 0.04, 0, 0.05, 0.36, 0.05, 0x6a4020, 0, 0, -0.5);             // mango
+    b.box(-0.08, 0.2, 0, 0.26, 0.08, 0.08, 0x8a8a94, 0, 0, -0.5);             // cabeza del martillo
+    b.box(-0.2, 0.28, 0, 0.06, 0.1, 0.07, 0x6a6a74, 0, 0, -0.9);              // uña
+  } else if (type === 'firesale') {                                            // F5.19c: cajita misteriosa con etiqueta
+    b.box(0, -0.02, 0, 0.44, 0.26, 0.28, 0x6a4424);
+    b.box(0, 0.13, 0, 0.47, 0.05, 0.31, 0x5a3a1e);
+    for (const x of [-0.12, 0.12]) b.box(x, -0.02, 0.142, 0.1, 0.12, 0.01, 0xffd35a);   // los "?"
+    b.box(0.2, 0.12, 0.12, 0.14, 0.1, 0.02, 0xff4aa8, 0, 0.3, 0.3);           // etiqueta de precio
+    b.box(0.2, 0.12, 0.132, 0.05, 0.05, 0.01, 0xf4f0e0, 0, 0.3, 0.3);
+  }
+  return b.geometry();
+}
 function buildPickupPool() {
-  const geo = new THREE.BoxGeometry(0.32, 0.32, 0.32);
-  for (let i = 0; i < CONFIG.POWERUPS.poolSize; i++) {
-    const mat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x000000, emissiveIntensity: 0.55 });
-    const mesh = new THREE.Mesh(geo, mat);
+  const F = CONFIG.POWERUPS, geos = {}, mats = {}, halo = {}, ring = {};
+  for (const k of POWERUP_KEYS) {
+    const c = F.types[k].color;
+    geos[k] = pickupModelGeo(k);
+    mats[k] = new THREE.MeshLambertMaterial({ vertexColors: true, emissive: new THREE.Color(c).multiplyScalar(0.35) });
+    const cs = new THREE.Color(c), rgba = a => 'rgba(' + Math.round(cs.r * 255) + ',' + Math.round(cs.g * 255) + ',' + Math.round(cs.b * 255) + ',' + a + ')';
+    halo[k] = new THREE.MeshBasicMaterial({ map: radialTex(rgba(0.95), rgba(0.25)), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+    ring[k] = new THREE.MeshBasicMaterial({ map: radialTex(rgba(0.7), rgba(0.15)), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+  }
+  const haloGeo = new THREE.PlaneGeometry(1.1, 1.1), ringGeo = new THREE.PlaneGeometry(1.4, 1.4);
+  for (let i = 0; i < F.poolSize; i++) {
+    const mesh = new THREE.Group(), models = {};
+    for (const k of POWERUP_KEYS) {
+      const g = new THREE.Group(), m = new THREE.Mesh(geos[k], mats[k]), h = new THREE.Mesh(haloGeo, halo[k]);
+      h.renderOrder = -1; g.add(h); g.add(m); g.visible = false; g.userData.halo = h; g.userData.model = m;
+      mesh.add(g); models[k] = g;
+    }
     mesh.visible = false;
     scene.add(mesh);
-    const light = new THREE.PointLight(0xffffff, 0, 3.2, 2);
-    scene.add(light);
-    PICKUPS.pool.push({ mesh, light, active: false, type: null, life: 0, x: 0, z: 0, spin: Math.random() * 6.28 });
+    const floor = new THREE.Mesh(ringGeo, ring[POWERUP_KEYS[0]]);
+    floor.rotation.x = -Math.PI / 2; floor.visible = false; scene.add(floor);
+    // F5.19d (optimización): sin PointLight por slot. Eran 8 luces más en la escena y three.js calcula TODAS las luces en
+    // cada vértice de cada material Lambert (casi todo el mapa), aunque estén en 0. El brillo ahora es el halo aditivo.
+    // Queda un objeto con la misma forma para no tocar el resto del código
+    const light = { intensity: 0, position: new THREE.Vector3(), color: new THREE.Color() };
+    PICKUPS.pool.push({ mesh, models, floor, ringMats: ring, light, active: false, type: null, life: 0, x: 0, z: 0, spin: Math.random() * 6.28 });
   }
 }
 // llamado desde damageZombie() al morir un zombie (gun o cuchillo, mismo camino)
@@ -42,7 +112,7 @@ function onZombieDeath(z) {
 function trySpawnPickup(x, z, forceType) {
   let type = forceType;
   if (!type) {
-    if (Math.random() > CONFIG.POWERUPS.dropChance) return;
+    if (Math.random() > CONFIG.POWERUPS.dropChance * (gumActive('magnet') ? CONFIG.GUMS.list.magnet.mul : 1)) return;   // F5.20: POWER MAGNET
     type = POWERUP_KEYS[Math.floor(Math.random() * POWERUP_KEYS.length)];
   }
   const slot = PICKUPS.pool.find(p => !p.active);
@@ -50,8 +120,8 @@ function trySpawnPickup(x, z, forceType) {
   const info = CONFIG.POWERUPS.types[type];
   slot.active = true; slot.type = type; slot.life = CONFIG.POWERUPS.lifespan;
   slot.x = x; slot.z = z;
-  slot.mesh.material.color.setHex(info.color);
-  slot.mesh.material.emissive.setHex(info.color);
+  for (const k in slot.models) slot.models[k].visible = k === type;           // F5.19c: el modelo del tipo
+  slot.floor.material = slot.ringMats[type]; slot.floor.visible = true;
   slot.mesh.visible = true;
   slot.light.color.setHex(info.color);
   slot.light.intensity = 1.3;
@@ -60,7 +130,7 @@ function collectPickup(p) {
   applyPowerup(p.type);
   deactivatePickup(p);
 }
-function deactivatePickup(p) { p.active = false; p.mesh.visible = false; p.light.intensity = 0; }
+function deactivatePickup(p) { p.active = false; p.mesh.visible = false; p.light.intensity = 0; if (p.floor) p.floor.visible = false; }
 function applyPowerup(type) {
   if (type === 'maxammo') {
     state.weapons.forEach(w => {
@@ -75,6 +145,11 @@ function applyPowerup(type) {
     state.effects.doublePoints = CONFIG.POWERUPS.types.doublepoints.duration;
   } else if (type === 'kaboom') {
     kaboom();
+  } else if (type === 'carpenter') {                                // F5.19c: todas las barricadas con sus 5 tablas
+    repairAllBarriers();
+    addPoints(CONFIG.POWERUPS.types.carpenter.points);
+  } else if (type === 'firesale') {                                 // F5.19c: la caja en todos sus lugares
+    startFireSale();
   }
   showPowerupBanner(type);
   sfxPowerup(type);
@@ -87,10 +162,20 @@ function updatePickups(dt) {
     p.spin += dt * F.spinSpeed;
     const y = groundY(p.x, p.z) + 0.55 + Math.sin(t * F.bobFreq + p.spin) * F.bobAmp;   // piscina: sobre el fondo
     p.mesh.position.set(p.x, y, p.z);
-    p.mesh.rotation.set(p.spin * 0.6, p.spin, 0);
+    // F5.19c: el modelo gira sobre y (el halo, detrás, mira siempre a la cámara); el anillo del piso late
+    const M = p.models[p.type];
+    if (M) {
+      M.userData.model.rotation.set(0, p.spin, Math.sin(p.spin * 0.7) * 0.15);
+      M.userData.halo.quaternion.copy(camera.quaternion);
+      M.userData.halo.scale.setScalar(0.9 + 0.15 * Math.sin(t * 5 + p.spin));
+    }
+    p.floor.position.set(p.x, groundY(p.x, p.z) + 0.03, p.z);
+    p.floor.scale.setScalar(0.85 + 0.2 * Math.sin(t * 3 + p.spin));
+    if (p.life < 4) p.mesh.visible = p.floor.visible = Math.sin(t * (p.life < 1.5 ? 30 : 14)) > -0.3;   // parpadea antes de irse
     p.light.position.set(p.x, y + 0.15, p.z);
     const dx = player.pos.x - p.x, dz = player.pos.z - p.z;
-    if (dx * dx + dz * dz < F.pickupRadius * F.pickupRadius) { collectPickup(p); continue; }
+    const pr = gumActive('sticky') ? CONFIG.GUMS.list.sticky.radius : F.pickupRadius;   // F5.28d: STICKY FINGERS
+    if (dx * dx + dz * dz < pr * pr) { collectPickup(p); continue; }
     if (p.life <= 0) deactivatePickup(p);
   }
 }
@@ -98,10 +183,12 @@ function updateEffects(dt) {
   if (state.effects.instakill > 0) state.effects.instakill = Math.max(0, state.effects.instakill - dt);
   if (state.effects.doublePoints > 0) state.effects.doublePoints = Math.max(0, state.effects.doublePoints - dt);
   updateKaboom(dt);
+  updateFireSale(dt);                                              // F5.19c
 }
 function resetPickups() {
   PICKUPS.pool.forEach(deactivatePickup);
   state.effects.instakill = 0; state.effects.doublePoints = 0;
+  endFireSale(true);                                               // F5.19c
   roundState.spawnHold = 0; KABOOM.active = false;
   for (const f of KABOOM.flames) { f.z = null; f.g.visible = false; }
 }
@@ -181,12 +268,14 @@ function spendPoints(cost) {
 
 function buyDoor(id) {
   const d = state.doors[id];
-  if (!d || d.open || d.power || d.burning) return false;   // F5.7: el portón del sótano solo lo abre la energía
+  if (!d || d.open || d.power || d.burning || d.levers) return false;   // F5.7: el portón del sótano solo lo abre la energía (F5.28e: D23, las palancas)
   if (!spendPoints(d.cost)) return false;
   rollInk();                                                    // F5.18b: a veces cae una moneda de la tienda de chicles
   if (d.burn) return startBurn(d);                 // F5.12: el cerco arde y se abre al terminar (updateBurns lo cuenta)
   openDoor(id);
   STATS.doors++;
+  if (STATS.doors === 3) voice('audio_al_comprar_la_tercera_puerta', 1, 0);             // F5.19
+  else voice('audio_del_personaje_al_comprar_una_puerta', 0.45, 25);
   return true;
 }
 
@@ -262,8 +351,10 @@ function buyWallWeapon(wb) {
   if (!spendPoints(wb.cost)) return false;
   giveWeapon(wb.weapon);        // 3ra arma reemplaza la equipada
   raiseWeapon();
+  SFX_BUY.done = playSample('compra_de_una_wall_gun');           // F5.19
   return true;
 }
+const SFX_BUY = { done: false };                                  // F5.19: la compra ya tuvo su sonido
 
 //--- MYSTERY BOX ---
 // Fases: idle -> rolling (4s) -> ready (8s para agarrar) -> idle
@@ -349,6 +440,77 @@ function buildBox() {
   }
   scene.add(beam);
   BOX.beam = beam; BOX.beamMat = bm;
+  buildFireSale(bm);                                               // F5.19c
+}
+// F5.19c: FIRE SALE. Mientras dura, en cada lugar de la caja (menos donde está la de verdad) hay una caja "fantasma"
+// con su rayo. Son solo dibujo (sin collider ni hitMesh: los spots están en el anillo no navegable). Usar una con F
+// muda la caja de verdad ahí (placeBox) y la usa como siempre. Sin oso mientras dura. Al terminar, la caja vuelve
+// a donde estaba (cuando termina de girar, si estaba girando)
+const FIRESALE = { ghosts: [], home: null };
+function buildFireSale(beamMat) {
+  const S = CONFIG.BOX.size;
+  for (const room in CONFIG.BOX.spots) {
+    const sp = CONFIG.BOX.spots[room], g = new THREE.Group(), mb = new MeshBuilder();
+    mb.box(0, S.h / 2, 0, S.w, S.h, S.d, 0x8a6a44);
+    mb.box(0, S.h + 0.04, 0, S.w + 0.04, 0.08, S.d + 0.04, 0x6a4a2c);
+    for (const x of [-S.w * 0.28, S.w * 0.28]) mb.box(x, S.h / 2, S.d / 2 + 0.006, 0.3, 0.3, 0.01, 0xffd35a);
+    mb.box(S.w * 0.36, S.h + 0.2, S.d / 2, 0.36, 0.2, 0.03, 0xff4aa8, 0, 0, 0.2);   // cartel FIRE SALE
+    const m = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x220a14 }));
+    scene.remove(m); m.matrixAutoUpdate = true; m.userData.theme = false; g.add(m);
+    const beam = new THREE.Group();
+    for (let k = 0; k < 3; k++) {
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(CONFIG.BOX.beamWidth, CONFIG.BOX.beamHeight), beamMat);
+      p.position.y = CONFIG.BOX.beamHeight / 2; p.rotation.y = k * Math.PI / 3; p.frustumCulled = false; beam.add(p);
+    }
+    g.add(beam);
+    g.position.set(sp.x, sp.y !== undefined ? sp.y : groundY(sp.x, sp.z), sp.z); g.rotation.y = sp.rot; g.visible = false;   // F5.28e: a la altura del piso
+    scene.add(g);
+    FIRESALE.ghosts.push({ room, g, x: sp.x, z: sp.z, rot: sp.rot });
+  }
+}
+function startFireSale() {
+  state.effects.fireSale = CONFIG.POWERUPS.types.firesale.duration;
+  if (!FIRESALE.home) FIRESALE.home = BOX.room;
+  fireSaleGhosts();
+}
+function fireSaleGhosts() {
+  const on = state.effects.fireSale > 0;
+  for (const G of FIRESALE.ghosts) G.g.visible = on && G.room !== BOX.room && BOX.phase !== 'moving';
+}
+function updateFireSale(dt) {
+  if (state.effects.fireSale > 0) {
+    state.effects.fireSale = Math.max(0, state.effects.fireSale - dt);
+    for (const G of FIRESALE.ghosts) if (G.g.visible) G.g.children[0].position.y = Math.sin(clock.elapsedTime * 3 + G.x) * 0.03;
+    if (!state.effects.fireSale) fireSaleGhosts();
+  } else if (FIRESALE.home) endFireSale(false);
+}
+// al terminar: la caja vuelve a casa cuando está quieta. immediate (reset): solo apaga todo
+function endFireSale(immediate) {
+  state.effects.fireSale = 0;
+  for (const G of FIRESALE.ghosts) G.g.visible = false;
+  if (immediate) { FIRESALE.home = null; return; }
+  if (BOX.phase !== 'idle') return;
+  if (FIRESALE.home && FIRESALE.home !== BOX.room) { placeBox(FIRESALE.home); updateFlowField(true); }
+  FIRESALE.home = null;
+}
+function fireSaleNear(room, px, pz, bd) {
+  if (!(state.effects.fireSale > 0) || BOX.phase !== 'idle' || !room) return null;
+  let best = null;
+  for (const G of FIRESALE.ghosts) {
+    if (!G.g.visible || G.room !== room.id) continue;
+    const d = Math.hypot(px - G.x, pz - G.z) - 0.4;
+    if (d < bd && (!best || d < best.dist)) best = { dist: d, target: G };
+  }
+  return best;
+}
+function useFireSaleBox(G) {
+  if (BOX.phase !== 'idle' || !(state.effects.fireSale > 0)) return false;
+  const was = BOX.room;
+  placeBox(G.room); updateFlowField(true);
+  const ok = useBox();
+  if (!ok) { placeBox(was); updateFlowField(true); }
+  fireSaleGhosts();
+  return ok;
 }
 function buildTeddy() {
   const g = new THREE.Group(), C = 0x8a5a34, L = 0xc79a6a, D = 0x1a1210;
@@ -369,17 +531,19 @@ function buildTeddy() {
 // coloca la caja en el spot del cuarto (collider + nav). No crea nada.
 function placeBox(roomId) {
   const sp = CONFIG.BOX.spots[roomId], S = CONFIG.BOX.size;
+  // F5.28e: la altura del piso del lugar (el búnker está a -8, las catacumbas abajo): sp.y o el terreno
+  const y0 = BOX.y0 = sp.y !== undefined ? sp.y : groundY(sp.x, sp.z);
   BOX.room = roomId;
-  BOX.group.position.set(sp.x, 0, sp.z);
+  BOX.group.position.set(sp.x, y0, sp.z);
   BOX.group.rotation.y = sp.rot;
   const sideways = Math.abs(Math.sin(sp.rot)) > 0.5;
   const hx = (sideways ? S.d : S.w) / 2, hz = (sideways ? S.w : S.d) / 2;
   const c = BOX.collider;
-  c.minX = sp.x - hx; c.maxX = sp.x + hx; c.minZ = sp.z - hz; c.maxZ = sp.z + hz;
-  BOX.light.position.set(sp.x, 1.6, sp.z);
-  BOX.disp.position.set(sp.x, 0, sp.z);
+  c.minX = sp.x - hx; c.maxX = sp.x + hx; c.minZ = sp.z - hz; c.maxZ = sp.z + hz; c.minY = y0; c.maxY = y0 + S.h;
+  BOX.light.position.set(sp.x, y0 + 1.6, sp.z);
+  BOX.disp.position.set(sp.x, y0, sp.z);
   BOX.disp.rotation.y = sp.rot;
-  if (BOX.beam) BOX.beam.position.set(sp.x, 0, sp.z);            // F5.17
+  if (BOX.beam) BOX.beam.position.set(sp.x, y0, sp.z);           // F5.17
   buildNavGrid();
 }
 function boxShow(id) {           // id de arma, 'teddy' o null
@@ -391,17 +555,18 @@ function resetBox() {
   BOX.phase = 'idle'; BOX.t = 0; BOX.result = null; BOX.moveTo = null; BOX.lidA = 0;
   boxShow(null);
   BOX.glow.visible = false; BOX.light.intensity = 0;
-  BOX.group.position.y = 0; BOX.lid.rotation.x = 0;
-  placeBox(CONFIG.BOX.startRoom);
+  BOX.lid.rotation.x = 0;
+  placeBox(CONFIG.BOX.startRoom);                                 // (pone la altura del piso)
 }
-// cuartos a los que se puede mudar: abiertos, distintos del actual, sin el jugador encima del spot
+// cuartos a los que se puede mudar: distintos del actual, sin el jugador encima del spot. F5.28e (Diego): cualquier lugar
+// del mapa, abierto o no (antes solo los cuartos abiertos)
 function boxDestinations() {
-  return openRooms().filter(r => r !== BOX.room && CONFIG.BOX.spots[r] &&
+  return Object.keys(CONFIG.BOX.spots).filter(r => r !== BOX.room &&
     Math.hypot(player.pos.x - CONFIG.BOX.spots[r].x, player.pos.z - CONFIG.BOX.spots[r].z) > 2);
 }
 function rollBoxResult() {
   const B = CONFIG.BOX, dest = boxDestinations();
-  if (dest.length && Math.random() < B.teddyChance) {
+  if (dest.length && Math.random() < B.teddyChance && !(state.effects.fireSale > 0)) {   // F5.19c: sin oso en el fire sale
     BOX.moveTo = dest[Math.floor(Math.random() * dest.length)];
     return 'teddy';
   }
@@ -415,22 +580,29 @@ function rollBoxResult() {
   for (const id of opts) { r -= w(id); if (r < 0) return id; }
   return opts[opts.length - 1];
 }
+// F5.24: lo que cuesta la caja ahora (10 con el Fire Sale)
+function boxCost() { return state.effects.fireSale > 0 ? CONFIG.POWERUPS.types.firesale.boxCost : CONFIG.BOX.cost; }
 // F sobre la caja: pagar (idle) o agarrar (ready)
 function useBox() {
   if (BOX.phase === 'idle') {
-    const lucky = gumActive('luckybox');                         // F5.18b: LUCKY BOX: gratis y sin oso
-    if (!lucky && !spendPoints(CONFIG.BOX.cost)) return false;
+    const lucky = gumActive('luckybox'), cost = boxCost();       // F5.18b: LUCKY BOX: gratis y sin oso
+    if (!lucky && !spendPoints(cost)) return false;
     if (lucky) GUMM.fx.luckybox = 0; else rollInk();
     STATS.boxUses++;
     BOX.phase = 'rolling'; BOX.t = 0; BOX.nextCycle = 0;
     BOX.result = rollBoxResult();
     if (lucky) for (let k = 0; k < 20 && BOX.result === 'teddy'; k++) BOX.result = rollBoxResult();
-    BOX.paid = lucky ? 0 : CONFIG.BOX.cost;                      // F5.16: el oso devuelve lo pagado
+    // F5.28d: WONDERBAR: la caja da la Ray Gun (si ya la tenés, el chicle espera a la próxima)
+    if (gumActive('wonderbar') && !state.weapons.some(w => w.id === 'raygun') && !(PAPST.slot && PAPST.slot.id === 'raygun')) {
+      BOX.result = 'raygun'; delete GUMM.fx.wonderbar; updateGumHUD();
+    }
+    BOX.paid = lucky ? 0 : cost;                                  // F5.16: el oso devuelve lo pagado
+    SFX_BUY.done = sfxBoxStart();                                // F5.19: la canción de la caja
     return true;
   }
   if (BOX.phase === 'ready') {
     if (BOX.result === 'monkey') giveMonkeys();                  // F5.11: langostinos, no ocupan slot
-    else { giveWeapon(BOX.result); raiseWeapon(); }
+    else { giveWeapon(BOX.result); raiseWeapon(); if (BOX.result === 'raygun') voice('audio_del_personaje_al_obtener_la_raygun_o_kaboom', 1, 10); }
     BOX.phase = 'idle'; BOX.t = 0;
     boxShow(null);
     return true;
@@ -475,12 +647,12 @@ function updateBox(dt) {
   } else if (BOX.phase === 'moving') {
     // primera mitad se hunde, a la mitad se muda, segunda mitad sube en el cuarto nuevo
     const half = B.moveTime / 2;
-    if (t < half) BOX.group.position.y = -(S.h + 0.1) * (t / half);
+    if (t < half) BOX.group.position.y = BOX.y0 - (S.h + 0.1) * (t / half);
     else {
       if (!BOX.relocated) { placeBox(BOX.moveTo); updateFlowField(true); BOX.relocated = true; }
-      BOX.group.position.y = -(S.h + 0.1) * Math.max(0, 1 - (t - half) / half);
+      BOX.group.position.y = BOX.y0 - (S.h + 0.1) * Math.max(0, 1 - (t - half) / half);
     }
-    if (t >= B.moveTime) { BOX.group.position.y = 0; BOX.phase = 'idle'; BOX.t = 0; BOX.moveTo = null; }
+    if (t >= B.moveTime) { BOX.group.position.y = BOX.y0; BOX.phase = 'idle'; BOX.t = 0; BOX.moveTo = null; }
   }
 
   BOX.lidA += (lidTarget - BOX.lidA) * Math.min(1, dt * 6);
@@ -490,7 +662,7 @@ function updateBox(dt) {
   BOX.glow.quaternion.copy(camera.quaternion);          // billboard
   BOX.glow.quaternion.premultiply(_boxQ.copy(BOX.group.quaternion).invert());
   BOX.light.intensity = light * (0.9 + 0.1 * Math.sin(clock.elapsedTime * 13));
-  BOX.disp.position.y = dispY;
+  BOX.disp.position.y = (BOX.y0 || 0) + dispY;
   const spin = clock.elapsedTime * 2.2;
   for (const k in BOX.display) BOX.display[k].rotation.y = spin;
   BOX.teddy.rotation.y = spin * 0.5;
@@ -534,7 +706,15 @@ function updateInteract() {
     const dist = colDist(SHIELDST.bench.col, px, pz);
     if (dist < bd) { bd = dist; kind = 'bench'; target = SHIELDST.bench; }
   }
-  if (lvl === 1) { interactState.kind = kind; interactState.target = target; return; }
+  if (lvl >= 1) {
+    // F5.24 (bug de Diego: "la chiclera del muelle no funciona"): arriba también están las chicleras (la del muelle). Antes
+    // este bloque salía antes de mirarlas; y en el nivel 2 no salía y ofrecía puertas de abajo
+    const gm = gumNear(room, px, pz, bd);
+    if (gm) { bd = gm.dist; kind = 'gum'; target = gm.target; }
+    const pt = portalNear(room, px, pz, bd);                      // F5.19: el portal del templo está arriba de la nave
+    if (pt) { kind = 'portal'; target = pt.target; }
+    interactState.kind = kind; interactState.target = target; return;
+  }
   for (const id in state.doors) {
     const d = state.doors[id];
     if (d.open) continue;
@@ -583,6 +763,14 @@ function updateInteract() {
   if (cl) { bd = cl.dist; kind = cl.kind; target = cl.target; }
   const gm = gumNear(room, px, pz, bd);                           // F5.18b: chicleras
   if (gm) { bd = gm.dist; kind = 'gum'; target = gm.target; }
+  const fs = fireSaleNear(room, px, pz, bd);                      // F5.19c: las cajas del fire sale
+  if (fs) { bd = fs.dist; kind = 'firesale'; target = fs.target; }
+  const ln = lanternNear(room, px, pz, bd);                       // F5.20: faroles de la casa
+  if (ln) { bd = ln.dist; kind = 'lantern'; target = ln.target; }
+  const lv = cataLeverNear(room, px, pz, bd);                     // F5.28e: las palancas de las catacumbas
+  if (lv) { bd = lv.dist; kind = 'lever'; target = lv.target; }
+  const br = barrierNear(room, px, pz, bd);                       // F5.19b: ventanas y trampillas rotas
+  if (br) { bd = br.dist; kind = 'barrier'; target = br.target; }
   interactState.kind = kind; interactState.target = target;
 }
 function interact() {
@@ -592,6 +780,10 @@ function interact() {
   if (it.kind === 'gen') { sfxDeny(); denyPrompt(); return false; }
   if (it.kind === 'part') return pickPart(it.target.key);        // F3a: suenan solos
   if (it.kind === 'bench') return benchPress();
+  if (it.kind === 'barrier') return true;                       // F5.19b: se repara manteniendo F (updateBarriers)
+  if (it.kind === 'lantern') return useLantern(it.target);      // F5.20
+  if (it.kind === 'lever') return pullLever(it.target);         // F5.28e
+  if (it.kind === 'firesale') { const ok = useFireSaleBox(it.target); if (!ok) { sfxDeny(); denyPrompt(); } return ok; }   // F5.19c
   if (it.kind === 'qpiece') return pickQuestPiece(it.target);   // F5.5
   if (it.kind === 'workshop') return workshopPress();
   if (it.kind === 'fumigator' || it.kind === 'clam') {             // F5.14: la almeja se abre manteniendo F (updateClams)
@@ -607,7 +799,9 @@ function interact() {
            : it.kind === 'power' ? turnOnPower()
            : it.kind === 'trap' ? useTrap(it.target)
            : buyWallWeapon(it.target);
-  if (ok) sfxBuy(); else { sfxDeny(); denyPrompt(); }
+  // F5.19: si ya sonó el sample propio (arma de pared, caja), no se le suma el "ca-ching" (sonaban dos juntos)
+  if (ok) { if (!SFX_BUY.done) sfxBuy(); } else { sfxDeny(); denyPrompt(); }
+  SFX_BUY.done = false;
   updateInteract();
   return ok;
 }

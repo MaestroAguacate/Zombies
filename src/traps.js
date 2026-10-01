@@ -13,22 +13,7 @@ const TRAPS = { shark: null, mower: null, turtles: null };
 
 function buildTraps() {
   const T = CONFIG.TRAPS;
-  // tiburón: cuerpo gris, panza blanca, aleta, cola y dientes (un MeshBuilder, mira a +x)
-  const sg = new THREE.Group(), sb = new MeshBuilder();
-  sb.box(0, 0, 0, 2.2, 0.62, 0.62, 0x6a7a88);
-  sb.box(0.1, -0.2, 0, 2.0, 0.22, 0.56, 0xe8e8e0);
-  sb.box(1.25, 0, 0, 0.4, 0.44, 0.46, 0x6a7a88);                           // hocico
-  sb.box(1.2, -0.12, 0, 0.36, 0.1, 0.42, 0x3a1010);                        // boca
-  for (let i = 0; i < 5; i++) sb.box(1.05 + i * 0.07, -0.08, 0.2, 0.04, 0.08, 0.02, 0xffffff);
-  for (let i = 0; i < 5; i++) sb.box(1.05 + i * 0.07, -0.08, -0.2, 0.04, 0.08, 0.02, 0xffffff);
-  sb.box(1.1, 0.12, 0.24, 0.08, 0.08, 0.02, 0x0a0a0a); sb.box(1.1, 0.12, -0.24, 0.08, 0.08, 0.02, 0x0a0a0a);
-  sb.box(0.1, 0.52, 0, 0.5, 0.6, 0.08, 0x5a6a78, 0, 0, -0.4);              // aleta
-  sb.box(-1.3, 0.2, 0, 0.3, 0.8, 0.1, 0x5a6a78, 0, 0, 0.5);                // cola
-  sb.box(-1.3, -0.25, 0, 0.3, 0.5, 0.1, 0x5a6a78, 0, 0, -0.5);
-  sb.box(0.3, -0.2, 0.36, 0.5, 0.06, 0.3, 0x5a6a78, 0.3, 0, 0);            // aletas del costado
-  sb.box(0.3, -0.2, -0.36, 0.5, 0.06, 0.3, 0x5a6a78, -0.3, 0, 0);
-  const sm = sb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
-  scene.remove(sm); sm.matrixAutoUpdate = true; sm.userData.theme = false; sg.add(sm);
+  const sg = sharkMesh();
   sg.visible = false; scene.add(sg);
   TRAPS.shark = { key: 'shark', cfg: T.shark, g: sg, phase: 'idle', t: 0, jumpT: 0, dir: 1, jz: 0, hitP: false,
                   lever: buildLever(T.shark) };
@@ -50,31 +35,103 @@ function buildTraps() {
   // F5.10: tortugas (pool fijo): caparazón, cabeza que muerde y 4 aletas que caminan
   const list = [];
   for (let i = 0; i < T.turtles.count; i++) {
-    const g = new THREE.Group(), body = new MeshBuilder(), shellC = i % 2 ? 0x4a6a3a : 0x5a5a2a;
-    body.box(0, 0.28, 0, 0.8, 0.3, 1.0, shellC);
-    body.box(0, 0.45, 0, 0.6, 0.12, 0.8, shellC);
-    for (let k = 0; k < 4; k++) body.box((k % 2 ? 0.16 : -0.16), 0.52, (k < 2 ? 0.18 : -0.18), 0.22, 0.04, 0.26, 0x3a4a2a);
-    body.box(0, 0.16, 0, 0.76, 0.06, 0.96, 0xc8b878);                     // panza
-    body.box(0, 0.24, -0.55, 0.14, 0.1, 0.2, 0x6a8a5a);                   // cola
-    const bm = body.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
-    scene.remove(bm); bm.matrixAutoUpdate = true; bm.userData.theme = false; g.add(bm);
-    const head = new THREE.Group(); head.position.set(0, 0.3, 0.5); g.add(head);
-    const hb = new MeshBuilder();
-    hb.box(0, 0, 0.14, 0.26, 0.22, 0.3, 0x6a8a5a);
-    hb.box(-0.1, 0.05, 0.25, 0.05, 0.05, 0.02, 0x101010); hb.box(0.1, 0.05, 0.25, 0.05, 0.05, 0.02, 0x101010);
-    hb.box(0, -0.06, 0.29, 0.2, 0.03, 0.02, 0x3a2a1a);                    // pico
-    const hm = hb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
-    scene.remove(hm); hm.matrixAutoUpdate = true; hm.userData.theme = false; head.add(hm);
-    const flip = [];
-    for (const [x, z] of [[-0.42, 0.3], [0.42, 0.3], [-0.38, -0.32], [0.38, -0.32]]) {
-      const f = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.07, 0.2), new THREE.MeshLambertMaterial({ color: 0x6a8a5a }));
-      f.position.set(x, 0.15, z); g.add(f); flip.push(f);
-    }
-    g.scale.setScalar(T.turtles.scale); g.visible = false; scene.add(g);
-    list.push({ g, head, flip, px: 0, pz: 0, level: 0, state: 'off', target: null, t: 0, wait: 0, walk: 0, stuck: 0 });
+    const tu = makeTurtle(i % 2 ? 0x4a6a3a : 0x5a5a2a);
+    tu.g.scale.setScalar(T.turtles.scale); scene.add(tu.g);
+    list.push(tu);
   }
   TRAPS.turtles = { key: 'turtles', cfg: T.turtles, g: { visible: false }, list, phase: 'idle', t: 0,
                     lever: buildLever(T.turtles) };
+  // F5.19: tortuga mariachi (da vueltas y atrae a todos) y mini tortugas que salen de los charcos del claro
+  const MC = T.mariachi, minis = [], mcfg = Object.assign({}, MC.minis, { center: MC.center });
+  for (let i = 0; i < MC.minis.count; i++) {
+    const tu = makeTurtle([0x3a6a2a, 0x2a5a3a, 0x4a7a2a][i % 3], true);
+    tu.g.scale.setScalar(MC.minis.scale); scene.add(tu.g);
+    tu.home = { x: MC.puddles[i % MC.puddles.length][0], z: MC.puddles[i % MC.puddles.length][1] };
+    minis.push(tu);
+  }
+  const mz = buildMariachi();
+  mz.g.scale.setScalar(MC.scale); mz.g.visible = false; scene.add(mz.g);
+  TRAPS.mariachi = { key: 'mariachi', cfg: MC, g: mz.g, parts: mz, phase: 'idle', t: 0, a: 0, x: MC.center.x, z: MC.center.z,
+                     minis: { cfg: mcfg, list: minis, phase: 'idle' }, lever: buildLever(MC) };
+}
+// F5.10: una tortuga de cubos (caparazón, cabeza que muerde y 4 aletas). Sin agregar a la escena
+// F5.19: glow = manchas de sangre verde que brillan (las mini tortugas de los charcos del claro)
+function makeTurtle(shellC, glow) {
+  const g = new THREE.Group(), body = new MeshBuilder();
+  body.box(0, 0.28, 0, 0.8, 0.3, 1.0, shellC);
+  body.box(0, 0.45, 0, 0.6, 0.12, 0.8, shellC);
+  for (let k = 0; k < 4; k++) body.box((k % 2 ? 0.16 : -0.16), 0.52, (k < 2 ? 0.18 : -0.18), 0.22, 0.04, 0.26, 0x3a4a2a);
+  body.box(0, 0.16, 0, 0.76, 0.06, 0.96, 0xc8b878);                       // panza
+  body.box(0, 0.24, -0.55, 0.14, 0.1, 0.2, 0x6a8a5a);                     // cola
+  const bm = body.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
+  scene.remove(bm); bm.matrixAutoUpdate = true; bm.userData.theme = false; g.add(bm);
+  if (glow) {
+    const gb = new MeshBuilder();
+    for (const [x, z, w] of [[0.2, 0.25, 0.22], [-0.18, -0.2, 0.28], [0.05, -0.05, 0.16], [-0.28, 0.3, 0.12]]) gb.box(x, 0.525, z, w, 0.02, w * 0.8, 0x8aff5a);
+    gb.box(0, 0.09, 0.2, 0.5, 0.02, 0.3, 0x8aff5a);                        // chorrea por abajo
+    const gm = gb.mesh(new THREE.MeshBasicMaterial({ vertexColors: true }));
+    scene.remove(gm); gm.matrixAutoUpdate = true; gm.userData.theme = false; g.add(gm);
+  }
+  const head = new THREE.Group(); head.position.set(0, 0.3, 0.5); g.add(head);
+  const hb = new MeshBuilder();
+  hb.box(0, 0, 0.14, 0.26, 0.22, 0.3, 0x6a8a5a);
+  hb.box(-0.1, 0.05, 0.25, 0.05, 0.05, 0.02, glow ? 0xc8ff4a : 0x101010); hb.box(0.1, 0.05, 0.25, 0.05, 0.05, 0.02, glow ? 0xc8ff4a : 0x101010);
+  hb.box(0, -0.06, 0.29, 0.2, 0.03, 0.02, 0x3a2a1a);                      // pico
+  const hm = hb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
+  scene.remove(hm); hm.matrixAutoUpdate = true; hm.userData.theme = false; head.add(hm);
+  const flip = [];
+  for (const [x, z] of [[-0.42, 0.3], [0.42, 0.3], [-0.38, -0.32], [0.38, -0.32]]) {
+    const f = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.07, 0.2), new THREE.MeshLambertMaterial({ color: 0x6a8a5a }));
+    f.position.set(x, 0.15, z); g.add(f); flip.push(f);
+  }
+  g.visible = false;
+  return { g, head, flip, px: 0, pz: 0, level: 0, state: 'off', target: null, t: 0, wait: 0, walk: 0, stuck: 0, rise: 0, rise0: 1 };
+}
+// F5.19 (Diego: "una tortuga pequeña con un sombrero de mariachi"): la tortuga de siempre, chica, en cuatro patas, con un
+// sombrero de charro enorme (ala negra con ribete y bordado dorados) sobre la cabeza, moño rojo y una guitarrita
+// colgada del caparazón. Camina moviendo las aletas y cabecea con el sombrero
+function buildMariachi() {
+  const tu = makeTurtle(0x3e6a2e), gold = 0xe8c040, black = 0x1a1a1e;
+  const hat = new THREE.Group(); hat.position.set(0, 0.2, 0.12); tu.head.add(hat);
+  const hb = new MeshBuilder();
+  hb.cyl(0, 0, 0, 0.62, 0.035, black, 1, 20);                                          // ala ancha
+  hb.cyl(0, 0.035, 0, 0.62, 0.01, gold, 0.97, 20);                                     // ribete
+  for (let k = 0; k < 12; k++) { const a = k * Math.PI / 6; hb.box(Math.cos(a) * 0.45, 0.047, Math.sin(a) * 0.45, 0.07, 0.01, 0.07, gold, 0, a, 0); }   // bordado
+  hb.cyl(0, 0.03, 0, 0.19, 0.32, black, 0.72, 14);                                     // copa
+  hb.cyl(0, 0.07, 0, 0.2, 0.06, gold, 0.95, 14);                                       // cinta
+  hb.sphere(0, 0.35, 0, 0.14, 0.06, 0.14, black, 10);
+  const hm = hb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
+  scene.remove(hm); hm.matrixAutoUpdate = true; hm.userData.theme = false; hat.add(hm);
+  const db = new MeshBuilder();
+  db.box(0, 0.26, 0.5, 0.26, 0.08, 0.05, 0xc82020); db.box(0, 0.26, 0.53, 0.07, 0.07, 0.03, 0x8a1010);   // moño
+  db.box(0.18, 0.62, -0.12, 0.34, 0.08, 0.42, 0xc07a30, 0, 0.3, 0.2);                  // guitarrita en el caparazón
+  db.box(0.18, 0.665, -0.1, 0.1, 0.01, 0.1, 0x1a0e06, 0, 0.3, 0.2);
+  db.box(0.05, 0.64, -0.46, 0.06, 0.05, 0.36, 0x6a4020, 0, 0.3, 0.2);
+  for (const s of [-1, 1]) db.box(s * 0.36, 0.3, 0.1, 0.02, 0.05, 0.5, gold);             // ribetes dorados del caparazón
+  const dm = db.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
+  scene.remove(dm); dm.matrixAutoUpdate = true; dm.userData.theme = false; tu.g.add(dm);
+  tu.g.visible = true;
+  return { g: tu.g, head: tu.head, hat, flip: tu.flip, walk: 0 };
+}
+// tiburón: cuerpo gris, panza blanca, aleta, cola y dientes (un MeshBuilder en un grupo, mira a +x). F5.19: también lo
+// usan los tiburones del río del templo (garden.js)
+function sharkMesh() {
+  const sg = new THREE.Group(), sb = new MeshBuilder();
+  sb.box(0, 0, 0, 2.2, 0.62, 0.62, 0x6a7a88);
+  sb.box(0.1, -0.2, 0, 2.0, 0.22, 0.56, 0xe8e8e0);
+  sb.box(1.25, 0, 0, 0.4, 0.44, 0.46, 0x6a7a88);                           // hocico
+  sb.box(1.2, -0.12, 0, 0.36, 0.1, 0.42, 0x3a1010);                        // boca
+  for (let i = 0; i < 5; i++) sb.box(1.05 + i * 0.07, -0.08, 0.2, 0.04, 0.08, 0.02, 0xffffff);
+  for (let i = 0; i < 5; i++) sb.box(1.05 + i * 0.07, -0.08, -0.2, 0.04, 0.08, 0.02, 0xffffff);
+  sb.box(1.1, 0.12, 0.24, 0.08, 0.08, 0.02, 0x0a0a0a); sb.box(1.1, 0.12, -0.24, 0.08, 0.08, 0.02, 0x0a0a0a);
+  sb.box(0.1, 0.52, 0, 0.5, 0.6, 0.08, 0x5a6a78, 0, 0, -0.4);              // aleta
+  sb.box(-1.3, 0.2, 0, 0.3, 0.8, 0.1, 0x5a6a78, 0, 0, 0.5);                // cola
+  sb.box(-1.3, -0.25, 0, 0.3, 0.5, 0.1, 0x5a6a78, 0, 0, -0.5);
+  sb.box(0.3, -0.2, 0.36, 0.5, 0.06, 0.3, 0x5a6a78, 0.3, 0, 0);            // aletas del costado
+  sb.box(0.3, -0.2, -0.36, 0.5, 0.06, 0.3, 0x5a6a78, -0.3, 0, 0);
+  const sm = sb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
+  scene.remove(sm); sm.matrixAutoUpdate = true; sm.userData.theme = false; sg.add(sm);
+  return sg;
 }
 // palanca: poste con caja y una manija que baja al usarla. Luz MeshBasic: verde lista, roja andando/esperando
 function buildLever(C) {
@@ -118,9 +175,17 @@ function useTrap(T) {
   T.phase = 'on'; T.t = T.cfg.time;
   if (T.key === 'shark') { T.jumpT = 0; T.dir = Math.random() < 0.5 ? 1 : -1; }
   else if (T.key === 'turtles') T.list.forEach((tu, i) => { tu.state = 'wait'; tu.wait = i * T.cfg.stagger; tu.target = null; });
+  else if (T.key === 'mariachi') {                                 // F5.19
+    T.a = 0; T.x = T.cfg.center.x + T.cfg.radius; T.z = T.cfg.center.z;
+    T.minis.list.forEach((tu, i) => { tu.state = 'wait'; tu.wait = i * T.minis.cfg.stagger; tu.target = null; });
+  }
   else { T.a = 0; T.hitCd = 0; T.tickT = 0; }
-  T.g.visible = T.key === 'mower';
+  T.g.visible = T.key === 'mower' || T.key === 'mariachi';
   sfxLever();
+  // F5.19: voces del personaje (el tiburón; las tortugas, la segunda vez que las comprás)
+  T.uses = (T.uses || 0) + 1;
+  if (T.key === 'shark') voice('audio_al_comprar_el_tiburon', 1, 0);
+  if (T.key === 'turtles' && T.uses === 2) voice('audio_al_comprar_las_tortugas_por_segunda_vez', 1, 0);
   return true;
 }
 // mata al zombie (sin puntos). Al boss no
@@ -135,9 +200,10 @@ function updateTraps(dt) {
     const T = TRAPS[k];
     if (!T) continue;
     if (k === 'turtles') updateTurtles(T, dt);                    // (también en 'cool': vuelven al corral)
+    if (k === 'mariachi') { T.minis.phase = T.phase; updateTurtles(T.minis, dt); }   // F5.19: vuelven a su charco
     if (T.phase === 'on') {
       T.t -= dt;
-      if (k === 'shark') updateShark(T, dt); else if (k === 'mower') updateMower(T, dt);
+      if (k === 'shark') updateShark(T, dt); else if (k === 'mower') updateMower(T, dt); else if (k === 'mariachi') updateMariachi(T, dt);
       if (T.t <= 0) { T.phase = 'cool'; T.t = T.cfg.cooldown; T.g.visible = false; }
     } else if (T.phase === 'cool') {
       T.t -= dt;
@@ -191,17 +257,36 @@ function updateMower(T, dt) {
   }
   if ((T.tickT -= dt) <= 0) { T.tickT = 0.15; sfxMower(Math.hypot(P.x - x, P.z - z)); }
 }
+// F5.19: la tortuga mariachi da vueltas en el patio y el langostino-señuelo sale de ella (mariachiLure)
+function updateMariachi(T, dt) {
+  const C = T.cfg, M = T.parts, t = clock.elapsedTime;
+  T.a += dt * Math.PI * 2 / C.lap;
+  T.x = C.center.x + Math.cos(T.a) * C.radius; T.z = C.center.z + Math.sin(T.a) * C.radius;
+  T.g.position.set(T.x, groundY(T.x, T.z) + Math.abs(Math.sin(t * 7)) * 0.06, T.z);
+  T.g.rotation.set(0, -T.a, Math.sin(t * 3.5) * 0.08);            // mira hacia donde avanza (tangente) y se hamaca
+  M.walk += dt * 9;
+  const s = Math.sin(M.walk) * 0.5;
+  M.flip[0].rotation.y = s; M.flip[3].rotation.y = s; M.flip[1].rotation.y = -s; M.flip[2].rotation.y = -s;
+  M.head.rotation.x = Math.sin(t * 7) * 0.12;                     // cabecea al ritmo
+  M.hat.rotation.z = Math.sin(t * 3.5) * 0.1;
+}
+function mariachiLure() {
+  const T = TRAPS.mariachi;
+  return T && T.phase === 'on' ? { x: T.x, z: T.z } : null;
+}
 // F5.10: tortugas. wait (escalonadas) -> go (al zombie más cercano) -> eat -> go ... -> home (al terminar) -> off
+// F5.19: sirve también para las mini tortugas del claro: cada una con su casa (tu.home, el charco), `center` en vez
+// de `exit` para el alcance y `rooms` en vez de `room`; salen del charco (rise s)
 function turtlePrey(T, tu) {
-  const C = T.cfg;
+  const C = T.cfg, O = C.center || C.exit, rooms = C.rooms || [C.room];
   let best = null, bd = Infinity;
   for (const z of state.zombies) {
     if (!z.alive || z.boss || (z.level || 0) !== 0) continue;
-    if (Math.hypot(z.px - C.exit.x, z.pz - C.exit.z) > C.range) continue;
+    if (Math.hypot(z.px - O.x, z.pz - O.z) > C.range) continue;
     if (T.list.some(o => o !== tu && o.target === z)) continue;     // una tortuga por zombie
     // del rancho, o del jardín con el lazo abierto (sin línea libre: el billar o un poste se rodean de costado)
     const r = roomAt(z.px, z.pz);
-    if (!r || r.id !== C.room) continue;                              // F5.15: el rancho (con sus senderos)
+    if (!r || rooms.indexOf(r.id) < 0) continue;                      // F5.15: el rancho (con sus senderos)
     const d = Math.hypot(z.px - tu.px, z.pz - tu.pz);
     if (d < bd) { bd = d; best = z; }
   }
@@ -211,10 +296,12 @@ function updateTurtles(T, dt) {
   const C = T.cfg, on = T.phase === 'on', t = clock.elapsedTime;
   T.list.forEach((tu, i) => {
     if (tu.state === 'off') return;
+    const home = tu.home || C.exit;
     if (tu.state === 'wait') {
       if (!on) { tu.state = 'off'; return; }
       if ((tu.wait -= dt) > 0) return;
-      tu.state = 'go'; tu.px = C.exit.x; tu.pz = C.exit.z; tu.g.visible = true; tu.stuck = 0; tu.heading = 0;
+      tu.state = 'go'; tu.px = home.x; tu.pz = home.z; tu.g.visible = true; tu.stuck = 0; tu.heading = 0;
+      tu.rise = tu.rise0 = C.rise || 0;                              // F5.19: sale del charco
     }
     if (!on && tu.state !== 'home') { tu.state = 'home'; tu.target = null; tu.stuck = 0; }
     if (tu.state === 'eat') {                                         // mastica
@@ -226,7 +313,7 @@ function updateTurtles(T, dt) {
     }
     let tx, tz;
     if (tu.state === 'home') {
-      tx = C.exit.x; tz = C.exit.z;
+      tx = home.x; tz = home.z;
       if (Math.hypot(tx - tu.px, tz - tu.pz) < 0.4 || tu.stuck > 3) { tu.state = 'off'; tu.g.visible = false; return; }
     } else {
       if (!tu.target || !tu.target.alive || tu.stuck > 3) { tu.target = turtlePrey(T, tu); tu.stuck = 0; }
@@ -235,15 +322,17 @@ function updateTurtles(T, dt) {
         tx = z.px; tz = z.pz;
         if (Math.hypot(tx - tu.px, tz - tu.pz) < C.reach + CONFIG.ZOMBIE.radius) {
           // F5.11: hasta biteRound matan de una; después cada mordisco saca la vida de un zombie de esa ronda
+          // F5.19c (Diego): las mini tortugas, después de biteRound, sacan biteFrac de la vida máxima por mordisco
           if (state.round <= C.biteRound) trapKill(z);
-          else damageZombie(z, CONFIG.ZOMBIE.health(C.biteRound), false, 0, 0);
+          else damageZombie(z, C.biteFrac ? z.maxHealth * C.biteFrac : CONFIG.ZOMBIE.health(C.biteRound), false, 0, 0);
           tu.state = 'eat'; tu.t = C.eat; tu.target = z.alive ? z : null;   // si sigue vivo, lo vuelve a morder
+          if (!z.alive) voice('audio_cuando_una_tortuga_se_coma_a_un_zombie', 0.4, 15);   // F5.19
           sfxPlantBite(Math.hypot(player.pos.x - tu.px, player.pos.z - tu.pz));
           placeTurtle(tu, 0, dt);
           return;
         }
       } else {                                                        // sin presa: da vueltas cerca de la salida
-        tx = C.exit.x + 2 + 1.5 * Math.cos(t * 0.7 + i); tz = C.exit.z + 2.5 + 1.5 * Math.sin(t * 0.7 + i);
+        tx = home.x + 2 + 1.5 * Math.cos(t * 0.7 + i); tz = home.z + 2.5 + 1.5 * Math.sin(t * 0.7 + i);
       }
     }
     const dx = tx - tu.px, dz = tz - tu.pz, d = Math.hypot(dx, dz);
@@ -266,17 +355,19 @@ function updateTurtles(T, dt) {
 }
 function placeTurtle(tu, v, dt) {
   tu.walk += (4 + v * 3) * dt;
-  tu.g.position.set(tu.px, groundY(tu.px, tu.pz), tu.pz);
+  if (tu.rise > 0) tu.rise = Math.max(0, tu.rise - dt);            // F5.19: sale del charco (de abajo)
+  tu.g.position.set(tu.px, groundY(tu.px, tu.pz) - (tu.rise > 0 ? 0.5 * tu.rise / tu.rise0 : 0), tu.pz);
   tu.g.rotation.y = tu.heading || 0;
   const s = Math.sin(tu.walk * 3) * Math.min(1, v / 1.5) * 0.6;
   tu.flip[0].rotation.y = s; tu.flip[3].rotation.y = s; tu.flip[1].rotation.y = -s; tu.flip[2].rotation.y = -s;
 }
 function resetTraps() {
   if (TRAPS.turtles) for (const tu of TRAPS.turtles.list) { tu.state = 'off'; tu.target = null; tu.g.visible = false; }
+  if (TRAPS.mariachi) for (const tu of TRAPS.mariachi.minis.list) { tu.state = 'off'; tu.target = null; tu.g.visible = false; tu.rise = 0; }
   for (const k in TRAPS) {
     const T = TRAPS[k];
     if (!T) continue;
-    T.phase = 'idle'; T.t = 0; T.g.visible = false; T.lever.arm.rotation.x = -0.6;
+    T.phase = 'idle'; T.t = 0; T.g.visible = false; T.lever.arm.rotation.x = -0.6; T.uses = 0;
     T.lever.lamp.material.color.setHex(0x3aff5a);
   }
 }

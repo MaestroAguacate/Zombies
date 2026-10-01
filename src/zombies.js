@@ -23,8 +23,8 @@ function lerpAngle(a, b, t) {
 }
 function flowAt(x, z) { const i = navIdx(x, z); return i < 0 ? -1 : FLOW.dist[i]; }
 // F2.8: helpers por nivel (0 = piso, 1 = techo de la caseta)
-function lvIdx(L, x, z) { return L === 1 ? upIdx(x, z) : navIdx(x, z); }
-function lvNav(L, x, z) { return L === 1 ? isUp(x, z) : isNav(x, z); }
+function lvIdx(L, x, z) { return lvCellIdx(L, x, z); }                 // F5.22: niveles 0, 1 y 2
+function lvNav(L, x, z) { return L === 2 ? isUp2(x, z) : L === 1 ? isUp(x, z) : isNav(x, z); }
 function lvFlow(L, x, z) { const i = lvIdx(L, x, z); return i < 0 ? -1 : FLOW.dist[i]; }
 // F5.15 (costo): se pide por zombie y por frame; se guarda mientras el jugador no se mueva (depende solo de su
 // posición: el techo y los pisos no cambian)
@@ -39,11 +39,12 @@ function plvFresh() {
 }
 function playerLevel() { plvFresh(); return PLV.lvl; }
 // celda válida más cercana del nivel de arriba (anillos, sin línea libre: arriba no hay paredes)
-function nearestUp(cx, cz, R, fx, fz) {
+function nearestUp(cx, cz, R, fx, fz, L) {                               // F5.22: L = 1 (por defecto) o 2
+  const ok = L === 2 ? isUp2 : isUp;
   for (let r = 0; r <= R; r++) {
     let best = null, bd = 1e9;
     for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
-      if (Math.max(Math.abs(dx), Math.abs(dz)) !== r || !isUp(cx + dx, cz + dz)) continue;
+      if (Math.max(Math.abs(dx), Math.abs(dz)) !== r || !ok(cx + dx, cz + dz)) continue;
       const d = (cx + dx + 0.5 - fx) ** 2 + (cz + dz + 0.5 - fz) ** 2;
       if (d < bd) { bd = d; best = { x: cx + dx, z: cz + dz }; }
     }
@@ -53,7 +54,8 @@ function nearestUp(cx, cz, R, fx, fz) {
 }
 
 // tope de velocidad: PLAYER.speed para todos (regla de Diego), salvo los perros (F5.8: DOGS.speed, excepción)
-function speedCap(z) { return z.dog ? Math.max(CONFIG.PLAYER.speed, CONFIG.DOGS.speed) : CONFIG.PLAYER.speed; }
+// F5.26: excepciones aprobadas por Diego: los perros (y las crías de la Bestia) a DOGS.speed, la Bestia a BEAST.speed
+function speedCap(z) { return z.dog ? Math.max(CONFIG.PLAYER.speed, CONFIG.DOGS.speed) : z.variant === 'bestia' ? CONFIG.BEAST.speed : CONFIG.PLAYER.speed; }
 // F5.6: jugador parado arriba de un mueble (en el piso de abajo): la altura de sus pies (+1 cm), para que la
 // línea libre ignore lo que tiene debajo. undefined si está en el piso o en el techo
 function playerOnTop() { plvFresh(); return PLV.top; }
@@ -83,13 +85,13 @@ function flowFrom(px, pz, lvl, onTop, dist, isMain) {
   // (F2.6: sin eso, parado en la orilla este de la piscina el origen caía dentro de la pileta, del otro
   // lado del borde, y todos los zombies se juntaban abajo sin poder llegar)
   let sx = Math.floor(px), sz = Math.floor(pz), s0;
-  if (lvl === 1) {                          // F2.8: arriba del techo, el origen es una celda del nivel de arriba
-    if (!isUp(sx, sz)) {
-      const n = nearestUp(sx, sz, 3, px, pz);
+  if (lvl >= 1) {                           // F2.8: arriba del techo, el origen es una celda del nivel de arriba (F5.22: o del 2)
+    if (!lvNav(lvl, sx, sz)) {
+      const n = nearestUp(sx, sz, 3, px, pz, lvl);
       if (!n) return false;
       sx = n.x; sz = n.z;
     }
-    s0 = upIdx(sx, sz);
+    s0 = lvCellIdx(lvl, sx, sz);
   } else {
     if (!isNav(sx, sz)) {
       const n = nearestNav(sx, sz, 4, px, pz, true, onTop);   // F5.6: arriba de la cama
@@ -100,7 +102,8 @@ function flowFrom(px, pz, lvl, onTop, dist, isMain) {
   }
   if (isMain) { FLOW.srcX = sx; FLOW.srcZ = sz; FLOW.srcLevel = lvl; }
   const q = FLOW.queue, cells = NAV.cells, link = NAV.link, W = NAV.w, N = cells.length;
-  const up = UP.cells, UW = UP.w, UN = up.length;
+  const up = UP.cells, UW = UP.w, UN = up.length, N2 = NAV.base2;
+  const up2 = UP2.cells, VW = UP2.w, VN = up2.length;
   dist.fill(-1);
   let head = 0, tail = 0;
   dist[s0] = 0; q[tail++] = s0;
@@ -113,12 +116,18 @@ function flowFrom(px, pz, lvl, onTop, dist, isMain) {
       if (ix > 0     && cells[i-1] && dist[i-1] < 0) { dist[i-1] = d; q[tail++] = i-1; }
       if (i + W < N  && cells[i+W] && dist[i+W] < 0) { dist[i+W] = d; q[tail++] = i+W; }
       if (i - W >= 0 && cells[i-W] && dist[i-W] < 0) { dist[i-W] = d; q[tail++] = i-W; }
-    } else {                                // F2.8: nivel de arriba (mismo BFS, otra grilla)
+    } else if (i < N2) {                    // F2.8: nivel de arriba (mismo BFS, otra grilla)
       const k = i - N, ux = k % UW;
       if (ux + 1 < UW && up[k+1] && dist[i+1] < 0) { dist[i+1] = d; q[tail++] = i+1; }
       if (ux > 0      && up[k-1] && dist[i-1] < 0) { dist[i-1] = d; q[tail++] = i-1; }
       if (k + UW < UN && up[k+UW] && dist[i+UW] < 0) { dist[i+UW] = d; q[tail++] = i+UW; }
       if (k - UW >= 0 && up[k-UW] && dist[i-UW] < 0) { dist[i-UW] = d; q[tail++] = i-UW; }
+    } else {                                // F5.22: tercer nivel
+      const k = i - N2, ux = k % VW;
+      if (ux + 1 < VW && up2[k+1] && dist[i+1] < 0) { dist[i+1] = d; q[tail++] = i+1; }
+      if (ux > 0      && up2[k-1] && dist[i-1] < 0) { dist[i-1] = d; q[tail++] = i-1; }
+      if (k + VW < VN && up2[k+VW] && dist[i+VW] < 0) { dist[i+VW] = d; q[tail++] = i+VW; }
+      if (k - VW >= 0 && up2[k-VW] && dist[i-VW] < 0) { dist[i-VW] = d; q[tail++] = i-VW; }
     }
     const j = link[i];                    // F2.6: escalera (pileta o techo) = un vecino más
     if (j >= 0 && dist[j] < 0) { dist[j] = d; q[tail++] = j; }
@@ -181,6 +190,29 @@ function createZombie(i) {
     // F7b: renguera propia (0..1), brazos que se pueden perder, pose de muerte y tipo de ataque
     limp: Math.random(), armOff: { L: false, R: false }, deathPose: null, deathSide: 1, atk: null
   };
+  // F5.20 (Diego): variantes. Piezas extra hijas de las partes (no están en hitParts: la bala le pega a la parte). Se
+  // arman una vez y setZombieVariant prende las de cada variante
+  const X = z.extras = { blood: [], shorts: [], horror: [], black: [] };
+  const add = (list, parent, w, h, d, mat, x, y, zz, rx, rz) => {
+    const m = new THREE.Mesh(zGeo(w, h, d), mat); m.position.set(x, y, zz); m.rotation.set(rx || 0, 0, rz || 0);
+    m.visible = false; parent.add(m); list.push(m); return m;
+  };
+  add(X.blood, torso.mesh, 0.26, 0.22, 0.02, ZMAT.blood, 0.09, 0.06, 0.156, 0, 0.2);    // manchas de sangre y golpes
+  add(X.blood, torso.mesh, 0.14, 0.3, 0.02, ZMAT.blood, -0.15, -0.12, 0.156);
+  add(X.blood, torso.mesh, 0.02, 0.24, 0.18, ZMAT.blood, 0.285, 0.05, 0.02);
+  add(X.blood, head.mesh, 0.16, 0.12, 0.02, ZMAT.blood, 0.08, 0.1, 0.206);
+  add(X.blood, head.mesh, 0.1, 0.18, 0.02, ZMAT.bruise, -0.12, -0.02, 0.206);
+  add(X.blood, armR.mesh, 0.17, 0.2, 0.17, ZMAT.blood, 0, 0.1, 0);
+  add(X.shorts, legL.mesh, 0.23, 0.42, 0.25, skin, 0, -0.2, 0);                         // shorts: pantorrillas de piel
+  add(X.shorts, legR.mesh, 0.23, 0.42, 0.25, skin, 0, -0.2, 0);
+  add(X.horror, torso.mesh, 0.34, 0.36, 0.02, ZMAT.cavity, 0, 0.02, 0.152);             // pecho abierto con costillas
+  for (let k = 0; k < 4; k++) add(X.horror, torso.mesh, 0.36, 0.035, 0.03, ZMAT.bone, 0, 0.14 - k * 0.09, 0.16);
+  add(X.horror, head.mesh, 0.26, 0.08, 0.22, skin, 0, -0.26, 0.05, 0.5);                // mandíbula colgando
+  add(X.horror, head.mesh, 0.18, 0.16, 0.02, ZMAT.bone, -0.08, 0.1, 0.206);             // hueso a la vista
+  add(X.horror, head.mesh, 0.02, 0.2, 0.2, ZMAT.cavity, 0.206, 0, 0);
+  add(X.black, torso.mesh, 0.04, 0.4, 0.02, ZMAT.crack, 0.06, 0, 0.156, 0, 0.3);         // grietas que brillan (el negro)
+  add(X.black, torso.mesh, 0.03, 0.3, 0.02, ZMAT.crack, -0.1, 0.1, 0.156, 0, -0.5);
+  add(X.black, head.mesh, 0.03, 0.2, 0.02, ZMAT.crack, -0.05, 0.12, 0.206, 0, 0.4);
   head.mesh.userData = { type: 'zombieHead', zombie: z };
   head.mesh.rotation.z = (Math.random() - 0.5) * 0.5;   // cabeza ladeada, cada uno distinto
   z.hitParts.push(head.mesh);
@@ -194,6 +226,48 @@ function createZombie(i) {
   scene.add(root);
   return z;
 }
+// F5.20: variante del zombie humano: 'normal' | 'beaten' (sangre y golpes) | 'shorts' | 'horror' (desde la R10: pecho
+// abierto, mandíbula colgando, piel podrida) | 'black' (desde la R15: todo negro, ojos rojos, grietas; si te acercás, explota)
+function rollVariant(n) {
+  const V = CONFIG.ZOMBIE.variants, r = Math.random();
+  if (n >= V.black.from && r < V.black.chance) return 'black';
+  const r2 = Math.random();
+  if (n >= V.horror.from && r2 < V.horror.chance) return 'horror';
+  const r3 = Math.random();
+  return r3 < V.beaten ? 'beaten' : r3 < V.beaten + V.shorts ? 'shorts' : 'normal';
+}
+function setZombieVariant(z, v) {
+  const X = z.extras, V = CONFIG.ZOMBIE.variants;
+  if (!X) return;
+  z.variant = v; z.fuseT = 0; z.root.scale.setScalar(1);          // (si lo mataron inflado)
+  for (const k in X) for (const m of X[k]) m.visible = false;
+  const on = k => X[k].forEach(m => { m.visible = true; });
+  if (v === 'beaten' || v === 'horror') on('blood');
+  if (v === 'shorts') on('shorts');
+  if (v === 'horror') on('horror');
+  if (v === 'black') on('black');
+  if (v === 'horror') { z.flashMats[0].color.setHex(V.horror.skin); z.flashMats[1].color.setHex(V.horror.shirt); }
+  if (v === 'black') { for (const m of z.flashMats) m.color.setHex(V.black.color); }
+  else z.flashMats[2].color.setHex(0x3f3a33);                       // pantalón de siempre
+  setZombieEyes(z, v === 'black' || z.redEyes);
+}
+// F5.20: el negro se infla fuseTime s cuando te tiene cerca y explota: daño en área (a vos y a los zombies)
+function blackFuse(z, dt, distP) {
+  const V = CONFIG.ZOMBIE.variants.black;
+  if (!z.fuseT && distP < V.trigger && (z.level || 0) === playerLevel()) { z.fuseT = V.fuseTime; if (typeof sfxPin === 'function') sfxPin(); }
+  if (!z.fuseT) return false;
+  z.fuseT = Math.max(0, z.fuseT - dt);
+  const k = 1 - z.fuseT / V.fuseTime;
+  z.root.scale.setScalar(1 + 0.25 * k + Math.sin(k * 40) * 0.03 * k);
+  ZMAT.crack.color.setRGB(1, 0.23 + 0.6 * k, 0.06);
+  if (z.fuseT > 0) return true;
+  const x = z.px, y = (z.level ? lvY(z.level) : groundY(z.px, z.pz)) + 1, zz = z.pz;
+  z.root.scale.setScalar(1);
+  damageZombie(z, z.health + 1, false, CONFIG.POINTS.kill, 0);
+  explodeAt(x, y, zz, { damage: V.zombieDamage, radius: V.radius, self: V.damage, color: 0xff3a10, src: 'black' });
+  ZMAT.crack.color.setHex(0xff3a10);                                // (el material de las grietas es compartido)
+  return true;
+}
 // F5.11: ojos rojos (los que bajaron o salieron en el búnker). Solo zombies (perros, calamares y bosses tienen los suyos)
 function setZombieEyes(z, red) {
   if (!z.eyes || z.redEyes === red) return;
@@ -204,6 +278,12 @@ function buildZombiePool() {
   ZMAT.eye = new THREE.MeshBasicMaterial({ color: 0xffa531 });
   ZMAT.eyeRed = new THREE.MeshBasicMaterial({ color: 0xff1a10 });   // F5.11
   ZMAT.stump = new THREE.MeshBasicMaterial({ color: 0x6a0808 });     // F7b: la herida de los pedazos
+  // F5.20: variantes (sangre, moretón, hueso, pecho abierto, grietas del negro que brillan)
+  ZMAT.blood = new THREE.MeshLambertMaterial({ color: 0x5a0a08 });
+  ZMAT.bruise = new THREE.MeshLambertMaterial({ color: 0x3a2a4a });
+  ZMAT.bone = new THREE.MeshLambertMaterial({ color: 0xd8ccb0 });
+  ZMAT.cavity = new THREE.MeshLambertMaterial({ color: 0x2a0606 });
+  ZMAT.crack = new THREE.MeshBasicMaterial({ color: 0xff3a10 });
   for (let i = 0; i < CONFIG.ZOMBIE.poolSize; i++) ZPOOL.push(createZombie(i));
   buildGibs();                                                      // F7b
   const bad = SPAWN_POINTS.filter(sp => !sp.valid);
@@ -254,7 +334,11 @@ function pickSpawnPoint(sea, room) {
       if (z.alive && (z.px - sp.x) ** 2 + (z.pz - sp.z) ** 2 < 1.0) { busy = true; break; }
     }
     if (busy) continue;
-    if (!sea && isVisibleToPlayer(sp.x, sp.z)) continue;
+    const bar = sp.bar && CONFIG.BARRIERS.enabled;                 // F5.19b: la ventana puede estar a la vista (como en BO)
+    if (bar && sp.bar.occ) continue;
+    // F5.19c (bug del playtest): el búnker es chico y sus spawns siempre se ven; con vos adentro salen igual del piso
+    const bunk = sp.room === 'R16' && typeof inBunker === 'function' && inBunker();
+    if (!sea && !bar && !bunk && isVisibleToPlayer(sp.x, sp.z)) continue;
     cand.push({ sp, d });
   }
   if (!cand.length) return null;
@@ -278,6 +362,7 @@ function resetZombie(z, sp, keepHealth, kind) {
   z.pz = sp.z + (Math.random() - 0.5) * 0.3;
   z.sx = z.sz = z.wantX = z.wantZ = 0; z.nudgeT = 0; z.climb = null; z.level = 0;   // F2.8: siempre spawnea en el piso
   z.emergeT = 0; z.digDepth = 1; z.fromClam = false;              // F5.14: los pone la almeja
+  z.fromPlant = false;                                             // F5.20: los llama la planta jefa del templo
   if (!keepHealth) {
     z.kind = z.boss ? 'boss' : z.dog ? 'dog' : z.squid ? 'squid' : (kind || 'normal');
     z.crawl = false; z.legDmg = 0;
@@ -325,8 +410,17 @@ function resetZombie(z, sp, keepHealth, kind) {
   z.burnT = 0;                                                  // F5.10: Kaboom
   if (!keepHealth) z.fromGiant = false;                         // F5.11: lo marca el calamar gigante al escupirlo
   if (!keepHealth) setZombieEyes(z, groundY(sp.x, sp.z) < -1);  // F5.11: nace en el búnker = ojos rojos
+  // F5.20: variante (solo zombies humanos comunes; el respawn conserva la suya). Adentro del caparazón nacen arrastrados
+  if (!z.dog && !z.squid && !z.boss) {
+    if (!keepHealth) z.variant = z.kind === 'normal' ? rollVariant(n) : 'normal';
+    setZombieVariant(z, z.variant || 'normal');
+    if (!keepHealth && sp.room === 'R21' && CONFIG.ZOMBIE.shellCrawl && !z.crawl) {
+      z.crawl = true; setCrawlLeg(z); z.speed = Math.min(z.speed, CONFIG.CRAWLER.speed);
+    }
+  }
   if (z.eaten) { z.eaten = null; if (!z.dog && !z.squid && !z.boss) z.root.scale.setScalar(1); }
   z.root.visible = true;
+  barrierFree(z); barrierSpawn(z, sp);                          // F5.19b: ventana, trampilla o salto (barriers.js)
 }
 // F4: arrastrado = sin la pierna derecha. Escala casi 0 (el raycaster de r128 no mira .visible)
 function setCrawlLeg(z) {
@@ -356,6 +450,7 @@ function respawnZombie(z) {               // atascado/perdido: reaparece fuera d
   return true;
 }
 function deactivateZombie(z) {
+  barrierFree(z);                                               // F5.19b
   z.active = false; z.alive = false; z.state = 'idle';
   z.root.visible = false;
 }
@@ -372,6 +467,8 @@ function damageZombie(z, dmg, headshot, killPoints, hitPoints, part) {
   // insta-kill: cualquier golpe es letal, sin importar el daño real de origen (F5: salvo el boss).
   // El número flotante ya se calculó con el dmg original (se ve normal, no "99999").
   if (state.effects.instakill > 0 && !z.boss) dmg = Math.max(dmg, z.health);
+  if (headshot && gumActive('deadaim')) dmg *= CONFIG.GUMS.list.deadaim.mul;   // F5.28d: DEAD AIM
+  if (gumActive('killingtime') && !z.boss) z.ktMark = GUMM.ktGen;   // F5.28d: KILLING TIME, muere cuando termina
   z.health -= dmg;
   if (part === 'leg' && !z.dog && !z.boss && !z.crawl && z.health > 0 &&
       (z.legDmg += dmg) >= CONFIG.CRAWLER.legFrac * z.maxHealth) startCrawl(z);
@@ -388,8 +485,13 @@ function damageZombie(z, dmg, headshot, killPoints, hitPoints, part) {
     STATS.killsBy[STATS.src] = (STATS.killsBy[STATS.src] || 0) + 1;
     if (headshot) STATS.headshots++;
     addXP(CONFIG.PROGRESSION.xp.kill + (headshot ? CONFIG.PROGRESSION.xp.headshot : 0));   // F5.18
-    addPoints(killPoints !== undefined ? killPoints : (headshot ? CONFIG.POINTS.headshotKill : CONFIG.POINTS.kill));
+    addWeaponXP(STATS.src, CONFIG.PROGRESSION.xp.kill + (headshot ? CONFIG.PROGRESSION.xp.headshot : 0));   // F5.19: nivel del arma
+    { const t = clock.elapsedTime, K = MULTIKILL;                  // F5.19: varios kills seguidos -> el personaje festeja
+      K.list = K.list.filter(v => t - v < K.window); K.list.push(t);
+      if (K.list.length >= K.count) { voice('audio_personaje_al_matar_varios_zombies', 1, 20); K.list.length = 0; } }
+    addPoints(killPoints !== undefined ? killPoints : (headshot ? CONFIG.POINTS.headshotKill * (gumActive('headhunter') ? 2 : 1) : CONFIG.POINTS.kill));   // F5.20: HEADHUNTER
     onZombieDeath(z);
+    if (gumActive('scavenger')) gumScavenge();                    // F5.28d: SCAVENGER
   } else {
     const hp = hitPoints !== undefined ? hitPoints : CONFIG.POINTS.hit;
     if (hp > 0) addPoints(hp);
@@ -400,6 +502,7 @@ function damageZombie(z, dmg, headshot, killPoints, hitPoints, part) {
 const GIBS = { list: [] };
 const _gv = new THREE.Vector3();
 function isHuman(z) { return !z.dog && !z.squid && !z.boss; }
+const MULTIKILL = { list: [], count: 4, window: 2 };              // F5.19: 4 kills en 2 s
 function buildGibs() {
   for (let i = 0; i < CONFIG.GORE.gibs; i++) {
     const m = new THREE.Mesh(zGeo(0.16, 0.62, 0.16), new THREE.MeshLambertMaterial({ color: 0xffffff }));
@@ -486,7 +589,7 @@ function updateGibs(dt) {
   }
 }
 // piso debajo de un pedazo: el techo si está arriba de él, si no el terreno
-function floorUnder(x, z, y) { return y > UP.y - 0.2 && roofAt(x, z) ? UP.y : groundY(x, z); }
+function floorUnder(x, z, y) { return y > UP2.y - 0.2 && roof2At(x, z) ? UP2.y : y > UP.y - 0.2 && roofAt(x, z) ? UP.y : groundY(x, z); }
 function resetGibs() { for (const g of GIBS.list) { g.life = 0; g.m.visible = false; g.m.scale.setScalar(1); } }
 
 // F5.15 (costo): la línea libre del tramo directo se recalcula cada ZOMBIE.losCache s por zombie (con 24 pegados al
@@ -528,7 +631,7 @@ function steerZombie(z, P, tLevel) {
   if (!lvNav(L, cx, cz)) {
     // 2) fuera del grid (margen de pared): volver a la celda válida más cercana (con línea libre: no
     //    apuntar a una celda del otro lado del borde de la piscina)
-    const n = L === 1 ? nearestUp(cx, cz, C.recoverRadius, z.px, z.pz) : nearestNav(cx, cz, C.recoverRadius, z.px, z.pz, true);
+    const n = L >= 1 ? nearestUp(cx, cz, C.recoverRadius, z.px, z.pz, L) : nearestNav(cx, cz, C.recoverRadius, z.px, z.pz, true);
     if (!n) { z.mode = 'lost'; return; }
     tx = n.x + 0.5; tz = n.z + 0.5; z.mode = 'recover';
   } else {
@@ -559,11 +662,9 @@ function steerZombie(z, P, tLevel) {
 // F2.8: `from` = celda donde está; si el enlace tiene recorrido fijo (NAV.via: la escalera del techo), B y C
 // son la base y el tope de los escalones y el tramo B->C se camina subiendo/bajando parejo
 function startClimb(z, to, from) {
-  const C = CONFIG.ZOMBIE, W = NAV.w, P = POOL, toUp = to >= NAV.base;
-  let dx1, dz1;
-  if (toUp) { const k = to - NAV.base; dx1 = UP.x1 + k % UP.w + 0.5; dz1 = UP.z1 + Math.floor(k / UP.w) + 0.5; }
-  else { dx1 = to % W + NAV.minX + 0.5; dz1 = Math.floor(to / W) + NAV.minZ + 0.5; }
-  const ay = z.level === 1 ? UP.y : groundY(z.px, z.pz), dy = toUp ? UP.y : groundY(dx1, dz1), up = dy > ay;
+  const C = CONFIG.ZOMBIE, P = POOL, toL = idxLevel(to), toUp = toL > 0;   // F5.22: a cualquier nivel
+  const [dx1, dz1] = idxCenter(to);
+  const ay = z.level ? lvY(z.level) : groundY(z.px, z.pz), dy = toUp ? lvY(toL) : groundY(dx1, dz1), up = dy > ay;
   const ux = dx1 - z.px, uz = dz1 - z.pz, ul = Math.hypot(ux, uz) || 1, off = C.radius + 0.05;
   const spd = Math.max(1.5, z.speed * 0.7), via = NAV.via[from];
   let pts, t2;
@@ -590,7 +691,7 @@ function startClimb(z, to, from) {
   }
   const t1 = t1of(pts);
   const t3 = t2 + Math.hypot(pts[3][0] - pts[2][0], pts[3][1] - pts[2][1]) / spd;
-  z.climb = { pts, t1, t2, t3, ay, dy, up, stairs: !!via, toLevel: toUp ? 1 : 0, hatch };
+  z.climb = { pts, t1, t2, t3, ay, dy, up, stairs: !!via, toLevel: toL, hatch };
   z.state = 'climb'; z.t = 0; z.mode = 'flow';
   z.heading = Math.atan2(ux, uz);
 }
@@ -674,7 +775,7 @@ function placeRoot(z, y) {
     const k = z.kbT / CONFIG.FEEL.knockbackTime, e = k * k * (3 - 2 * k);
     ox = z.kbX * e; oz = z.kbZ * e;
   }
-  z.root.position.set(z.px + ox, y + (z.level === 1 ? UP.y : groundY(z.px, z.pz)), z.pz + oz);   // F2.8: arriba del techo
+  z.root.position.set(z.px + ox, y + (z.level ? lvY(z.level) : groundY(z.px, z.pz)), z.pz + oz);   // F2.8: arriba del techo (F5.22: o del nivel 2)
 }
 
 // F2.6: el paso (z.gait) cambia ritmo, apertura de piernas, inclinación, rebote y brazos. Mínimo visual
@@ -750,6 +851,7 @@ function updateZombies(dt) {
     if (z.state !== 'walk') continue;
     if (DOWN.on) { fleeZombie(z, P); continue; }                // F5.18: tirado con Quick Revive, se alejan
     if (gumActive('shadow') && !z.boss) { z.mode = 'direct'; continue; }   // F5.18b: SHADOW STEP, no te ven
+    if (gumActive('killingtime') && !z.boss) continue;           // F5.28d: KILLING TIME, congelados
     if (!lure) steerZombie(z, P);
     else if (!z.boss) steerZombie(z, lure, 0);                   // todos al langostino
     else { const d = FLOW.dist; FLOW.dist = FLOW.pdist; steerZombie(z, P); FLOW.dist = d; }   // el boss, al jugador
@@ -781,8 +883,9 @@ function updateZombies(dt) {
     if (z.kbT > 0) z.kbT = Math.max(0, z.kbT - dt);
     if (z.flash > 0) {
       z.flash -= dt;
-      if (z.flash <= 0) z.flashMats.forEach(m => m.emissive.setHex(0));
+      if (z.flash <= 0) { z.flashMats.forEach(m => m.emissive.setHex(0)); z.fakeLit = true; }
     }
+    fakeLightTint(z);                                               // F5.28f: antorchas y charcos que brillan
 
     if (z.state === 'emerge') {
       const p = Math.min(1, z.t / (z.emergeT || C.emergeTime));      // F5.14: el calamar grande de la almeja tarda más
@@ -800,6 +903,8 @@ function updateZombies(dt) {
       if (p >= 1) { z.state = 'walk'; z.t = 0; }
       continue;
     }
+    if (z.state === 'barrier') { barrierTick(z, dt); continue; }  // F5.19b: arranca tablas y se mete (barriers.js)
+    if (z.state === 'jump') { jumpTick(z, dt); continue; }        // F5.19b: salta desde la espesura o el agua
     if (z.state === 'dying') {
       // F5.10: se lo está comiendo una planta: lo lleva la boca (garden.js)
       if (z.eaten) { if (plantCarry(z, dt)) { deactivateZombie(z); list.splice(i, 1); } continue; }
@@ -838,6 +943,8 @@ function updateZombies(dt) {
     z.heading = lerpAngle(z.heading, face, Math.min(1, dt * 8));
     placeRoot(z, 0);
     z.root.rotation.y = z.heading;
+    // F5.20: el negro se infla y explota cerca tuyo (no pega: explota)
+    if (z.variant === 'black' && !DOWN.on && blackFuse(z, dt, distP)) { if (!z.alive) continue; animateZombie(z, dt, realV); continue; }
 
     // ataque: rango + cooldown + línea libre (no pega a través de paredes)
     z.attackCd -= dt;
@@ -846,12 +953,13 @@ function updateZombies(dt) {
     const pl = playerLevel(), onTop = playerOnTop();
     // F5.6: si estás arriba de un mueble te agarra de las piernas desde el borde (si no, el medio de la cama era seguro)
     const reach = onTop !== undefined ? Math.max(K.attackRange, C.attackRangeOnTop) : K.attackRange;
-    if (DOWN.on || (gumActive('shadow') && !z.boss)) { /* F5.18: tirado (o SHADOW STEP): nadie pega */ }
+    if (DOWN.on || ((gumActive('shadow') || gumActive('killingtime')) && !z.boss)) { /* F5.18: tirado (o SHADOW STEP, F5.28d: KILLING TIME): nadie pega */ }
     else if (z.boss) bossTryAttack(z, distP, pl, onTop);            // F5: golpe al piso con aviso
     else if ((z.level || 0) === pl && distP < reach && z.attackCd <= 0 &&
         segmentClear(z.px, z.pz, P.x, P.z, 0.02, false, onTop, pl)) {
       const hit = z.squid ? K.damage * z.size : K.damage;       // F5.9: el calamar grande pega más
-      if (!shieldBlocks(z.px, z.pz, hit)) damagePlayer(hit, z.px, z.pz);   // F3a: el escudo lo para
+      if (!shieldBlocks(z.px, z.pz, hit)) damagePlayer(hit, z.px, z.pz, false, isHuman(z) ? 'zombie' : z.kind);   // F3a: el escudo lo para (F5.19: el golpe de zombie solo si es humano)
+      if (z.dog) playSample('mordida_perro', { pos: [z.px, 0.6, z.pz], rate: 0.95 + Math.random() * 0.1 });   // F5.19c
       sfxGrowl(z, 'attack');
       z.attackCd = K.attackCooldown;
       z.swingT = 0.35;

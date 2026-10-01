@@ -93,22 +93,27 @@ check(BOX.phase === 'teddy' && BOX.shown === 'teddy', 'muestra el oso');
 check(state.points === 950 && STATS.pointsEarned === earned0, 'F5.16: el oso devuelve los 950 (sin contar como ganancia)', `(${state.points})`);
 run(B.teddyTime + B.moveTime + 0.1);
 check(BOX.phase === 'idle' && BOX.room !== 'R5', 'se mudó', `(a ${BOX.room})`);
-check(G.openRooms().includes(BOX.room), 'a un cuarto abierto');
+check(!!B.spots[BOX.room], 'a otro lugar de la caja (F5.28e: cualquiera, abierto o no)');
 check(state.weapons.map(w => w.id).join() === wBefore, 'no dio arma');
 const sp = B.spots[BOX.room];
 check(Math.abs((BOX.collider.minX + BOX.collider.maxX) / 2 - sp.x) < 1e-9 && BOX.group.position.y === 0, 'collider y mesh en el spot nuevo');
 check(at(10, 28.2).kind !== 'box', 'el spot viejo ya no responde');
 
-// 7) solo cuartos abiertos: con D1 abierta únicamente, desde R2 se muda a R1
+// 7) F5.28e (Diego): la caja se muda a CUALQUIER lugar (abierto o no), menos al que está y al que tenés encima
+// F5.20: se arranca en el garaje; esta prueba mira la topología desde el porche
+const start0 = CONFIG.START.room; CONFIG.START.room = 'R1';
 G.resetGame(); state.running = true; G.setCam(0);
 check(G.openRooms().join() === 'R1', 'puertas cerradas: solo R1 abierto');
-state.points = 5000; at(0, 1.5); G.interact();
-check(G.openRooms().sort().join() === 'R1,R2', 'con D1: R1 y R2');
 G.placeBox('R2'); player.pos.set(5, 1.7, 14);
-check(G.boxDestinations().join() === 'R1', 'destinos posibles = R1');
-at(6.6, 14); withRandom(0.01, () => G.interact());
+const dests = G.boxDestinations();
+check(dests.length === Object.keys(B.spots).length - 1 && !dests.includes('R2') && dests.includes('R11'),
+  'con todo cerrado, los destinos son todos los otros lugares (hasta el muelle)', `(${dests.length})`);
+player.pos.set(B.spots.R11.x, 1.7, B.spots.R11.z);
+check(!G.boxDestinations().includes('R11'), 'no se muda al lugar donde estás parado');
+state.points = 5000; at(6.6, 14); withRandom(0.01, () => G.interact());
 run(B.rollTime + B.teddyTime + B.moveTime + 0.2);
-check(BOX.room === 'R1', 'se mudó al porche');
+check(BOX.room !== 'R2' && !!B.spots[BOX.room], 'se mudó (' + BOX.room + ')');
+CONFIG.START.room = start0;
 
 // ---------- armas exclusivas ----------
 function freshZombie(round, x, z) {
@@ -156,25 +161,8 @@ G.fireWeapon();
 check(A.health === CONFIG.ZOMBIE.health(8) - 300, 'cuerpo 300', `(hp ${A.health})`);
 killAll();
 
-// 10) Lanzallamas: 40/s a todo el cono, incluso pegado; sin puntos de impacto; no infla precisión
-player.pos.set(0, 1.7, 10); G.setCam(0);
-equip('flamethrower');
-const E = freshZombie(10, 0, 7.5), F = freshZombie(10, 0, 9.2), O = freshZombie(10, 3, 8);
-G.scene.updateMatrixWorld(true);
-const H0 = CONFIG.ZOMBIE.health(10), pts0 = state.points, shots0 = state.shotsFired;
-const L = CONFIG.WEAPONS.flamethrower, tickDmg = L.dps * L.fireRate / 1000;
-G.fireWeapon();
-check(E.health === H0 - tickDmg && F.health === H0 - tickDmg, 'un tick pega a los dos del cono (uno pegado)', `(${E.health}, ${F.health})`);
-check(O.health === H0, 'fuera del cono no');
-check(state.points === pts0 && state.shotsFired === shots0, 'sin puntos de impacto ni precisión');
-state.weapons[0].mag = 999;               // 10 s seguidos: el tanque real (40) se vacía justo al final
-for (let i = 0; i < 600; i++) { G.tick(dt); G.fireWeapon(); G.updateWeaponFx(dt); }
-const perSec = (H0 - tickDmg - E.health) / 10;
-check(Math.abs(perSec - L.dps) <= 1.5, '40 de daño por segundo a 60fps (10 s)', `(${perSec})`);
-E.health = 5; G.tick(1); G.fireWeapon();
-check(!E.alive && state.points === pts0 + CONFIG.POINTS.kill, 'kill con fuego da 60', `(+${state.points - pts0})`);
-check(weaponsState.flameUntil > 0, 'chorro visible');
-killAll();
+// 10) F5.28 (Diego): sin lanzallamas: ni en la caja ni como arma
+check(!CONFIG.WEAPONS.flamethrower && CONFIG.BOX.pool.indexOf('flamethrower') < 0, 'F5.28: el lanzallamas no existe ni sale de la caja');
 
 // 11) cadencia real de una automática a 60fps: no se redondea al frame
 equip('smg'); const sm = state.weapons[0]; sm.mag = 999;

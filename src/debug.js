@@ -16,8 +16,13 @@ function debugKey(code, repeat) {
   if (code === 'BracketLeft') { debugRound(Math.max(1, state.round - 1)); return true; }
   if (code === 'KeyK') { roundState.nextDog = state.round + 1; debugRound(state.round + 1); return true; }
   if (code === 'KeyJ') { roundState.forceBoss = state.round + 1; debugRound(state.round + 1); return true; }
-  if (code === 'KeyO') { debugUnlockAll(); return true; }
-  if (code === 'KeyX') { devMaxAccount(); return true; }            // F5.18b: cuenta al máximo y todos los chicles (solo la sesión)
+  if (code === 'KeyO') { debugUnlockAll(); debugGodLoadout(); return true; }   // F5.27: + Ray Gun y LEVIATHAN mejoradas, langostinos y escudo
+  if (code === 'KeyX') {                                            // F5.18b: cuenta al máximo y todos los chicles (solo la sesión)
+    devMaxAccount();
+    DEV.hp = true; state.health = maxHealth();                      // F5.19c: vida ×4 y barra con lo que baja cada golpe
+    if (UI.devhp) UI.devhp.style.display = '';
+    return true;
+  }
   if (code === 'KeyB') { toggleNavDebug(); return true; }
   if (code === 'KeyH') { UI.debug.style.display = UI.debug.style.display === 'none' ? '' : 'none'; return true; }
   return false;
@@ -31,12 +36,31 @@ function debugUnlockAll() {
   for (const k of GEN_KEYS) hitGenerator(k);
   turnOnPower();
   for (const k of SOUL_KEYS) state.souls[k] = CONFIG.SOULS.need;
+  if (!plantPapFree()) plantSpitPap();                              // F5.20: el PaP afuera (la planta sigue viva, para probarla)
   checkPap();
   // F5.13: también el búnker (las estatuas quedan despiertas y completas)
   for (const s of BUNK.statues) { if (!s.awake) wakeStatue(s); s.crawlers = CONFIG.BUNKER.eatCrawlers; s.dogs = CONFIG.BUNKER.eatDogs; s.done = true; }
   openBunker();
   SQHEAD.force = CONFIG.SQUIDHEAD.openRound; setSquidHead(state.round, true);   // la cabeza del calamar, afuera y abierta
   updateFlowField(true);
+}
+
+// F5.27 (Diego): con la O, además del mapa abierto: la Ray Gun y la LEVIATHAN con Pack-a-Punch (en lugar de las armas que
+// tenías; con Mule Kick la 3ra se queda), los langostinos y el escudo armado en la espalda
+function debugGodLoadout() {
+  // Perkaholic: todos los perks de una (sin tope de perks, como el chicle de BO3)
+  for (const k of PERK_KEYS) if (!hasPerk(k)) state.perks.push(k);
+  state.health = maxHealth(); updatePerkHUD();
+  const keep = state.weapons.slice(2, maxWeapons());
+  state.weapons = ['raygun', 'leviathan'].map(id => { const s = { id, pap: true, mag: 0, reserve: 0 }; const d = slotDef(s); s.mag = d.magSize; s.reserve = d.reserveMax; return s; }).concat(keep);
+  state.currentWeapon = 0;
+  equipModel(slotDef(state.weapons[0])); raiseWeapon(); updateAmmoHUD();
+  giveMonkeys();
+  const S = state.shield;
+  for (const k of SHIELD_PARTS) { S.parts[k] = true; if (SHIELDST.pieces[k]) SHIELDST.pieces[k].visible = false; }
+  S.built = true;
+  takeShield();
+  showBanner('GOD MODE: PERKAHOLIC, RAY GUN + LEVIATHAN (PaP), LOBSTERS, SHIELD', 2.5);
 }
 
 // saltar a la ronda n: se van los zombies vivos (sin puntos ni almas) y arranca n sin la pausa

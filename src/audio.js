@@ -3,7 +3,7 @@
 // Sin AudioContext (harness, navegador viejo) todas las funciones salen sin hacer nada.
 // Loops persistentes (se crean UNA vez): olas (2 fuentes + 2 LFO) y lanzallamas (1 fuente, lazy).
 // F6: volúmenes separados (general, música, efectos) y música por su propio bus
-const SETTINGS = { sens: 1, volume: CONFIG.AUDIO.master, music: 1, sfx: 1, dmgNumbers: true };   // F5.11: números de daño
+const SETTINGS = { sens: 1, volume: CONFIG.AUDIO.master, music: 1, sfx: 1, dmgNumbers: true, scale: 1 };   // F5.11: números de daño (F5.19d: scale = resolución)
 const AUDIO = { ctx: null, master: null, sfx: null, amb: null, ambLP: null, noise: null, brown: null,
   lastGrowl: -9, lastDry: 0, flame: null, music: null, wind: null, bugs: null };
 function audioOn() { return !!AUDIO.ctx && AUDIO.ctx.state === 'running'; }
@@ -13,10 +13,14 @@ function initAudio() {
   if (!AUDIO.ctx) {
     const ctx = new AC(), A = CONFIG.AUDIO, sr = ctx.sampleRate;
     const master = ctx.createGain(); master.gain.value = SETTINGS.volume; master.connect(ctx.destination);
-    const comp = ctx.createDynamicsCompressor(); comp.connect(master);   // la escopeta + 8 gruñidos no saturan
+    // F5.19c: todo lo de la partida (efectos, ambiente, música procedural, viento y bichos) pasa por `game`, que se
+    // calla en la pausa y al morir (updateGameAudio). El soundtrack del menú y la música de muerte van directo al master
+    const game = ctx.createGain(); game.gain.value = 1; game.connect(master);
+    const comp = ctx.createDynamicsCompressor(); comp.connect(game);     // la escopeta + 8 gruñidos no saturan
     const sfx = ctx.createGain(); sfx.gain.value = A.sfx * SETTINGS.sfx; sfx.connect(comp);
-    const amb = ctx.createGain(); amb.gain.value = 0; amb.connect(master);
-    const music = ctx.createGain(); music.gain.value = 0; music.connect(master);   // F6: lo maneja updateMusic
+    const amb = ctx.createGain(); amb.gain.value = 0; amb.connect(game);
+    const music = ctx.createGain(); music.gain.value = 0; music.connect(game);   // F6: lo maneja updateMusic
+    AUDIO.game = game; AUDIO.gameOn = true;
     const noise = ctx.createBuffer(1, sr * 2, sr), d = noise.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     const brown = ctx.createBuffer(1, sr * 6, sr), b = brown.getChannelData(0);   // ruido marrón = rumor de mar
@@ -26,6 +30,7 @@ function initAudio() {
     for (let i = 0; i < fade; i++) { const k = i / fade; b[i] *= k; b[b.length - 1 - i] *= k; }
     Object.assign(AUDIO, { ctx, master, sfx, amb, noise, brown, music });
     startAmbience();
+    loadSamples();                                        // F5.19: los sonidos de sonidos/
   }
   if (AUDIO.ctx.state === 'suspended') AUDIO.ctx.resume();
 }
@@ -76,20 +81,58 @@ const SHOT_SFX = {
   smg:     [['n', .07, 'bandpass', 2600, .9, .55], ['t', .06, 'sine', 230, 90, .4]],
   rifle:   [['n', .16, 'bandpass', 2000, .8, .8], ['t', .14, 'sine', 150, 55, .7], ['n', .04, 'highpass', 4200, .7, .45]],
   lmg:     [['n', .14, 'bandpass', 1400, .8, .85], ['t', .14, 'sine', 120, 45, .85]],
+  chopper: [['n', .12, 'bandpass', 1100, .6, .7], ['t', .12, 'square', 95, 50, .35], ['n', .05, 'highpass', 3500, .7, .25]],   // F5.19: traqueteo oxidado
+  pigiron: [['n', .2, 'lowpass', 900, .8, 1.0], ['t', .2, 'sine', 70, 35, 1.0]],                                              // F5.19: grave y pesado
+  leviathan: [['n', .12, 'bandpass', 1800, 1, .8], ['t', .1, 'sine', 160, 60, .8], ['t', .16, 'sawtooth', 420, 90, .18]],     // F5.19: con zumbido
   sniper:  [['n', .6, 'lowpass', 2600, .7, 1], ['t', .45, 'sine', 80, 34, 1], ['n', .05, 'highpass', 3600, .7, .8],
             ['n', .9, 'bandpass', 600, .8, .22, .22]],                                  // eco
+  marksman: [['n', .35, 'lowpass', 3200, .7, .9], ['t', .3, 'sine', 110, 45, .9], ['n', .05, 'highpass', 4000, .7, .7]],   // F5.19c
+  farmhand: [['n', .7, 'lowpass', 1800, .7, 1], ['t', .5, 'sine', 70, 30, 1], ['n', .06, 'highpass', 3000, .7, .6]],
   raygun:  [['t', .25, 'square', 1400, 220, .22], ['t', .3, 'sine', 700, 110, .4], ['n', .1, 'highpass', 3000, .7, .2]],
   // F5.5: ola que rompe: golpe grave + agua que barre y espuma
   wave:    [['t', .35, 'sine', 90, 40, .9], ['n', .7, 'lowpass', 900, .6, .8], ['n', .9, 'bandpass', 2400, .5, .3, .12]]
 };
+// F5.19: disparos con sample de Diego (la M1911 al doble de velocidad, pedido suyo)
+// [clave, velocidad (tono), volumen, corte en s (las automáticas cortan la cola: si no, se pisan)]
+// F5.24 (Diego: "muchas pistolas no tienen sonido"): las que sonaban con el procedural flojo usan ahora las muestras de
+// disparo que hay (pistola inicial, sniper, escopeta, ballesta) con un tono y un corte propios
+const PISTOL_S = 'disparo_de_la_arma_inicial_pero_ponerla_en_2x';
+const SHOT_SAMPLE = { m1911: [PISTOL_S, 2], sniper: ['sniper', 1], crossbow: ['ballesta', 1],
+                      raygun: ['ray_gun_shooting_sound', 1],
+                      marksman: ['sniper', 1.25], farmhand: ['sniper', 0.8],     // F5.19c: los snipers nuevos, con otro tono
+                      shotgun: ['shotgun_disparo', 1], spas: ['shotgun_disparo', 1.12], doublebarrel: ['shotgun_disparo', 0.86],   // F5.20
+                      // F5.24: pistolas pesadas (más grave que la M1911)
+                      revolver: [PISTOL_S, 1.25, 1.05], deagle: [PISTOL_S, 1.1, 1.1],
+                      // subfusiles: la pistola aguda y cortita
+                      smg: [PISTOL_S, 2.5, 0.75, 0.3], uzi: [PISTOL_S, 2.8, 0.7, 0.26],
+                      // rifles y LMG: el sniper más agudo y cortado (sin el eco largo)
+                      rifle: ['sniper', 1.6, 0.8, 0.35], ak47: ['sniper', 1.45, 0.85, 0.35], lmg: ['sniper', 1.7, 0.75, 0.3],
+                      chopper: ['sniper', 1.9, 0.7, 0.25], pigiron: ['sniper', 1.25, 0.9, 0.4], leviathan: ['sniper', 1.55, 0.85, 0.32],
+                      // el arco: la ballesta más aguda; la bazooka: la escopeta muy grave (el cohete saliendo)
+                      bow: ['ballesta', 1.2, 0.9], bazooka: ['shotgun_disparo', 0.55, 1.1] };
 function sfxShot(def) {
   if (!audioOn() || def.flame) return;                  // el lanzallamas es un loop (updateFlameAudio)
+  voice('audio_del_personaje_al_dispararle_a_zombies', 0.03, 40);
+  // F5.19c (Diego): las armas con Pack-a-Punch suenan con PAP GUN SHOOT, con un tono propio por arma (más grave las
+  // pesadas, más agudo las chicas) y un poco de variación por tiro
+  if (def.pap && hasSample('pap_gun_shoot')) {
+    const pr = papShotRate(def), vol = def.id === 'sniper' || def.id === 'bazooka' ? 1 : 0.85;
+    if (playSample('pap_gun_shoot', { rate: pr * (0.96 + Math.random() * 0.08), vol })) return;
+  }
+  const S = SHOT_SAMPLE[def.id];
+  if (S && playSample(S[0], { rate: S[1] * (0.97 + Math.random() * 0.06), vol: 0.9 * (S[2] || 1), max: S[3] })) return;
   const t = AUDIO.ctx.currentTime, r = 0.94 + Math.random() * 0.12;
   for (const L of SHOT_SFX[def.id] || SHOT_SFX.m1911) {
     const at = t + (L[6] || 0);
     if (L[0] === 'n') sfxNoise(at, L[1], L[2], L[3] * r, L[4], L[5]);
     else sfxTone(at, L[1], L[2], L[3] * r, L[4] * r, L[5]);
   }
+}
+// tono del disparo con PaP: según el daño por bala (pesadas graves) y un corrimiento fijo por arma (no suenan iguales)
+function papShotRate(def) {
+  let h = 0; for (const ch of def.id) h = (h * 31 + ch.charCodeAt(0)) % 997;
+  const heavy = Math.min(1, Math.max(0, Math.log10(Math.max(10, def.damage || 40)) - 1.3) / 1.4);   // 0 chica -> 1 pesada
+  return (1.25 - 0.5 * heavy) * (0.94 + (h % 13) / 100);
 }
 function updateFlameAudio() {
   if (!audioOn()) return;
@@ -110,8 +153,16 @@ function updateFlameAudio() {
 }
 // recarga en 3 pasos según el progreso de la animación (si se interrumpe, no suenan los que faltan)
 const RELOAD_STEPS = [0.2, 0.62, 0.9];
+// F5.20: + las recargas de Nuevos sonidos 2 (machine gun para las LMG, rifle para rifle/AK/SMG/UZI, sniper, revólver)
+const RELOAD_SAMPLE = { raygun: ['raygun_recarga', 'raygun_recarga_2'], crossbow: ['recarga_ballesta'],
+                        shotgun: ['shotgun_reload'], spas: ['shotgun_reload'], doublebarrel: ['shotgun_reload'],
+                        lmg: ['machine_gun_reload'], chopper: ['machine_gun_reload'], pigiron: ['machine_gun_reload'], leviathan: ['machine_gun_reload'],
+                        rifle: ['rifle_reload'], ak47: ['rifle_reload'], smg: ['rifle_reload'], uzi: ['rifle_reload'],
+                        sniper: ['sniper_reload'], marksman: ['sniper_reload'], farmhand: ['sniper_reload'], revolver: ['revolver_reload'] };
 function sfxReload(step) {
   if (!audioOn()) return;
+  const d = typeof curDef === 'function' && curDef(), RS = d && RELOAD_SAMPLE[d.id];
+  if (RS && RS.some(hasSample)) { if (step === 0) playAny(RS); return; }   // F5.19: el sample entero en el primer paso
   const t = AUDIO.ctx.currentTime, r = 0.95 + Math.random() * 0.1;
   if (step === 0) { sfxNoise(t, .05, 'bandpass', 2400 * r, 2, .35); sfxTone(t, .05, 'square', 620 * r, 380, .06); }  // sale
   else if (step === 1) { sfxNoise(t, .07, 'bandpass', 1500 * r, 2, .5); sfxTone(t, .06, 'triangle', 320 * r, 200, .2); } // entra
@@ -122,22 +173,30 @@ function sfxDry() {
   const now = performance.now();
   if (now - AUDIO.lastDry < 250) return;                 // las automáticas lo pedirían cada frame
   AUDIO.lastDry = now;
+  const s = typeof curSlot === 'function' && curSlot();   // F5.19: sin balas del todo, el personaje se queja
+  if (s && !s.mag && !s.reserve) voice(['audio_personaje_no_ammo', 'audio_personaje_no_ammo_2'], 1, 10);
   sfxNoise(AUDIO.ctx.currentTime, .025, 'highpass', 3500, 1, .3);
 }
 function sfxSwing() {
   if (!audioOn()) return;
+  if (playSample('acuchillar', { rate: 0.95 + Math.random() * 0.1 })) return;   // F5.19
   const t = AUDIO.ctx.currentTime;
   sfxNoise(t, .16, 'bandpass', 900 + Math.random() * 300, 1.5, .35);
   sfxNoise(t + .03, .1, 'bandpass', 2000, 2, .15);
 }
-function sfxHurt() {
+const HIT_Z = [1, '2_1', 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map(n => 'golpe_z_' + n);   // F5.19: golpes de zombie
+function sfxHurt(zombie) {
   if (!audioOn()) return;
+  voice(['audio_personaje_al_ser_golpeado', 'audio_personaje_al_ser_golpeado_2', 'audio_personaje_al_ser_golpeado_3',
+         'audio_personaje_al_ser_golpeado_4', 'audio_personaje_al_ser_golpeado_5'], 0.35, 5);
+  if (zombie && playAny(HIT_Z, { vol: 0.9 })) return;             // F5.19: el golpe de zombie, solo si fue un zombie
   const t = AUDIO.ctx.currentTime;
   sfxTone(t, .2, 'sine', 90, 45, .7);
   sfxNoise(t, .15, 'lowpass', 400, .7, .5);
 }
 function sfxBell() {                                       // campanada de ronda: parciales inarmónicos, 2 golpes
   if (!audioOn()) return;
+  if (playSample('cambio_de_ronda')) return;              // F5.19
   const t = AUDIO.ctx.currentTime, f = 196;
   [0, 1.1].forEach((dt, k) => {
     const a = k ? 0.6 : 1;
@@ -145,20 +204,33 @@ function sfxBell() {                                       // campanada de ronda
       .forEach(([m, amp, dur]) => sfxTone(t + dt, dur, 'sine', f * m, f * m * 0.996, amp * a));
   });
 }
+const POWERUP_SAMPLE = { instakill: 'insta_kill', doublepoints: 'double_points', maxammo: 'max_ammo', kaboom: 'kaboom' };   // F5.19
 function sfxPowerup(type) {
   if (!audioOn()) return;
+  if (type === 'instakill' || type === 'doublepoints') voice('audio_del_personaje_al_insta_kill_o_double_points', 0.7, 20);
+  if (type === 'kaboom') voice('audio_del_personaje_al_obtener_la_raygun_o_kaboom', 0.8, 20);
+  if (playSample(POWERUP_SAMPLE[type])) return;
   const t = AUDIO.ctx.currentTime;
   const notes = type === 'instakill' ? [330, 262, 196] : type === 'doublepoints' ? [523, 784, 1047] : [392, 523, 659, 784];
   notes.forEach((n, i) => sfxTone(t + i * 0.09, 0.22, 'triangle', n, n, 0.3));
 }
+// F5.19: al abrir la caja suena la canción de la caja de Diego (y a veces el personaje); con ella no hay tic-tac
+// (F5.19: el mp3 arranca con 1 s de silencio: se salta con offset)
+function sfxBoxStart() {
+  const ok = playSample('mystery_box', { offset: CONFIG.AUDIO.boxOffset });
+  voice('audio_al_comprar_mystery_box', 0.3, 40);
+  return ok;
+}
 function sfxBoxTick() {                                    // caja girando: cajita de música pentatónica
-  if (!audioOn()) return;
+  if (!audioOn() || hasSample('mystery_box')) return;
   const penta = [523, 587, 659, 784, 880, 1047, 1175];
   const n = penta[Math.floor(Math.random() * penta.length)];
   sfxTone(AUDIO.ctx.currentTime, 0.14, 'triangle', n, n, 0.14);
 }
 function sfxTeddy() {
   if (!audioOn()) return;
+  // F5.24 (Diego: "hay dos sonidos"): antes salía uno de los dos archivos al azar; ahora siempre el mismo
+  if (playSample('se_va_la_mystery_box')) return;   // F5.19
   const t = AUDIO.ctx.currentTime;
   [262, 220, 175, 131].forEach((n, i) => sfxTone(t + i * 0.18, 0.3, 'square', n, n * 0.97, 0.12));
 }
@@ -322,6 +394,8 @@ function sfxShellRise() {                                   // caracola que sale
 //--- F2b: Pack-a-Punch trabajando (4 s de engranajes y martillazos) y listo (ding) ---
 function sfxPapWork() {
   if (!audioOn()) return;
+  voice(['audio_del_personaje_al_pap', 'audio_del_personaje_al_pap_2'], 0.8, 8);   // F5.19
+  if (playSample('drill')) return;                                           // F5.19: el taladro de Diego
   const t = AUDIO.ctx.currentTime, T = CONFIG.PAP.time;
   sfxTone(t, T, 'sawtooth', 55, 70, 0.1);                                  // motor de fondo
   for (let d = 0.2; d < T - 0.2; d += 0.45) {                               // martillazos
@@ -348,10 +422,43 @@ const PERK_JINGLES = {
   revive: [523, 659, 784, 659, 1047], jugg: [196, 247, 294, 247, 392], speed: [392, 494, 587, 740, 784],
   dtap: [330, 330, 440, 330, 494], stamin: [587, 698, 880, 698, 587]
 };
-function sfxJingle(key) {
+// F5.19c: las canciones de Diego de cada perk. Suenan al acercarte (una vez por visita), en 3D, y bajan de volumen al
+// alejarte hasta cortarse (updatePerkJingle)
+const PERK_SONGS = { jugg: 'juger_music', revive: 'quick_revive_music', speed: 'speed_cola_music', stamin: 'stamin_up_music' };
+function sfxJingle(key, m) {
   if (!audioOn()) return;
+  const song = PERK_SONGS[key];
+  if (song && hasSample(song) && m) {
+    if (AUDIO.jingle) { try { AUDIO.jingle.src.stop(); } catch (e) {} }
+    const c = AUDIO.ctx, src = c.createBufferSource(), g = c.createGain();
+    src.buffer = SAMPLES.buf[song]; g.gain.value = 0;
+    src.connect(g); g.connect(AUDIO.sfx); src.start();
+    AUDIO.jingle = { src, g, m, end: c.currentTime + src.buffer.duration };
+    return;
+  }
   const t = AUDIO.ctx.currentTime, n = PERK_JINGLES[key] || PERK_JINGLES.revive;
   n.forEach((f, i) => sfxTone(t + i * 0.16, 0.24, 'triangle', f, f, 0.14));
+}
+// F5.19c: la música de Diego mientras se arma el escudo o la Ola (se corta si soltás F)
+function craftMusic(on) {
+  if (!audioOn()) return;
+  const k = 'musica_al_construir_el_escudo_o_wonder_weapon_proceso', c = AUDIO.ctx;
+  if (on && !AUDIO.craftSrc && hasSample(k)) {
+    const src = c.createBufferSource(), g = c.createGain();
+    src.buffer = SAMPLES.buf[k]; src.loop = true; g.gain.value = 0.8;
+    src.connect(g); g.connect(AUDIO.sfx); src.start();
+    AUDIO.craftSrc = { src, g };
+  } else if (!on && AUDIO.craftSrc) {
+    const S = AUDIO.craftSrc; AUDIO.craftSrc = null;
+    S.g.gain.setTargetAtTime(0, c.currentTime, 0.1); S.src.stop(c.currentTime + 0.5);
+  }
+}
+function updatePerkJingle() {
+  const J = AUDIO.jingle;
+  if (!J) return;
+  const c = AUDIO.ctx, d = Math.hypot(player.pos.x - J.m.x, player.pos.z - J.m.z), R = CONFIG.AUDIO.jingleFade;
+  if (d > R || c.currentTime > J.end) { J.g.gain.setTargetAtTime(0, c.currentTime, 0.3); try { J.src.stop(c.currentTime + 1); } catch (e) {} AUDIO.jingle = null; return; }
+  J.g.gain.setTargetAtTime(CONFIG.AUDIO.jingleVol * SETTINGS.music * Math.max(0, 1 - d / R), c.currentTime, 0.2);
 }
 function sfxPerkDrink() {                                   // lata que se abre + trago + eructo corto
   if (!audioOn()) return;
@@ -369,6 +476,39 @@ function sfxBreath() {                                      // sin aire: dos res
   if (!audioOn()) return;
   const t = AUDIO.ctx.currentTime;
   [0, 0.45].forEach(d => sfxNoise(t + d, 0.35, 'bandpass', 900, 1.2, 0.18));
+}
+// F5.23 (Diego: "como en CoD"): con poca vida, latido grave y respiración agitada. lowHealthK() = 0 (media vida o más)
+// a 1 (sin vida); el sonido arranca en CONFIG.AUDIO.lowHp.from. Los tiempos van por el reloj del juego (así el borde de
+// sangre late junto con el corazón aunque no haya audio). Va por el bus de la partida: en pausa y al morir no suena
+const LOWHP = { beatT: 0, beatAt: -9, breathT: 0, inhale: true };
+function lowHealthK() {
+  if (state.gameOver || DOWN.on) return 0;
+  const half = maxHealth() / 2, hp = state.health;
+  return hp < half ? Math.min(1, (half - hp) / half) : 0;
+}
+function lowHealthBeat() { return Math.exp(-(clock.elapsedTime - LOWHP.beatAt) * 7); }
+function updateLowHealthAudio(v) {
+  const L = CONFIG.AUDIO.lowHp, now = clock.elapsedTime;
+  if (v < L.from || !state.running) { LOWHP.beatT = now; LOWHP.breathT = now; LOWHP.inhale = true; return; }
+  const k = (v - L.from) / (1 - L.from);                    // 0..1 dentro de la zona de sonido
+  if (now >= LOWHP.beatT) {                                  // latido: dos golpes (lub-dub)
+    LOWHP.beatT = now + L.beat[0] + (L.beat[1] - L.beat[0]) * k; LOWHP.beatAt = now;
+    if (audioOn()) {
+      const t = AUDIO.ctx.currentTime, vol = L.beatVol * (0.6 + 0.4 * k);
+      sfxTone(t, 0.16, 'sine', 70, 38, vol); sfxTone(t + 0.2, 0.13, 'sine', 62, 36, vol * 0.7);
+      sfxNoise(t, 0.08, 'lowpass', 140, 0.7, vol * 0.35);
+    }
+  }
+  if (now >= LOWHP.breathT) {                                // respiración: aspira (sube) y exhala (baja, más larga)
+    const per = L.breath[0] + (L.breath[1] - L.breath[0]) * k;
+    LOWHP.breathT = now + per * (LOWHP.inhale ? 0.42 : 0.58);
+    if (audioOn()) {
+      const t = AUDIO.ctx.currentTime, vol = L.breathVol * (0.55 + 0.45 * k);
+      if (LOWHP.inhale) { sfxNoise(t, per * 0.34, 'bandpass', 1300, 1.6, vol); sfxNoise(t, per * 0.3, 'highpass', 2600, 0.8, vol * 0.4); }
+      else { sfxNoise(t, per * 0.46, 'bandpass', 700, 1.1, vol * 1.1); sfxNoise(t + 0.03, per * 0.3, 'lowpass', 380, 0.9, vol * 0.5); }
+    }
+    LOWHP.inhale = !LOWHP.inhale;
+  }
 }
 
 //--- F2.7: granadas ---
@@ -418,6 +558,7 @@ function sfxBossSlamWind() {                                // F5.5c: levanta lo
 function sfxBossSlam(dist) {                                // F5.5c: golpe al piso: impacto grave y tierra
   if (!audioOn()) return;
   const t = AUDIO.ctx.currentTime, k = Math.max(0.2, 1 - dist / 30);
+  if (playSample('boss_cuando_pega_al_piso', { vol: k }) || playSample('golpe_de_sombreron', { vol: k })) return;   // F5.19 (F5.19c: el nuevo)
   sfxTone(t, 0.6, 'sine', 65, 28, 1.0 * k);
   sfxNoise(t, 0.5, 'lowpass', 600, 0.7, 0.8 * k);
   sfxNoise(t + 0.04, 0.35, 'bandpass', 1800, 0.8, 0.2 * k);          // piedritas
@@ -489,6 +630,30 @@ function sfxGrowl(z, kind) {
   const A = CONFIG.AUDIO, P = player.pos;
   const dx = z.px - P.x, dz = z.pz - P.z, d = Math.hypot(dx, dz);
   if (d > A.growlMaxDist) return;
+  // F5.19: perros y calamares con los samples de Diego (en 3D)
+  const pos = [z.px, (z.level ? lvY(z.level) : groundY(z.px, z.pz)) + 0.8, z.pz];
+  // (F5.19: perros y calamares nunca caen al gruñido de zombie, haya sample o no)
+  if (z.dog) { playAny(['perro_1', 'perro_2', 'perro_3', 'perro_4'], { pos, vol: 1.2, maxDist: A.growlMaxDist }); AUDIO.lastGrowl = AUDIO.ctx.currentTime; return; }
+  if (z.kind === 'squid' || z.squid) {
+    if (kind === 'death') playAny(['muerte_calamar', 'muerte_calamar_2'], { pos, vol: 1.2, maxDist: A.growlMaxDist });
+    else if (kind === 'attack') playAny(['golpe_de_squid', 'golpe_de_squid_2'], { pos, maxDist: A.growlMaxDist });
+    else playSample('calamar', { pos, vol: 0.9, maxDist: A.growlMaxDist });
+    AUDIO.lastGrowl = AUDIO.ctx.currentTime; return;
+  }
+  if (z.boss) return;                                               // el boss tiene sus sonidos (boss.js)
+  // F5.20 (Diego): gruñidos naturales (Nuevos sonidos 2) en vez de los procedurales. Cada zombie se queda con uno (z.gk)
+  // y su tono (z.voice); el ataque sale más agudo y corto, la muerte más grave. Detrás de una pared, más bajo
+  if (!SAMPLES.zg) SAMPLES.zg = Object.keys(SAMPLES.buf).filter(k => k.startsWith('zgrowl_'));
+  if (SAMPLES.zg.length) {
+    if (z.gk === undefined || z.gk >= SAMPLES.zg.length) z.gk = Math.floor(Math.random() * SAMPLES.zg.length);
+    const clear = segmentClear(P.x, P.z, z.px, z.pz, 0, true), v = z.voice || 1;
+    const rate = v * (kind === 'attack' ? 1.18 : kind === 'death' ? 0.82 : 1) * rnd(0.96, 1.04);
+    const vol = (kind === 'death' ? 1.1 : kind === 'attack' ? 1.2 : 0.9) * (clear ? 1 : 0.45) * A.zGrowlVol;
+    if (playSample(SAMPLES.zg[z.gk], { pos: [z.px, pos[1] + 0.6, z.pz], vol, rate, maxDist: A.growlMaxDist, max: kind === 'attack' ? 0.9 : 2.2 })) {
+      AUDIO.lastGrowl = AUDIO.ctx.currentTime; return;
+    }
+  }
+  if (!SAMPLES.zg.length) SAMPLES.zg = null;                          // (todavía no se decodificaron: volver a mirar)
   const c = AUDIO.ctx, t = c.currentTime, v = z.voice || 1;
   const dur = kind === 'death' ? rnd(0.8, 1.2) : kind === 'attack' ? rnd(0.25, 0.4) : rnd(0.5, 1.1);
   const f0 = (kind === 'attack' ? 140 : 95) * v * rnd(0.9, 1.1);
@@ -513,7 +678,7 @@ function sfxGrowl(z, kind) {
   g.gain.setValueAtTime(peak, t + dur * 0.6);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.connect(form); n.connect(ng); ng.connect(form); form.connect(occl); occl.connect(g);
-  g.connect(spatialOut(z.px, (z.level ? UP.y : groundY(z.px, z.pz)) + 1.4, z.pz));   // F6: 3D (HRTF) o estéreo
+  g.connect(spatialOut(z.px, (z.level ? lvY(z.level) : groundY(z.px, z.pz)) + 1.4, z.pz));   // F6: 3D (HRTF) o estéreo
   o.start(t); lfo.start(t); n.start(t, Math.random());
   o.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05); n.stop(t + dur + 0.05);
   AUDIO.lastGrowl = t;
@@ -562,7 +727,7 @@ function startAmbience() {
     const l = c.createOscillator(); l.frequency.value = lfoHz;
     const lg = c.createGain(); lg.gain.value = lfoAmt;
     l.connect(lg); lg.connect(out.gain);
-    s.connect(fl); fl.connect(out); out.connect(g); g.connect(AUDIO.master);
+    s.connect(fl); fl.connect(out); out.connect(g); g.connect(AUDIO.game || AUDIO.master);
     s.start(now); l.start(now);
     return { g, f: fl };
   };
@@ -592,8 +757,10 @@ function updateAmbience() {
   const night = typeof NIGHT !== 'undefined' ? NIGHT.k || 0 : 0;
   AUDIO.wind.g.gain.setTargetAtTime(A.wind * fx * (Z.pier || Z.up ? 1 : Z.outdoor ? 0.3 : 0), t, 0.8);
   AUDIO.bugs.g.gain.setTargetAtTime(A.insects * fx * (Z.jungle ? 0.6 + 0.8 * night : 0), t, 0.8);
+  updatePerkJingle();                                                  // F5.19c
   if (Z.deep && t > AUDIO.nextDrip) {                                  // gota que cae en un charco
     AUDIO.nextDrip = t + randIn(A.dripEvery);
+    if (hasSample('gotas')) { AUDIO.nextDrip += 4; playSample('gotas', { vol: 0.5 * fx, rate: 0.9 + Math.random() * 0.2 }); return; }   // F5.19c
     const f = rnd(900, 1500);
     sfxTone(t, 0.09, 'sine', f, f * 2.2, 0.08 * fx);
     sfxTone(t + 0.11, 0.06, 'sine', f * 1.4, f * 2.6, 0.03 * fx);    // eco
@@ -622,8 +789,27 @@ function sfxBuy() {
   sfxTone(t + 0.08, 0.18, 'square', 1320, 1320, 0.12);                // -ching
   sfxNoise(t, 0.06, 'highpass', 4000, 0.7, 0.2);
 }
+// F5.19b: tablas de las barricadas. Arrancar = crujido de madera que se parte (más bajo de lejos); poner = martillazo
+function sfxBoardTear(B) {
+  if (!audioOn()) return;
+  const d = Math.hypot(player.pos.x - B.x, player.pos.z - B.z), v = Math.max(0, 1 - d / 28);
+  if (v <= 0) return;
+  const t = AUDIO.ctx.currentTime;
+  sfxNoise(t, 0.12, 'bandpass', 700 + Math.random() * 300, 2.5, 0.45 * v);
+  sfxNoise(t + 0.05, 0.2, 'lowpass', 400, 1, 0.3 * v);
+  sfxTone(t, 0.1, 'triangle', 220, 90, 0.12 * v);
+}
+function sfxBoardRepair() {
+  if (!audioOn()) return;
+  const t = AUDIO.ctx.currentTime;
+  sfxTone(t, 0.06, 'square', 320, 180, 0.16);
+  sfxNoise(t, 0.05, 'bandpass', 1800, 2, 0.3);
+  sfxTone(t + 0.14, 0.06, 'square', 340, 190, 0.14);
+  sfxNoise(t + 0.14, 0.05, 'bandpass', 1900, 2, 0.26);
+}
 function sfxDeny() {
   if (!audioOn()) return;
+  voice('tratar_de_comprar_una_puerta_sin_dinero', 1, 10);   // F5.19
   const t = AUDIO.ctx.currentTime;
   sfxTone(t, 0.16, 'sawtooth', 140, 110, 0.18);                       // buzz sordo
 }
@@ -632,7 +818,7 @@ function sfxDeny() {
 // superficie bajo (x, z) a la altura de los pies: el piso del cuarto, el agua (pileta y arena mojada), la
 // piedra del templo, las tablas del techo y el concreto del búnker
 const STEP_FLOOR = { deck: 'wood', woodLight: 'wood', wood: 'wood', pier: 'wood', tile: 'tile', poolDeck: 'tile',
-  conc: 'conc', concWet: 'conc', sand: 'sand', grass: 'grass', jungle: 'grass' };
+  conc: 'conc', concWet: 'conc', sand: 'sand', grass: 'grass', jungle: 'grass', rock: 'stone' };   // F5.19: el claro del caparazón
 function surfaceAt(x, z, feet) {
   const r = roomAt(x, z);
   if (r && r.id === 'R16') return 'conc';
@@ -692,7 +878,7 @@ function zombieSteps(dt) {
     z.stepT = (E[key] || E.walk) * (z.crawl ? 1.6 : 1) * rnd(0.9, 1.1);
     if (AUDIO.zStepN >= A.zStepMax) continue;
     AUDIO.zStepN++;
-    const y = z.level ? UP.y : groundY(z.px, z.pz);
+    const y = z.level ? lvY(z.level) : groundY(z.px, z.pz);
     sfxStep(surfaceAt(z.px, z.pz, y), (z.boss ? 1.4 : z.dog ? 0.5 : 0.8) / (1 + d * 0.25), { x: z.px, y: y + 0.1, z: z.pz });
   }
 }
@@ -747,6 +933,9 @@ function updateMusic() {
   if (!audioOn() || !AUDIO.music) return;
   const A = CONFIG.AUDIO, t = AUDIO.ctx.currentTime, P = player.pos;
   const playing = state.running && !state.gameOver;
+  const zone = updateZoneTracks(playing);                                               // F5.19c: templo, búnker, boss
+  if (updateTrack(playing)) { AUDIO.music.gain.setTargetAtTime(0, t, 0.2); return; }   // F5.19: el soundtrack de Diego
+  if (zone) { AUDIO.music.gain.setTargetAtTime(0, t, 0.3); return; }
   // volumen: los zombies mandan
   let near = Infinity;
   for (const z of state.zombies) if (z.alive) near = Math.min(near, Math.hypot(z.px - P.x, z.pz - P.z));
@@ -768,6 +957,124 @@ function updateMusic() {
   }
 }
 
+//=== F5.19: los sonidos de Diego (carpeta sonidos/). build.js los embebe en index.html como un bloque JSON aparte
+// (<script type="application/json" id="bhzSounds">: no es código y el harness no lo ve). Se decodifican una vez,
+// al primer gesto (initAudio). playSample(clave) suena si el sample está cargado y devuelve true; si no, el llamador
+// sigue con el sonido procedural de siempre. voice() = líneas del personaje: una a la vez, con pausa mínima
+const SAMPLES = { buf: {}, loading: false, voiceUntil: 0, gap: {}, track: null, trackG: null };
+function loadSamples() {
+  if (SAMPLES.loading || !AUDIO.ctx || typeof document === 'undefined' || !document.getElementById) return;
+  SAMPLES.loading = true;
+  const el = document.getElementById('bhzSounds');
+  if (!el || !el.textContent) return;
+  let data = null;
+  try { data = JSON.parse(el.textContent); } catch (e) { return; }
+  for (const k in data) {
+    try {
+      const bin = atob(data[k]), ab = new ArrayBuffer(bin.length), u = new Uint8Array(ab);
+      for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      AUDIO.ctx.decodeAudioData(ab).then(b => { SAMPLES.buf[k] = b; }, () => {});
+    } catch (e) {}
+  }
+}
+function hasSample(key) { return !!SAMPLES.buf[key]; }
+// o = { vol, rate, dest, pos: [x, y, z] (3D), maxDist }. Devuelve true si sonó
+function playSample(key, o) {
+  if (!audioOn()) return false;
+  const buf = SAMPLES.buf[key];
+  if (!buf) return false;
+  o = o || {};
+  const c = AUDIO.ctx, src = c.createBufferSource(), g = c.createGain();
+  src.buffer = buf; src.playbackRate.value = o.rate || 1;
+  let vol = o.vol === undefined ? 1 : o.vol;
+  if (o.pos) {
+    const d = Math.hypot(o.pos[0] - player.pos.x, o.pos[2] - player.pos.z);
+    if (d > (o.maxDist || 40)) return false;
+    vol /= 1 + d * 0.12;
+    g.connect(spatialOut(o.pos[0], o.pos[1], o.pos[2]));
+  } else g.connect(o.dest || AUDIO.sfx);
+  g.gain.value = vol;
+  const off = Math.min(o.offset || 0, Math.max(0, buf.duration - 0.05));   // F5.19: saltear silencio del principio
+  // F5.20: o.max = segundos como mucho (los gruñidos largos se cortan con un fundido corto)
+  const len = Math.min(buf.duration - off, o.max || Infinity) / (o.rate || 1), t0 = c.currentTime;
+  // (F5.24: el fundido es como mucho el 40% de lo que suena: los disparos cortados de las automáticas duran ~0.1 s)
+  if (o.max && len < (buf.duration - off) / (o.rate || 1)) { g.gain.setValueAtTime(vol, t0 + Math.max(0, len - Math.min(0.15, len * 0.4))); g.gain.linearRampToValueAtTime(0.0001, t0 + len); }
+  src.connect(g); src.start(t0, off); src.stop(t0 + len + 0.05);
+  return true;
+}
+// una de varias claves al azar (las que estén cargadas)
+function playAny(keys, o) {
+  const ok = keys.filter(hasSample);
+  return ok.length ? playSample(ok[Math.floor(Math.random() * ok.length)], o) : false;
+}
+// línea del personaje: con probabilidad `chance`, si no está hablando y si esa línea no sonó hace menos de `gap` s
+function voice(keys, chance, gap) {
+  if (!audioOn()) return false;
+  const t = AUDIO.ctx.currentTime, id = [].concat(keys).join('|');
+  if (t < SAMPLES.voiceUntil || t < (SAMPLES.gap[id] || 0)) return false;
+  if (chance !== undefined && Math.random() > chance) return false;
+  const ok = [].concat(keys).filter(hasSample);
+  if (!ok.length) return false;
+  const k = ok[Math.floor(Math.random() * ok.length)];
+  if (!playSample(k, { vol: CONFIG.AUDIO.voice })) return false;
+  SAMPLES.voiceUntil = t + SAMPLES.buf[k].duration + 0.3; SAMPLES.gap[id] = t + (gap || 0);
+  return true;
+}
+// el soundtrack, en loop por su propio volumen (el de la música). Mientras suena, la música procedural no toca
+function updateTrack(playing) {
+  if (!hasSample('game_soundtrack')) return false;
+  const c = AUDIO.ctx;
+  if (!SAMPLES.track) {
+    SAMPLES.trackG = c.createGain(); SAMPLES.trackG.gain.value = 0; SAMPLES.trackG.connect(AUDIO.master);
+    const s = c.createBufferSource(); s.buffer = SAMPLES.buf.game_soundtrack; s.loop = true; s.connect(SAMPLES.trackG); s.start();
+    SAMPLES.track = s;
+  }
+  // F5.19 (Diego): el soundtrack es solo del menú de inicio (ni en partida, ni en pausa, ni al morir)
+  // F5.19c: MENU.started = hay una partida en curso (también en la pausa); al salir de la partida se corta rápido
+  const menu = !playing && !state.gameOver && typeof MENU !== 'undefined' && MENU.mode === 'main' && !MENU.started &&
+               !(typeof DEATH !== 'undefined' && DEATH.on);
+  SAMPLES.trackG.gain.setTargetAtTime(menu ? CONFIG.AUDIO.track * SETTINGS.music : 0, c.currentTime, menu ? 0.4 : 0.05);
+  return menu;
+}
+// F5.19c: músicas de Diego por lugar y momento (loops que se cruzan): boss con menos del 30% de vida > búnker (música +
+// ambiente) > templo. Mientras suena una, la marimba procedural se calla. Van por `music` (la pausa y la muerte las callan)
+const ZTRACKS = {};
+function updateZoneTracks(playing) {
+  const want = {}, A = CONFIG.AUDIO;
+  if (playing) {
+    const low = typeof BOSS !== 'undefined' && state.zombies.some(z => z.boss && z.alive && z.health < z.maxHealth * A.bossLowFrac);
+    const r = roomAt(player.pos.x, player.pos.z);
+    if (low) want.cuando_al_boss_le_queda_menos_de_30_de_vida = A.zoneVol.boss;
+    else if (typeof inBunker === 'function' && inBunker()) { want.musica_del_buker = A.zoneVol.bunker; want.bunker = A.zoneVol.bunkerAmb; }
+    else if (r && r.id === 'R20') want.background_music_in_temple = A.zoneVol.temple;
+  }
+  const c = AUDIO.ctx;
+  let any = false;
+  for (const k in want) {
+    if (!hasSample(k)) continue;
+    any = true;
+    if (!ZTRACKS[k]) {
+      const src = c.createBufferSource(), g = c.createGain();
+      src.buffer = SAMPLES.buf[k]; src.loop = true; g.gain.value = 0;
+      src.connect(g); g.connect(AUDIO.game || AUDIO.master); src.start();
+      ZTRACKS[k] = { src, g };
+    }
+  }
+  for (const k in ZTRACKS) ZTRACKS[k].g.gain.setTargetAtTime(want[k] ? want[k] * SETTINGS.music : 0, c.currentTime, want[k] ? 0.8 : 0.6);
+  return any;
+}
+// F5.19c (Diego): en la pausa y al morir se calla todo lo de la partida (solo suena la música de muerte, que va al master)
+function updateGameAudio() {
+  if (!audioOn() || !AUDIO.game) return;
+  const dead = typeof DEATH !== 'undefined' && DEATH.on;
+  const paused = typeof MENU !== 'undefined' && MENU.started && !state.running && !state.gameOver;
+  const on = !dead && !paused;
+  if (on === AUDIO.gameOn) return;
+  AUDIO.gameOn = on;
+  const t = AUDIO.ctx.currentTime;
+  AUDIO.game.gain.cancelScheduledValues(t);
+  AUDIO.game.gain.setTargetAtTime(on ? 1 : 0, t, on ? 0.15 : 0.03);
+}
 // anuncio de ronda: tambor grave con la campanada; cada drumLongEvery rondas, un redoble largo que crece
 function sfxRoundDrum(n) {
   if (!audioOn()) return;

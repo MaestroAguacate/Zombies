@@ -117,9 +117,9 @@ check(zr.health === 1e6, 'la cerca del porche (1.2 m, más alta que el cuerpo) s
 
 // 6) kills: cuentan para las cajas de almas y las estadísticas
 fresh(); clearZombies();
-const sp = CONFIG.SOULS.spots.pasillo, zs2 = zombieAt(sp.x + 1.5, sp.z, 10);
+const sp = CONFIG.SOULS.spots.sotano, zs2 = zombieAt(sp.x + 1.5, sp.z, 10);   // F5.20: la del jardín oeste (sin la del pasillo)
 G.explodeAt(sp.x + 1.5, 1.0, sp.z + 0.5);
-check(!zs2.alive && state.souls.pasillo === 1, 'kill de granada suma un alma a la caja cercana');
+check(!zs2.alive && state.souls.sotano === 1, 'kill de granada suma un alma a la caja cercana');
 check(G.STATS.killsBy.grenade === 1 && G.favoriteWeapon().startsWith(GC.name), 'estadísticas: kill de GRANADA', `("${G.favoriteWeapon()}")`);
 free(zs2);
 

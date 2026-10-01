@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Beach House Zombies</title>
+<title>Zombies</title>
 <style>
   :root{
     --safe-t: env(safe-area-inset-top, 0px);
@@ -53,6 +53,9 @@
          text-shadow:0 0 12px rgba(179,38,30,.6),0 2px 4px #000}
   #round.flash{animation:rflash 1s ease-in-out 3}
   @keyframes rflash{50%{color:#fff;text-shadow:0 0 18px #fff}}
+  /* F5.24 (Diego): entre rondas el número parpadea (como en CoD) hasta que arranca la siguiente */
+  #round.blink{animation:rblink .9s ease-in-out infinite}
+  @keyframes rblink{0%,100%{opacity:1}45%{opacity:.12;color:#fff;text-shadow:0 0 22px #fff}55%{opacity:.12}}
   #banner{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);white-space:nowrap;
           font-size:clamp(34px,7vw,64px);font-weight:800;letter-spacing:8px;color:#d33a2c;
           opacity:0;transition:opacity .6s;text-shadow:0 0 24px rgba(211,58,44,.5),0 3px 6px #000}
@@ -66,16 +69,92 @@
                   transition:width .15s}
   #bossbar .hat{height:3px;margin-top:2px;background:rgba(0,0,0,.5)}
   #bossbar .hat b{display:block;height:100%;width:0;background:#c9b27a}
-  #lowhp{position:fixed;inset:0;pointer-events:none;opacity:0;
-         background:radial-gradient(ellipse at center,rgba(120,0,0,0) 38%,rgba(120,0,0,.9) 100%)}
+  #devhp{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);width:min(360px,70vw);pointer-events:none;
+         font:bold 13px monospace;color:#fff;text-align:center;text-shadow:0 1px 2px #000;z-index:5}
+  .devhp-bar{height:12px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.35);margin-bottom:3px}
+  .devhp-bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#b3140e,#e8402a);transition:width .12s}
+  #devhpHit{display:inline-block;margin-left:10px;color:#ff6a5a;transition:opacity .4s}
+  /* F5.28e: pantalla de carga. .wall = el wallpaper (embebido por build.js); sin .wall, negra (después de morir) */
+  #loadscr{position:fixed;inset:0;z-index:40;display:none;background:#000;pointer-events:none}
+  /* (el wallpaper va una sola vez, en --wall: lo usan la pantalla de carga y la tarjeta de MAPS) */
+  :root{--wall:url(@@WALLPAPER@@)}
+  #loadscr.wall{background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.05) 40%,rgba(0,0,0,.55)),var(--wall) center/cover no-repeat #050807}
+  #loadscr.on{display:block}
+  #loadscr .lstext{position:absolute;right:42px;bottom:34px;font:800 22px/1 ui-monospace,monospace;letter-spacing:6px;color:#d8cfb4;
+    text-shadow:0 2px 6px #000}
+  #loadscr .lstext span{display:inline-block;width:2.2em;text-align:left;animation:lsdots 1s steps(4) infinite;overflow:hidden;vertical-align:bottom}
+  @keyframes lsdots{0%{width:0}100%{width:2.2em}}
+  #loadscr .lsbar{position:absolute;right:42px;bottom:22px;width:230px;height:3px;background:rgba(216,207,180,.18)}
+  #loadscr .lsbar i{display:block;height:100%;width:0;background:#8a2a1e;box-shadow:0 0 8px #8a2a1e}
+  /* F5.28e: sangre cuadriculada por esquinas (ui.js HURT): 4 esquinas y el contorno entero, bloques escalados sin suavizar */
+  #lowhp{position:fixed;inset:0;pointer-events:none;opacity:0}
+  #lowhp canvas{position:absolute;image-rendering:pixelated;image-rendering:crisp-edges}
+  #lowhp .hedge{inset:0;width:100%;height:100%}
+  #lowhp .hc{width:40vw;height:46vh}
+  #lowhp .hc0{left:0;top:0} #lowhp .hc1{right:0;top:0} #lowhp .hc2{left:0;bottom:0} #lowhp .hc3{right:0;bottom:0}
+  /* F5.24: el mapa (tecla 5) */
+  /* F5.24b: papel viejo sobre fondo oscuro rojizo, con luz de vela que titila; los ítems son etiquetas de papel */
+  #mapview{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+    background:radial-gradient(ellipse at center,rgba(40,8,4,.88) 0%,rgba(6,2,1,.97) 70%);pointer-events:none;z-index:7;
+    color:#e8d6b0;font-family:'Palatino Linotype','Book Antiqua',Georgia,serif}
+  #mapview .mhead{font-size:15px;letter-spacing:6px;opacity:.55;font-style:italic}
+  #mapview .mhead small{font-size:11px;letter-spacing:1px;margin-left:10px}
+  #mapCanvas{height:74vh;max-width:94vw;aspect-ratio:1;transform:rotate(-.6deg);
+    box-shadow:0 0 0 1px #1a0c04,0 18px 60px #000,0 0 120px rgba(120,20,0,.25);animation:mapCandle 3.1s infinite}
+  @keyframes mapCandle{0%,100%{filter:brightness(1) sepia(.08)}22%{filter:brightness(.93) sepia(.12)}47%{filter:brightness(1.04)}
+    63%{filter:brightness(.9) sepia(.14)}81%{filter:brightness(1.02)}}
+  #mapview.nosig #mapCanvas{animation:none;transform:none;filter:none}
+  #mapview.nosig #mapItems{display:none}
+  #mapItems{display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
+  #mapItems .mg{background:linear-gradient(#d9c496,#c2a870);color:#2a170a;padding:6px 12px 8px;transform:rotate(.8deg);
+    box-shadow:0 4px 14px #000;clip-path:polygon(0 3%,4% 0,50% 2%,96% 0,100% 5%,99% 60%,100% 97%,55% 100%,3% 98%,0 70%)}
+  #mapItems .mg:nth-child(2){transform:rotate(-1.2deg)} #mapItems .mg:nth-child(3){transform:rotate(1.6deg)}
+  #mapItems .mg h4{margin:0 0 4px;font-size:12px;letter-spacing:3px;border-bottom:1px solid rgba(42,23,10,.4)}
+  #mapItems .mi{display:flex;align-items:center;gap:7px;font-size:12px;letter-spacing:1px;opacity:.45;text-decoration:line-through;
+    text-decoration-color:rgba(140,10,8,.8)}
+  #mapItems .mi.on{opacity:1;text-decoration:none;font-weight:bold}
+  #mapItems .mi svg{width:20px;height:20px;fill:none;stroke:#2a170a;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  #mapItems .mi.on svg{stroke:#7a0c08}
   /* F5.11: fundido a negro de la escotilla del búnker */
   #fade{position:fixed;inset:0;pointer-events:none;opacity:0;background:#000}
+  /* F5.19c: viaje al búnker (escalera) y por el portal (galaxia) */
+  #travel{position:fixed;inset:0;pointer-events:none;opacity:0;background:#000;overflow:hidden;z-index:6}
+  #travel>div{position:absolute;inset:0;display:none}
+  #travel.stairs .tv-stairs,#travel.portal .tv-portal{display:block}
+  .tv-steps{position:absolute;left:-20%;right:-20%;top:30%;bottom:-40%;transform:perspective(420px) rotateX(58deg);
+    background:repeating-linear-gradient(180deg,#1c1812 0 34px,#0c0a08 34px 40px,#2a241a 40px 44px);
+    animation:tvStepsDown 1.1s linear infinite, tvBob 0.55s ease-in-out infinite;
+    -webkit-mask:linear-gradient(180deg,transparent 0%,#000 35%,#000 70%,transparent 100%);mask:linear-gradient(180deg,transparent 0%,#000 35%,#000 70%,transparent 100%)}
+  #travel.up .tv-steps{animation-direction:reverse,normal}
+  @keyframes tvStepsDown{from{background-position:0 0}to{background-position:0 -88px}}
+  @keyframes tvBob{0%,100%{margin-top:0}50%{margin-top:10px}}
+  .tv-lamp{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 85%,rgba(255,190,110,.18),transparent 55%),
+    radial-gradient(ellipse at center,transparent 35%,#000 80%)}
+  .tv-swirl{position:absolute;left:50%;top:50%;width:180vmax;height:180vmax;margin:-90vmax 0 0 -90vmax;border-radius:50%;
+    background:conic-gradient(from 0deg,#12002a,#6a1ab8,#1a0640,#c04aff,#2a0a5a,#4a18a8,#e070ff,#12002a);
+    animation:tvSpin 3.2s linear infinite;filter:blur(6px);opacity:.9}
+  .tv-swirl.b{width:120vmax;height:120vmax;margin:-60vmax 0 0 -60vmax;animation:tvSpin 2.1s linear infinite reverse;opacity:.55;
+    background:conic-gradient(from 90deg,transparent,#8a2aff 10%,transparent 25%,#ff6af0 40%,transparent 55%,#5a3aff 70%,transparent 85%)}
+  .tv-stars{position:absolute;inset:-50%;background-image:radial-gradient(2px 2px at 20px 30px,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 120px 80px,#e8d0ff,transparent),radial-gradient(2px 2px at 60px 150px,#fff,transparent),
+    radial-gradient(1px 1px at 170px 190px,#c8b0ff,transparent);background-size:200px 200px;animation:tvZoom 1.6s linear infinite}
+  .tv-stars.b{background-size:130px 130px;animation-duration:1.1s;opacity:.7}
+  @keyframes tvSpin{to{transform:rotate(360deg)}}
+  @keyframes tvZoom{from{transform:scale(.6);opacity:0}30%{opacity:1}to{transform:scale(2.2);opacity:0}}
+  .tv-core{position:absolute;left:50%;top:50%;width:40vmin;height:40vmin;margin:-20vmin 0 0 -20vmin;border-radius:50%;
+    background:radial-gradient(circle,#fff 0%,#f0c8ff 12%,#b050ff 35%,rgba(90,20,160,.4) 60%,transparent 72%);
+    animation:tvPulse .9s ease-in-out infinite}
+  @keyframes tvPulse{0%,100%{transform:scale(.85)}50%{transform:scale(1.15)}}
   /* F5.9: tinta de calamar en la pantalla (manchas moradas y rojas que se desvanecen) */
   /* F7a: post-proceso sin shaders: viñeta + grano (la textura la pone gfx.js en --grain y la mueve con --gx/--gy) */
   #post{position:fixed;inset:0;pointer-events:none;
         background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%);}
-  #post::after{content:'';position:absolute;inset:0;opacity:.06;mix-blend-mode:overlay;
-        background-image:var(--grain);background-position:var(--gx,0) var(--gy,0);}
+  /* F5.19d (optimización): el grano ya no usa mix-blend-mode (obligaba a mezclar toda la pantalla con el canvas en cada
+     frame) ni mueve background-position (repintaba la capa): es más grande que la pantalla y se corre con transform
+     (lo hace el compositor, sin repintar) */
+  #post{overflow:hidden}
+  #post::after{content:'';position:absolute;inset:-128px;opacity:.035;will-change:transform;
+        background-image:var(--grain);transform:translate(var(--gx,0),var(--gy,0));}
   #ink{position:fixed;inset:0;pointer-events:none;opacity:0;
        background:radial-gradient(circle at 28% 34%,rgba(90,10,90,.92) 0 11%,rgba(90,10,90,0) 17%),
                   radial-gradient(circle at 64% 58%,rgba(130,8,30,.9) 0 13%,rgba(130,8,30,0) 20%),
@@ -84,14 +163,46 @@
                   radial-gradient(circle at 16% 72%,rgba(140,10,40,.8) 0 6%,rgba(140,10,40,0) 10%)}
 
   /* ---- game over ---- */
-  #gameover{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
-            gap:16px;background:rgba(12,2,2,.86);text-align:center;padding:24px}
+  #gameover{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:space-between;
+            gap:16px;text-align:center;padding:5vh 16px 4vh;overflow:auto;
+            background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 28%,rgba(0,0,0,0) 45%,rgba(8,0,0,.72) 100%)}
   #gameover.show{display:flex}
-  #gameover h2{margin:0;font-size:clamp(30px,6vw,54px);color:#d33a2c;letter-spacing:8px}
+  #gameover.card{z-index:41}   /* F5.28e: el resumen, encima de la pantalla negra de carga */
+  /* F5.28f (Diego: "cuando me muera que aparezca lentamente el game over como glitcheado y luego la tablita"): el título
+     entra en ~3 s a tirones (aparece y se corta, corrido y borroso) y queda con cortes de color cian y magenta que saltan */
+  #gameover h2{position:relative;margin:0;font-size:clamp(34px,7vw,72px);color:#d33a2c;letter-spacing:10px;text-shadow:0 0 24px rgba(200,20,10,.6);
+               animation:goGlitchIn 3.2s ease-in both}
+  #gameover h2::before,#gameover h2::after{content:attr(data-t);position:absolute;inset:0;pointer-events:none;text-shadow:none}
+  #gameover h2::before{color:#2af0ff;opacity:.5;animation:goSliceA 1.1s steps(1) infinite}
+  #gameover h2::after{color:#ff2ad8;opacity:.45;animation:goSliceB 1.5s steps(1) infinite}
+  @keyframes goGlitchIn{0%{opacity:0;filter:blur(10px);transform:scale(1.15) skewX(8deg)}8%{opacity:.35}10%{opacity:0}
+    18%{opacity:.5;transform:translateX(-8px) skewX(-6deg)}20%{opacity:.08}34%{opacity:.7;filter:blur(4px);transform:translateX(5px)}
+    37%{opacity:.2}55%{opacity:.85;filter:blur(2px);transform:translateX(-2px)}58%{opacity:.45}100%{opacity:1;filter:none;transform:none}}
+  @keyframes goSliceA{0%{clip-path:inset(10% 0 70% 0);transform:translate(-6px,0)}20%{clip-path:inset(60% 0 15% 0);transform:translate(5px,0)}
+    40%{clip-path:inset(35% 0 45% 0);transform:translate(-3px,0)}60%{clip-path:inset(0 0 100% 0)}80%{clip-path:inset(80% 0 5% 0);transform:translate(7px,0)}100%{clip-path:inset(0 0 100% 0)}}
+  @keyframes goSliceB{0%{clip-path:inset(50% 0 30% 0);transform:translate(6px,0)}25%{clip-path:inset(0 0 100% 0)}
+    50%{clip-path:inset(15% 0 65% 0);transform:translate(-7px,0)}75%{clip-path:inset(70% 0 10% 0);transform:translate(3px,0)}100%{clip-path:inset(0 0 100% 0)}}
+  .gosub{letter-spacing:6px;font-size:clamp(13px,1.8vw,18px);color:#e8dcc8;animation:goIn 1.4s 2.6s ease-out both}
+  .gosub b{color:#f2c14e;font-size:1.3em}
+  @keyframes goIn{from{opacity:0;transform:scale(1.25);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+  #goCard{width:min(640px,100%);background:linear-gradient(135deg,rgba(18,20,24,.92),rgba(30,10,10,.9));
+          border:1px solid rgba(255,255,255,.12);border-left:4px solid #d33a2c;clip-path:polygon(0 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%);
+          padding:14px 18px 16px;opacity:0;transform:translateY(40px);transition:opacity .6s,transform .6s;text-align:left}
+  #gameover.card #goCard{opacity:1;transform:none}
+  .gohead{display:flex;justify-content:space-between;align-items:baseline;letter-spacing:3px;font-size:18px;color:#fff}
+  .golv{color:#f2c14e;font-size:14px}
+  .gobarw{height:4px;background:rgba(255,255,255,.12);margin:8px 0 12px}
+  .gobarw i{display:block;height:100%;width:0;background:#f2c14e;transition:width 1.2s .8s}
+  .gobig{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+  .gobig div{background:rgba(255,255,255,.06);padding:8px 4px;text-align:center;border-top:2px solid rgba(211,58,44,.7)}
+  .gobig b{display:block;font-size:clamp(20px,3.4vw,30px);color:#fff}
+  .gobig span{font-size:11px;letter-spacing:2px;color:var(--dim)}
+  #gameover .menu-btns{display:none}   /* F5.19c: al terminar la cinemática va solo al menú (F5.20: no se saltea) */
   .stats{display:grid;grid-template-columns:auto auto;gap:6px 26px;font-size:16px;text-align:left}
   .stats span:nth-child(odd){color:var(--dim)}
   #record{color:var(--accent);letter-spacing:3px;min-height:1.4em}
-  #gameover .stats{font-size:15px}
+  #gameover .stats{font-size:14px;grid-template-columns:auto auto auto auto;gap:4px 18px}
+  @media (max-width:560px){#gameover .stats{grid-template-columns:auto auto}.gobig{grid-template-columns:repeat(2,1fr)}}
 
   /* ---- debug ---- */
   #debug{position:absolute;left:14px;bottom:calc(14px + var(--safe-b));
@@ -112,21 +223,55 @@
   #wammo.low{color:#ff6b5a}
   #wname.pap{color:#c78cff;text-shadow:0 0 6px rgba(160,90,255,.8),0 2px 6px rgba(0,0,0,.9)}
   /* granadas (F2.7): íconos junto a la munición + barra de mecha al cocinar */
-  #gren{height:15px;margin-bottom:3px}
-  #gren i{display:inline-block;width:9px;height:13px;margin-left:4px;border-radius:3px 3px 4px 4px;
-          background:#6f7d4c;border:1px solid #1c1f14;box-shadow:inset 0 3px 0 #9aa07e}
-  #gren i.off{opacity:.18}
-  #gren i.mk{background:#e86a4a;border-radius:5px 5px 2px 2px}   /* F5.11: langostinos */
+  /* F5.24: dibujos (SVG en ui.js): granada de fragmentación y langostino */
+  #gren{height:26px;margin-bottom:3px;display:flex;justify-content:flex-end;align-items:flex-end}
+  #gren i{display:inline-block;margin-left:3px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.9))}
+  #gren i.off{opacity:.2;filter:grayscale(1)}
+  #gren svg.gi{width:20px;height:24px;display:block}
+  #gren svg.lb{width:28px;height:24px}
+  #gren .body{fill:#5f6e3c;stroke:#1a1d10;stroke-width:1.2}
+  #gren .grid{fill:none;stroke:#2c3319;stroke-width:1}
+  #gren .cap{fill:#8a8f7a;stroke:#1a1d10;stroke-width:1}
+  #gren .spoon{fill:none;stroke:#b0b39e;stroke-width:1.6;stroke-linecap:round}
+  #gren .ring{fill:none;stroke:#d8c070;stroke-width:1.4}
+  #gren .lb .body{fill:#e2552f;stroke:#4a1206;stroke-width:1}
+  #gren .lb .ant{fill:none;stroke:#f08a5a;stroke-width:1.1;stroke-linecap:round}
+  #gren .lb .eye{fill:#111}
   #cook{position:absolute;left:50%;top:62%;transform:translateX(-50%);width:120px;height:5px;
         background:rgba(0,0,0,.55);border:1px solid rgba(242,237,228,.35);opacity:0;transition:opacity .1s}
   #cook b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff4a2a,#ffb347)}
   /* perks (F2): abajo a la izquierda · stamina: barra fina abajo al centro */
   #perks{position:absolute;left:16px;bottom:calc(14px + var(--safe-b));display:flex;gap:6px}
   /* F5.18b: chicles activos (cubos de color con ícono y tiempo o cargas) */
-  #gumhud{position:absolute;left:16px;bottom:calc(52px + var(--safe-b));display:flex;gap:6px}
-  #gumhud i{position:relative;width:34px;height:34px;border:2px solid;border-radius:6px;display:flex;align-items:center;
-            justify-content:center;font-style:normal;font-size:18px;box-shadow:0 2px 6px rgba(0,0,0,.5)}
-  #gumhud i b{position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);font-size:10px;white-space:nowrap;text-shadow:0 1px 2px #000}
+  /* F5.19: a la derecha, arriba de todo lo del arma: un círculo del color del chicle; el contorno (conic-gradient)
+     = cargas que quedan o tiempo que queda */
+  /* F5.19: mira telescópica: todo negro salvo el lente redondo, con retícula fina, puntos y un reflejo azulado */
+  #scope{display:none;position:absolute;inset:0;pointer-events:none;
+         background:radial-gradient(circle at 50% 50%,transparent 0,transparent 37vmin,rgba(0,0,0,.85) 37.5vmin,#000 39vmin)}
+  #scope .lens{position:absolute;left:50%;top:50%;width:75vmin;height:75vmin;margin:-37.5vmin 0 0 -37.5vmin;border-radius:50%;
+         box-shadow:inset 0 0 6vmin rgba(0,20,40,.75),inset 0 0 0 .4vmin #0a0a0a;
+         background:radial-gradient(circle at 38% 32%,rgba(140,190,255,.08),transparent 45%)}
+  #scope .lens i{position:absolute;background:#050505}
+  #scope .lens i.h{left:0;right:0;top:50%;height:2px;margin-top:-1px;
+         background:linear-gradient(90deg,#050505 0,#050505 30%,rgba(5,5,5,.9) 30%,rgba(5,5,5,.9) 46%,transparent 46%,transparent 54%,rgba(5,5,5,.9) 54%,rgba(5,5,5,.9) 70%,#050505 70%)}
+  #scope .lens i.v{top:0;bottom:0;left:50%;width:2px;margin-left:-1px;
+         background:linear-gradient(180deg,#050505 0,#050505 30%,rgba(5,5,5,.9) 30%,rgba(5,5,5,.9) 46%,transparent 46%,transparent 54%,rgba(5,5,5,.9) 54%,rgba(5,5,5,.9) 70%,#050505 70%)}
+  #scope .lens b{position:absolute;left:50%;top:50%;width:.7vmin;height:.7vmin;margin:-.35vmin 0 0 -.35vmin;border-radius:50%;background:#e8281e;
+         box-shadow:0 0 .6vmin #ff3a2a,
+           0 4vmin 0 -.1vmin #050505,0 8vmin 0 -.1vmin #050505,0 12vmin 0 -.1vmin #050505,
+           4vmin 0 0 -.1vmin #050505,8vmin 0 0 -.1vmin #050505,-4vmin 0 0 -.1vmin #050505,-8vmin 0 0 -.1vmin #050505}
+  #adsdot{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;opacity:0;
+          background:#f4f4f0;box-shadow:0 0 0 1px rgba(0,0,0,.6);transition:opacity .08s;pointer-events:none}
+  #adsdot.on{opacity:.9}
+  #adsdot.red{width:6px;height:6px;background:#ff2a1a;box-shadow:0 0 6px 2px rgba(255,40,20,.75)}
+  #gumhud{display:flex;justify-content:flex-end;gap:12px;margin-bottom:18px}
+  #gumhud:empty{display:none}
+  #gumhud i{position:relative;width:50px;height:50px;border-radius:50%;padding:4px;box-sizing:border-box;font-style:normal;
+            box-shadow:0 2px 8px rgba(0,0,0,.6)}
+  #gumhud i s{display:flex;width:100%;height:100%;border-radius:50%;align-items:center;justify-content:center;
+              font-size:20px;text-decoration:none;box-shadow:inset 0 -4px 8px rgba(0,0,0,.35),inset 0 3px 6px rgba(255,255,255,.35)}
+  #gumhud i b{position:absolute;bottom:-15px;left:50%;transform:translateX(-50%);font-size:10px;white-space:nowrap;
+              text-shadow:0 1px 2px #000}
   #perks i{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;
            font:700 11px/1 ui-monospace,Consolas,monospace;font-style:normal;color:#fff;
            text-shadow:0 1px 2px #000;box-shadow:0 2px 6px rgba(0,0,0,.7),inset 0 0 0 2px rgba(255,255,255,.25)}
@@ -159,6 +304,14 @@
   #effects{position:absolute;right:16px;top:calc(74px + var(--safe-t));text-align:right;
         font-size:12px;line-height:1.7;text-shadow:0 1px 4px #000}
   #effects b{font-weight:700}
+  /* F5.19c: íconos de los power-ups activos (X2, calavera, fire sale), estilo BO: cuadrito con el símbolo y los segundos */
+  #effects .fxi{display:inline-flex;flex-direction:column;align-items:center;margin-left:8px;vertical-align:top}
+  #effects .fxi i{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;
+    font:900 22px/1 'Arial Black',Impact,sans-serif;font-style:normal;color:#fff;background:var(--c);
+    border:2px solid rgba(255,255,255,.85);box-shadow:0 0 12px var(--c),inset 0 -6px 10px rgba(0,0,0,.35);text-shadow:0 2px 3px rgba(0,0,0,.6)}
+  #effects .fxi em{font:700 12px monospace;font-style:normal;margin-top:2px}
+  #effects .fxi.blink i{animation:fxBlink .35s steps(2) infinite}
+  @keyframes fxBlink{50%{opacity:.25}}
   #points .pop.neg{color:#ff6b5a}
   #prompt{position:absolute;left:50%;top:66%;transform:translateX(-50%);white-space:nowrap;
         font-size:15px;letter-spacing:1px;padding:6px 12px;border-radius:5px;background:rgba(0,0,0,.45);
@@ -169,13 +322,12 @@
   @keyframes deny{20%,60%{transform:translateX(calc(-50% - 6px))}40%,80%{transform:translateX(calc(-50% + 6px))}}
 
   /* ---- overlay de inicio (F5.18: el mundo en gris detrás, menú a la izquierda, siluetas de mobs) ---- */
-  #start{position:fixed;inset:0;display:flex;flex-direction:row;align-items:stretch;gap:0;
+  #start{position:fixed;inset:0;display:flex;flex-direction:row;align-items:stretch;gap:0;z-index:20;   /* F5.20: arriba de todo (el viaje lo tapaba) */
          background:linear-gradient(90deg,rgba(4,5,8,.94) 0,rgba(4,5,8,.72) 340px,rgba(4,5,8,.2) 70%,rgba(4,5,8,.45) 100%);
          text-align:left;overflow:hidden}
   #start[data-mode="pause"]{background:linear-gradient(90deg,rgba(4,5,8,.95) 0,rgba(4,5,8,.8) 340px,rgba(4,5,8,.6) 100%)}
   #start[data-mode="main"] .pause-only{display:none}
   #start[data-mode="pause"] .main-only{display:none}
-  #start[data-mode="pause"] #menuSil{display:none}
   .mside{position:relative;z-index:2;width:320px;min-width:260px;padding:48px 28px calc(24px + var(--safe-b));display:flex;
          flex-direction:column;gap:14px;overflow-y:auto}
   .mmain{position:relative;z-index:2;flex:1;padding:48px 28px 24px 8px;overflow-y:auto}
@@ -210,6 +362,21 @@
   #mProfMini{font-size:12px;letter-spacing:2px;color:var(--ink)}
   #mProfMini .bar,.pbar{height:5px;background:rgba(255,255,255,.12);border-radius:3px;margin-top:6px;overflow:hidden}
   #mProfMini .bar i,.pbar i{display:block;height:100%;background:linear-gradient(90deg,#ffb347,#ff6a2a)}
+  /* F5.28f: el nivel arriba del menú principal (insignia con el número, rango y barra de XP con los números) */
+  #lvTop{position:fixed;top:14px;right:18px;z-index:5;display:flex;align-items:center;gap:12px;padding:8px 14px 8px 8px;
+         background:linear-gradient(135deg,rgba(18,20,24,.92),rgba(30,14,10,.9));border:1px solid rgba(255,179,71,.35);
+         clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%);min-width:260px;pointer-events:none}
+  #lvTop .lvb{width:52px;height:52px;display:flex;align-items:center;justify-content:center;flex-direction:column;
+              background:linear-gradient(180deg,#ffb347,#c8621e);color:#1a0c04;font:900 22px/1 ui-monospace,monospace;
+              clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+  #lvTop .lvb small{font-size:8px;letter-spacing:2px}
+  #lvTop .lvt{flex:1;display:flex;flex-direction:column;gap:4px}
+  #lvTop .lvt b{letter-spacing:3px;font-size:13px;color:#fff}
+  #lvTop .lvt span{font-size:10px;letter-spacing:2px;color:var(--dim)}
+  #lvTop .lvbar{height:6px;background:rgba(255,255,255,.1);overflow:hidden}
+  #lvTop .lvbar i{display:block;height:100%;background:linear-gradient(90deg,#ffb347,#ff6a2a);box-shadow:0 0 8px rgba(255,140,40,.6)}
+  #start.prof #lvTop,#start[data-mode="pause"] #lvTop{display:none}
+  #start[data-mode="main"]:not(.prof) .mmain{padding-top:96px}   /* (los paneles, debajo de la barra de nivel) */
   /* mapas */
   .maps{display:grid;grid-template-columns:repeat(3,minmax(140px,1fr));gap:14px}
   .mapcard{cursor:pointer;border:2px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;background:#0c0e14;
@@ -221,9 +388,22 @@
   .mapcard.locked{filter:grayscale(1) brightness(.55)}
   .mapcard.locked span:before{content:'\1F512  '}
   .mapcard .art{height:120px;position:relative}
-  .art.beach{background:linear-gradient(180deg,#ff8a4a 0,#c8503a 38%,#3a5a6a 52%,#2a4452 62%,#d8b878 64%,#b89a5a 100%)}
-  .art.beach:after{content:'';position:absolute;left:18%;bottom:34%;width:34px;height:26px;background:#2a1a14;
-                   box-shadow:40px -6px 0 -4px #2a1a14,70px 2px 0 -6px #1a1210}
+  /* F5.28f (Diego: "el diseño del mapa actual se ve de mala calidad"): la playa es una tarjeta grande con el wallpaper
+     del juego (embebido), su nombre y etiquetas encima; los bloqueados, chicos al costado */
+  .maps.v2{grid-template-columns:2.2fr 1fr;align-items:stretch}
+  .maps.v2 .mapside{display:grid;grid-template-rows:1fr 1fr;gap:14px}
+  .mapcard.hero{position:relative;padding:0;min-height:300px}
+  .mapcard.hero .art{position:absolute;inset:0;height:auto}
+  .art.beach{background:linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(0,0,0,.85) 100%),var(--wall) center/cover no-repeat #1a1410;
+             transition:transform .5s}
+  .mapcard.hero:hover .art.beach{transform:scale(1.04)}
+  .mapcard.hero .minfo{position:absolute;left:0;right:0;bottom:0;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+  .mapcard.hero .minfo small{font-size:10px;letter-spacing:4px;color:var(--accent)}
+  .mapcard.hero .minfo b{padding:0;font-size:30px;letter-spacing:8px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.8)}
+  .mapcard.hero .minfo span{padding:0;font-size:12px;color:#e8dcc8}
+  .mtags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .mtags i{font-style:normal;font-size:10px;letter-spacing:2px;padding:3px 8px;background:rgba(0,0,0,.55);border:1px solid rgba(255,179,71,.45);color:#ffd9a0}
+  .maps.v2 .mapcard:not(.hero) .art{height:auto;flex:1;min-height:90px}
   .art.city{background:linear-gradient(180deg,#4a5a7a 0,#2a3040 60%,#1a1c22 100%)}
   .art.city:after{content:'';position:absolute;left:10%;right:10%;bottom:0;height:70%;
                   background:repeating-linear-gradient(90deg,#111 0 22px,transparent 22px 30px,#1a1a1a 30px 46px,transparent 46px 52px)}
@@ -261,6 +441,31 @@
   .tier{color:var(--accent);letter-spacing:4px;font-weight:700;margin:6px 0}
   .pstats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin-top:14px;font-size:12px}
   .pstats span:nth-child(odd){color:var(--dim)}
+  /* F5.27: el pase (una casilla por nivel) y F5.26: placas de boss */
+  .pass{margin-top:16px}
+  .ptrack{display:flex;gap:6px;overflow-x:auto;padding:8px 2px 10px;margin-top:6px;scroll-behavior:smooth}
+  .ptile{flex:0 0 74px;height:92px;border:1px solid rgba(255,255,255,.14);border-radius:6px;background:rgba(255,255,255,.04);
+    display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:5px 3px;font-size:10px;text-align:center}
+  .ptile>span{font:700 12px ui-monospace,monospace;color:var(--dim)}
+  .ptile em{font-style:normal;letter-spacing:1px;line-height:1.1}
+  .ptile.empty{opacity:.45}
+  .ptile.done{background:rgba(138,42,232,.18);border-color:rgba(190,120,255,.5)}
+  .ptile.done>span{color:#d8b0ff}
+  .ptile.cur{outline:2px solid var(--accent);background:rgba(255,200,80,.12)}
+  .ptile i{display:flex;align-items:center;justify-content:center;font-style:normal}
+  .ptile .pcamo{width:40px;height:26px;border-radius:3px;border:1px solid rgba(255,255,255,.3)}
+  .ptile .pink{width:30px;height:30px;border-radius:50%;background:radial-gradient(#4a1a6a,#12061c);color:#e0b0ff;font:800 13px ui-monospace,monospace;border:1px solid #8a4ac8}
+  .ptile .pxp{width:34px;height:24px;border-radius:4px;background:#1a3a1a;color:#8aff6a;font:800 12px ui-monospace,monospace;border:1px solid #4aaa3a}
+  .items{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px}
+  .item{border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:10px;background:rgba(255,255,255,.04);font-size:12px}
+  .item b{display:block;letter-spacing:2px;margin-bottom:4px}
+  .item.eq{outline:2px solid #b070ff;background:rgba(138,42,232,.16)}
+  .item .cost{color:var(--dim);margin:6px 0}
+  .item button{margin:4px 6px 0 0}
+  .trophies{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;margin-top:8px}
+  .trophies span i{display:inline-block;width:10px;height:10px;margin-right:5px;border-radius:2px}
+  .plates{margin-top:14px;font-size:12px}
+  .plate{display:flex;justify-content:space-between;margin-top:4px;color:var(--dim)}
   /* chicles (F5.18b) */
   .gum{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;border:3px solid;
        font-size:22px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.25),0 2px 6px rgba(0,0,0,.5)}
@@ -287,24 +492,131 @@
        font:600 12px ui-monospace,monospace;padding:6px 8px;letter-spacing:1px}
   .acct button{cursor:pointer}
   .acct button.dev{border-color:#ff4a4a;color:#ff8a7a}
-  /* siluetas de mobs (cubos negros con ojos rojos) */
-  #menuSil{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
-  .sil{position:absolute;bottom:-6px;transform-origin:50% 100%;animation:shamble 2.6s ease-in-out infinite;filter:blur(.6px)}
-  .sil i{position:absolute;background:#040406;box-shadow:0 0 18px rgba(0,0,0,.6)}
-  .sil i.eye{background:#ff2a1a;box-shadow:0 0 8px 2px rgba(255,40,20,.8)}
-  @keyframes shamble{0%,100%{transform:translateX(0) rotate(-2deg)}50%{transform:translateX(6px) rotate(2.5deg)}}
-  #menuSil:after{content:'';position:absolute;left:0;right:0;bottom:0;height:34%;
-                 background:linear-gradient(0deg,rgba(10,10,14,.8),rgba(10,10,14,0))}
+  /* F5.19 (Diego): GUMS, WEAPONS y la tienda ocupan todo el espacio a la derecha y todo más grande */
+  .panel.big{max-width:none;width:100%;box-sizing:border-box;min-height:calc(100vh - 96px);padding:22px 28px;font-size:15px}
+  .panel.big h3{font-size:18px}
+  .panel.big .wgrid{grid-template-columns:230px minmax(0,1fr)}
+  .panel.big .wlist{max-height:70vh}
+  .panel.big .wlist button{font-size:14px;padding:10px 12px}
+  .panel.big .wprev{height:280px}
+  .panel.big .atts{grid-template-columns:repeat(3,1fr)}
+  .panel.big .att b{font-size:14px} .panel.big .att span{font-size:12px}
+  .panel.big .gumgrid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));max-height:52vh;gap:12px}
+  .panel.big .gcard{padding:12px 14px;min-height:74px}
+  .panel.big .gcard .gum{width:50px;height:50px;font-size:24px}
+  .panel.big .gcard b{font-size:13px} .panel.big .gcard span{font-size:11px}
+  .panel.big .pslot{width:86px;font-size:11px} .panel.big .pslot .gum{width:74px;height:74px;font-size:34px}
+  /* F5.19: el fondo de cada carta de chicle por rareza y la cantidad arriba a la derecha, grande */
+  .gcard{position:relative}
+  .gcard.r-classic{background:rgba(150,150,150,.26);border-color:rgba(200,200,200,.35)}
+  .gcard.r-rare{background:rgba(60,190,80,.26);border-color:rgba(106,216,106,.5)}
+  .gcard.r-ultra{background:rgba(210,50,50,.3);border-color:rgba(255,110,90,.55)}
+  .gcard.r-epic{background:rgba(150,60,220,.32);border-color:rgba(208,96,255,.6)}
+  .gcard .cnt{position:absolute;top:6px;right:10px;font:800 20px/1 ui-monospace,monospace;color:#fff;text-shadow:0 2px 4px #000}
+  /* F5.19: tienda de KRAKEN INK con la tómbola de bingo */
+  .shopwrap{display:grid;grid-template-columns:minmax(260px,420px) minmax(0,1fr);gap:28px;align-items:start}
+  /* F5.28e: la pestaña GUMS con la bóveda 3D (ui.js GVAULT) y casilleros y cartas en cubos (bisel, borde pixelado,
+     brillo por rareza). El fondo, como la tienda */
+  #panelGums{background:radial-gradient(ellipse at 30% 10%,rgba(120,40,200,.32),transparent 60%),
+    radial-gradient(ellipse at 85% 90%,rgba(20,120,160,.25),transparent 60%),linear-gradient(160deg,#150a24,#0a0f1c);
+    border:1px solid rgba(200,140,255,.35);box-shadow:inset 0 0 60px rgba(120,40,200,.25)}
+  #panelGums h3{font-size:22px;letter-spacing:4px;color:#f2c14e;text-shadow:0 0 14px rgba(242,193,78,.6);margin:0}
+  .gvault{width:620px;max-width:100%;height:250px;margin:4px auto 10px;border-radius:4px;
+    background:radial-gradient(ellipse at 50% 80%,rgba(160,80,255,.3),transparent 70%);box-shadow:inset 0 0 0 2px rgba(242,193,78,.18)}
+  .gvault canvas{display:block;margin:0 auto}
+  #panelGums .preset{justify-content:center;gap:16px}
+  #panelGums .pslot .gum{border-radius:2px;border-width:0;
+    box-shadow:inset -5px -5px 0 rgba(0,0,0,.38),inset 5px 5px 0 rgba(255,255,255,.28),0 0 0 3px #120a1c,0 7px 0 #07040c}
+  #panelGums .pslot.sel .gum{outline:none;box-shadow:inset -5px -5px 0 rgba(0,0,0,.38),inset 5px 5px 0 rgba(255,255,255,.28),0 0 0 3px #f2c14e,
+    0 0 18px rgba(242,193,78,.7),0 7px 0 #07040c;animation:gsel 1s ease-in-out infinite}
+  @keyframes gsel{50%{transform:translateY(-4px)}}
+  #panelGums .pslot.empty .gum{background:repeating-linear-gradient(45deg,#1a1224 0 6px,#221830 6px 12px);color:#6a5a7a}
+  .gcard.vox{border-radius:2px;border:0;padding-left:16px;overflow:hidden;
+    background:linear-gradient(135deg,var(--rcA),rgba(10,6,16,.92) 70%);
+    box-shadow:0 0 0 2px #0a0610,inset 0 0 0 1px var(--rcB),0 5px 0 #07040c;transition:transform .12s,box-shadow .12s}
+  .gcard.vox::before{content:'';position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--rc);box-shadow:2px 0 0 rgba(0,0,0,.4)}
+  .gcard.vox:hover{transform:translateY(-3px);box-shadow:0 0 0 2px #0a0610,inset 0 0 0 1px var(--rc),0 0 16px var(--rcB),0 8px 0 #07040c}
+  .gcard.vox .gum{border-radius:2px;border-width:0;box-shadow:inset -4px -4px 0 rgba(0,0,0,.38),inset 4px 4px 0 rgba(255,255,255,.28),0 0 0 2px #0a0610}
+  .gcard.vox.r-classic{--rc:#8aa0c8;--rcA:rgba(138,160,200,.26);--rcB:rgba(138,160,200,.55)}
+  .gcard.vox.r-rare{--rc:#6ad86a;--rcA:rgba(106,216,106,.26);--rcB:rgba(106,216,106,.55)}
+  .gcard.vox.r-ultra{--rc:#ffb347;--rcA:rgba(255,179,71,.26);--rcB:rgba(255,179,71,.55)}
+  .gcard.vox.r-epic{--rc:#d060ff;--rcA:rgba(208,96,255,.28);--rcB:rgba(208,96,255,.6)}
+  .gcard.vox.lock{filter:grayscale(.85) brightness(.7)}
+  .gcard.vox.lock::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(-45deg,rgba(0,0,0,.35) 0 4px,transparent 4px 8px);pointer-events:none}
+  .gumhead{margin-bottom:6px}
+  /* F5.28d: el tambor 3D en cubos (ui.js GDRUM); el canvas va adentro */
+  .drum3d{position:relative;width:340px;height:380px;margin:0 auto;border-radius:14px;
+       background:radial-gradient(ellipse at 50% 70%,rgba(160,80,255,.28),transparent 65%)}
+  .drum3d canvas{display:block}
+  .shop.col{flex-direction:column;align-items:stretch}
+  .shop.col button{font-size:15px;padding:16px 18px;text-align:left}
+  #gumRoll .won{animation:pop .45s ease-out both}
+  /* F5.19c: aviso de accesorios nuevos (WEAPONS, cada arma y el accesorio) */
+  .nbadge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;margin-left:8px;
+    border-radius:9px;background:#e8322a;color:#fff;font:800 11px/1 ui-monospace,monospace;font-style:normal;vertical-align:middle;
+    box-shadow:0 0 8px rgba(232,50,42,.8);animation:nb 1.2s ease-in-out infinite}
+  @keyframes nb{50%{transform:scale(1.15)}}
+  .att.new{border-color:#e8322a!important;box-shadow:0 0 10px rgba(232,50,42,.6)}
+  .att.new b::after{content:' NEW';color:#ff6a5a;font-size:10px}
+  /* F5.20: tipos de arma en el menú WEAPONS */
+  .wcat{margin:12px 0 4px;font:800 11px/1 ui-monospace,monospace;letter-spacing:3px;color:#f2c14e;border-bottom:1px solid rgba(242,193,78,.35);padding-bottom:4px}
+  .wcat:first-child{margin-top:0}
+  /* F5.20: sets de chicles, pestañas y los que no tenés en gris */
+  .gsets,.gtabs{display:flex;gap:8px;margin:8px 0}
+  .gsets button,.gtabs button{padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#fff;letter-spacing:2px;cursor:pointer}
+  .gsets button.on,.gtabs button.on{background:#f2c14e;color:#1a1208;border-color:#f2c14e;font-weight:800}
+  .pslot.none{filter:grayscale(1) brightness(.6)}
+  .pslot.none small{color:#ff6a5a}
+  .lcard.none{filter:grayscale(1) brightness(.65)}
+  /* F5.19c: line up de chicles en la pausa */
+  .lineup{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:14px}
+  .lcard{position:relative;display:flex;gap:14px;align-items:flex-start;padding:16px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04)}
+  .lcard.r-classic{background:rgba(150,150,150,.22)} .lcard.r-rare{background:rgba(60,190,80,.22)}
+  .lcard.r-ultra{background:rgba(210,50,50,.26)} .lcard.r-epic{background:rgba(150,60,220,.28)}
+  .lcard.on{border-color:#f2c14e;box-shadow:0 0 18px rgba(242,193,78,.45)}
+  .lcard .gum{width:60px;height:60px;font-size:28px;flex:none}
+  .lcard b{display:block;font-size:15px;letter-spacing:1px} .lcard span{font-size:11px;color:var(--dim)}
+  .lcard p{margin:6px 0 0;font-size:13px;line-height:1.35} .lcard em{display:inline-block;margin-top:6px;font:700 11px monospace;color:#f2c14e}
+  .lcard .cnt{position:absolute;top:10px;right:12px;font:800 18px/1 ui-monospace,monospace;text-shadow:0 2px 4px #000}
+  /* F5.19c: tienda de KRAKEN INK: fondo de feria con luces, tómbola dorada, carteles de precio y ofertas en tarjetas */
+  #panelShop{background:radial-gradient(ellipse at 30% 20%,rgba(120,40,200,.35),transparent 60%),
+    radial-gradient(ellipse at 80% 80%,rgba(20,120,160,.3),transparent 60%),linear-gradient(160deg,#150a24,#0a0f1c);
+    border:1px solid rgba(200,140,255,.35);box-shadow:inset 0 0 60px rgba(120,40,200,.25)}
+  #panelShop h3{font-size:22px;letter-spacing:4px;color:#f2c14e;text-shadow:0 0 14px rgba(242,193,78,.6)}
+  #panelShop .shop.col button{background:linear-gradient(90deg,rgba(120,40,200,.55),rgba(40,20,70,.7));border:1px solid rgba(220,160,255,.5);
+    border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.4);transition:transform .12s,box-shadow .12s}
+  #panelShop .shop.col button:hover{transform:translateX(4px);box-shadow:0 0 18px rgba(200,120,255,.6)}
+  #panelShop .shophead,#panelGums .shophead{display:flex;align-items:center;gap:16px;margin-bottom:14px;padding:10px 16px;border-radius:12px;
+    background:linear-gradient(90deg,rgba(242,193,78,.18),rgba(120,40,200,.25));border:1px solid rgba(242,193,78,.4)}
+  #panelShop .shophead h3,#panelGums .shophead h3{margin:0}
+  #panelShop .kraken,#panelGums .kraken{font-size:46px;filter:drop-shadow(0 0 10px rgba(200,100,255,.8));animation:kbob 2.4s ease-in-out infinite}
+  @keyframes kbob{50%{transform:translateY(-6px) rotate(-6deg)}}
+  #panelShop .inkbag,#panelGums .inkbag{margin-left:auto;text-align:center;padding:6px 16px;border-radius:10px;background:rgba(0,0,0,.35);border:1px solid rgba(200,140,255,.5)}
+  #panelShop .inkbag b,#panelGums .inkbag b{display:block;font:900 30px/1 ui-monospace,monospace;color:#d8a0ff;text-shadow:0 0 10px rgba(200,120,255,.8)}
+  #panelShop .inkbag span,#panelGums .inkbag span{font-size:10px;letter-spacing:2px;color:var(--dim)}
+  #panelShop .tprice{display:inline-block;min-width:52px;padding:2px 8px;margin-right:8px;border-radius:6px;background:#f2c14e;color:#1a0a24;font-weight:900}
+  #panelShop .odds{display:flex;height:6px;margin:8px 0 4px;border-radius:3px;overflow:hidden;background:rgba(0,0,0,.4)}
+  @keyframes pop{0%{transform:scale(.2) translateY(-40px);opacity:0}100%{transform:none;opacity:1}}
   @media (max-width:760px){ #start{flex-direction:column;overflow-y:auto} .mside{width:auto} .mmain{padding:0 16px 24px}
-    .maps{grid-template-columns:1fr} .wgrid{grid-template-columns:1fr} }
+    .maps,.maps.v2{grid-template-columns:1fr} .wgrid{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
 
 <div id="lowhp"></div>
+<!-- F5.28e: pantalla de carga (al empezar, con el wallpaper; al morir, negra) con LOADING... abajo a la derecha -->
+<div id="loadscr"><div class="lsbar"><i></i></div><div class="lstext">LOADING<span>...</span></div></div>
+<div id="mapview"><div class="mhead">— FIELD MAP — <small>[5] close</small></div><canvas id="mapCanvas"></canvas><div id="mapItems"></div></div>
+<!-- F5.19c: barra de vida del modo dev (tecla X): vida actual / máxima y lo que bajó el último golpe -->
+<div id="devhp" style="display:none"><div class="devhp-bar"><i id="devhpFill"></i></div><span id="devhpText">0 / 0</span><b id="devhpHit"></b></div>
 <div id="post"></div>
 <div id="ink"></div>
 <div id="fade"></div>
+<!-- F5.19c: cinemática del viaje (5 s): escalera oscura al búnker o portal morado de galaxia -->
+<div id="travel" style="display:none">
+  <div class="tv-stairs"><div class="tv-steps"></div><div class="tv-lamp"></div></div>
+  <div class="tv-portal"><div class="tv-swirl"></div><div class="tv-swirl b"></div><div class="tv-stars"></div><div class="tv-stars b"></div><div class="tv-core"></div></div>
+</div>
 <div id="dmg"></div>
 <div id="hud">
   <div id="points">0</div>
@@ -321,10 +633,13 @@
   <div id="prompt"></div>
   <div id="cook"><b id="cookbar"></b></div>
   <div id="perks"></div>
-  <div id="gumhud"></div>
   <div id="stam"><b id="stambar"></b></div>
   <div id="craft"><b id="craftbar"></b></div>
+  <!-- F5.19: mira telescópica del francotirador y punto de mira al apuntar -->
+  <div id="scope"><div class="lens"><i class="h"></i><i class="v"></i><b></b></div></div>
+  <div id="adsdot"></div>
   <div id="ammo">
+    <div id="gumhud"></div>
     <div id="questhud"></div>
     <div id="shieldhud"></div>
     <div id="gren"></div>
@@ -333,25 +648,34 @@
   </div>
 </div>
 
+<!-- F5.19b: cinemática de muerte. El título entra enseguida, el resumen (estilo BO3) a los cardAt s y los botones al final -->
 <div id="gameover">
-  <h2>YOU DIED</h2>
-  <div class="stats">
-    <span>Round reached</span><span id="goRound">0</span>
-    <span>Time</span><span id="goTime">0:00</span>
-    <span>Kills</span><span id="goKills">0</span>
-    <span>Headshots</span><span id="goHeads">0</span>
-    <span>Knife kills</span><span id="goKnife">0</span>
-    <span>Favorite weapon</span><span id="goFav">—</span>
-    <span>Accuracy</span><span id="goAcc">0%</span>
-    <span>Points earned</span><span id="goPts">0</span>
-    <span>Damage taken</span><span id="goDmg">0</span>
-    <span>Doors opened</span><span id="goDoors">0</span>
-    <span>Mystery box</span><span id="goBox">0</span>
-    <span>Best</span><span id="goBest">0</span>
-    <span>XP earned</span><span id="goXP">0</span>
-    <span>Level</span><span id="goLvl">1</span>
+  <div class="gotop">
+    <h2 data-t="GAME OVER">GAME OVER</h2>
+    <div class="gosub">YOU SURVIVED <b id="goRound2">0</b> ROUNDS</div>
   </div>
-  <div id="record"></div>
+  <div id="goCard">
+    <div class="gohead"><span id="goName">PLAYER</span><span class="golv">LV <b id="goLvl">1</b></span></div>
+    <div class="gobarw"><i id="goBar"></i></div>
+    <div class="gobig">
+      <div><b id="goRound">0</b><span>ROUND</span></div>
+      <div><b id="goKills">0</b><span>KILLS</span></div>
+      <div><b id="goHeads">0</b><span>HEADSHOTS</span></div>
+      <div><b id="goPts">0</b><span>POINTS</span></div>
+    </div>
+    <div class="stats">
+      <span>Time</span><span id="goTime">0:00</span>
+      <span>Knife kills</span><span id="goKnife">0</span>
+      <span>Favorite weapon</span><span id="goFav">—</span>
+      <span>Accuracy</span><span id="goAcc">0%</span>
+      <span>Damage taken</span><span id="goDmg">0</span>
+      <span>Doors opened</span><span id="goDoors">0</span>
+      <span>Mystery box</span><span id="goBox">0</span>
+      <span>Best</span><span id="goBest">0</span>
+      <span>XP earned</span><span id="goXP">0</span>
+    </div>
+    <div id="record"></div>
+  </div>
   <div class="menu-btns row">
     <button id="restart" class="primary">RESTART</button>
     <button id="btnGoMenu">MENU</button>
@@ -360,10 +684,10 @@
 
 <!-- menú de inicio y pausa: mismo overlay, data-mode="main" | "pause" -->
 <div id="start" data-mode="main">
-  <div id="menuSil"></div>
+  <!-- F5.28f (Diego): tu nivel siempre arriba en el menú principal, con la barra del nivel actual (se va al abrir PROFILE) -->
+  <div id="lvTop" class="main-only"></div>
   <div class="mside">
-    <h1>BEACH HOUSE<br>ZOMBIES</h1>
-    <p class="sub">MARENA · 34B · SOUTH COAST</p>
+    <h1>ZOMBIES</h1>
     <h2 class="pause-only">PAUSED</h2>
     <div id="mProfMini" class="main-only"></div>
     <div class="menu-btns">
@@ -371,7 +695,10 @@
       <button id="btnMaps" class="main-only">MAPS</button>
       <button id="btnWeapons" class="main-only">WEAPONS</button>
       <button id="btnGums" class="main-only">GUMS</button>
+      <button id="btnShop" class="main-only">KRAKEN INK</button>
+      <button id="btnItems" class="main-only">ITEMS</button>
       <button id="btnProfile" class="main-only">PROFILE</button>
+      <button id="btnLineup" class="pause-only">GOBBLEGUMS</button>
       <button id="btnSettings">SETTINGS</button>
       <button id="btnControls">CONTROLS</button>
       <button id="btnQuit" class="pause-only">QUIT TO MENU</button>
@@ -382,15 +709,24 @@
   <div class="mmain">
   <div id="panelMaps" class="panel wide">
     <h3>SELECT MAP</h3>
-    <div class="maps">
-      <div class="mapcard locked" id="mapCity"><div class="art city"></div><b>CITY</b><span>LOCKED</span></div>
-      <div class="mapcard sel" id="mapBeach"><div class="art beach"></div><b>BEACH</b><span>Beach House · Marena</span></div>
-      <div class="mapcard locked" id="mapQ"><div class="art qq"></div><b>???</b><span>LOCKED</span></div>
+    <div class="maps v2">
+      <div class="mapcard hero sel" id="mapBeach"><div class="art beach"></div>
+        <div class="minfo"><small>CURRENT MAP</small><b>BEACH HOUSE</b><span>Marena · an island, an abandoned beach house and what hides under it</span>
+          <div class="mtags"><i>HOUSE</i><i>BEACH &amp; PIER</i><i>JUNGLE</i><i>TEMPLE</i><i>CATACOMBS</i><i>BUNKER</i><i>4 BOSSES</i></div></div></div>
+      <div class="mapside">
+        <div class="mapcard locked" id="mapCity"><div class="art city"></div><b>CITY</b><span>LOCKED</span></div>
+        <div class="mapcard locked" id="mapQ"><div class="art qq"></div><b>???</b><span>LOCKED</span></div>
+      </div>
     </div>
   </div>
-  <div id="panelWeapons" class="panel wide"></div>
+  <div id="panelWeapons" class="panel big"></div>
   <div id="panelProfile" class="panel wide"></div>
-  <div id="panelGums" class="panel wide"></div>
+  <div id="panelGums" class="panel big"></div>
+  <div id="panelShop" class="panel big"></div>
+  <!-- F5.28: la tienda de ítems (trofeos de boss -> ítems) y el equipado -->
+  <div id="panelItems" class="panel big"></div>
+  <!-- F5.19c: en la pausa, tu line up de chicles con lo que hace cada uno -->
+  <div id="panelLineup" class="panel big"></div>
   <div id="panelControls" class="panel">
     <div class="ctl">
       <span><kbd>WASD</kbd></span><span>move</span>
@@ -405,6 +741,8 @@
       <span><kbd>G</kbd></span><span>grenade (hold = cook, 3 s)</span>
       <span><kbd>1</kbd> <kbd>2</kbd> / <kbd>3</kbd></span><span>weapons / shield (click = bash)</span>
       <span><kbd>T</kbd></span><span>use gum (charges)</span>
+      <span><kbd>4</kbd></span><span>dancing lobster</span>
+      <span><kbd>5</kbd></span><span>map</span>
       <span><kbd>F</kbd></span><span>open door · buy wall weapon · mystery box · use</span>
       <span><kbd>Esc</kbd></span><span>pause</span>
       <span class="dim"><kbd>O</kbd> <kbd>N</kbd> <kbd>H</kbd></span><span class="dim">debug: unlock all · noclip · overlay</span>
@@ -418,6 +756,7 @@
     <label>Damage numbers <input id="dmgNums" type="checkbox" checked></label>
     <label>Quality <select id="quality"><option value="bajo">Low</option><option value="medio" selected>Medium</option><option value="alto">High (shadows)</option></select></label>
     <label>Post-processing <input id="postFx" type="checkbox" checked></label>
+    <label>Resolution <select id="scaleSel"><option value="1" selected>100%</option><option value="0.85">85%</option><option value="0.7">70% (more FPS)</option><option value="0.55">55% (much more FPS)</option></select></label>
     <label>Fog <select id="fogSel"><option value="25">Very thick (25 m)</option><option value="40" selected>Normal (40 m)</option><option value="60">Light (60 m)</option><option value="90">Almost none (90 m)</option></select></label>
     <p class="dim">⚠ Less fog = draws farther = lower FPS.</p>
     <p class="dim">Settings last for this session.</p>
@@ -425,6 +764,8 @@
   </div>
 </div>
 
+<!-- F5.19: los sonidos (base64, los decodifica audio.js loadSamples). No es código: lo arma build.js desde sonidos/ -->
+<script type="application/json" id="bhzSounds">@@SOUNDS@@</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 @@BUNDLE@@</script>

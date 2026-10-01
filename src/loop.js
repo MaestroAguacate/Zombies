@@ -45,17 +45,22 @@ function init() {
   buildBox();
   buildRelics();
   buildPerks();
+  buildLanterns();                       // F5.20: faroles de la casa (sin energía)
   buildGumMachines();                    // F5.18b: chicleras
+  buildBarriers();                       // F5.19b: ventanas y trampillas con tablas
   buildShield();
   buildQuest();                         // F5.5
   buildGarden();                        // F5.6: plantas carnívoras del techo
   buildTraps();                         // F5.9: tiburón y cortadora
   buildBunker();                        // F5.11: búnker, escotilla, estatuas y caballito de mar
+  buildCatacombs();                     // F5.28e: catacumbas mayas y la cueva (el dibujo, las palancas y las plantas)
+  buildTrophies();                      // F5.26: trofeos de boss y el Altar de Huesos (después del ácido: usa su slime)
   setSquidHead(1, true);                // F5.13: la cabeza del calamar, enterrada
   buildClams();                         // F5.14: almejas y fumigador
   resetClams();
   buildNavDebug();
   buildGfx();                           // F7a: sol, luna, grano
+  buildVoxFire();                       // F5.28f: todos los fuegos en cubos (ya se anotaron al armar el mapa)
   applyQuality(CONFIG.GFX.quality);     // F7a: Medio de entrada (sombras solo en Alto)
 
   resetGame();
@@ -82,7 +87,7 @@ function updateQuality(dt) {
   const lvl = ++THEMEFX.quality;
   if (lvl === 1) { THEMEFX.dust.visible = false; QUALITY.msg = 'polvo off'; }
   if (lvl === 2) { THEMEFX.shafts.visible = false; QUALITY.msg = 'polvo, haces off'; }
-  if (lvl === 3) { renderer.setPixelRatio(1); renderer.setSize(window.innerWidth, window.innerHeight); QUALITY.msg = 'polvo, haces off, pixel ratio 1'; }
+  if (lvl === 3) { renderer.setPixelRatio(renderScale(1)); renderer.setSize(window.innerWidth, window.innerHeight); QUALITY.msg = 'polvo, haces off, pixel ratio 1'; }
   console.warn('[calidad] ' + QUALITY.fps.toFixed(0) + ' fps < ' + T.fpsFloor + ' -> ' + QUALITY.msg);
   QUALITY.grace = 0;                                     // mide de nuevo desde cero
 }
@@ -103,7 +108,14 @@ function menuCamera() {
 }
 function bindInput() {
   const el = renderer.domElement;
-  const lock = () => { initAudio(); UI.menuMsg.textContent = ''; el.requestPointerLock(); };
+  // F5.19: una partida nueva no arranca sin los 5 chicles del preset (se abre la pestaña GUMS)
+  const gumBlock = () => {
+    if (MENU.started || presetReady()) return false;
+    UI.menuMsg.textContent = 'Pick ' + CONFIG.GUMS.presetSize + ' gums in GUMS before playing.';
+    if (UI.panelGums && !UI.panelGums.classList.contains('open')) menuPanel('gums');
+    return true;
+  };
+  const lock = () => { initAudio(); UI.menuMsg.textContent = ''; if (gumBlock()) return; el.requestPointerLock(); };
   UI.btnPlay.addEventListener('click', lock);                      // JUGAR / CONTINUAR
   UI.btnControls.addEventListener('click', () => menuPanel('controls'));
   UI.btnSettings.addEventListener('click', () => menuPanel('settings'));
@@ -111,10 +123,14 @@ function bindInput() {
   UI.btnWeapons.addEventListener('click', () => menuPanel('weapons'));
   UI.btnProfile.addEventListener('click', () => menuPanel('profile'));
   UI.btnGums.addEventListener('click', () => menuPanel('gums'));        // F5.18b
+  UI.btnShop.addEventListener('click', () => menuPanel('shop'));        // F5.19: tienda de KRAKEN INK
+  UI.btnItems.addEventListener('click', () => menuPanel('items'));      // F5.28: tienda de ítems
+  UI.btnLineup.addEventListener('click', () => menuPanel('lineup'));    // F5.19c: chicles en la pausa
   UI.mapCity.addEventListener('click', () => pickMap('city'));
   UI.mapBeach.addEventListener('click', () => pickMap('beach'));
   UI.mapQ.addEventListener('click', () => pickMap('q'));
-  UI.btnQuit.addEventListener('click', () => { saveProfile(); resetGame(); MENU.started = false; showMenu('main'); });   // F5.18b: la XP de la ronda en curso no se pierde
+  UI.btnQuit.addEventListener('click', quitToMenu);   // F5.19c: también con la cinemática de muerte (F5.18b: guarda la XP)
+  // (F5.20, Diego: la cinemática de muerte ya no se saltea con un clic; al terminar va sola al menú)
   UI.btnGoMenu.addEventListener('click', () => { resetGame(); MENU.started = false; showMenu('main'); });
   UI.sens.addEventListener('input', () => setSensitivity(UI.sens.value / 100));
   UI.vol.addEventListener('input', () => { initAudio(); setVolume(UI.vol.value / 100); UI.volVal.textContent = UI.vol.value + '%'; });
@@ -125,14 +141,18 @@ function bindInput() {
   if (pp) pp.addEventListener('change', () => setPost(pp.checked));
   const fs = document.getElementById('fogSel');                 // F5.16: niebla configurable (menos niebla, menos FPS)
   if (fs) fs.addEventListener('change', () => setFog(+fs.value));
+  const sc = document.getElementById('scaleSel');               // F5.19d: escala de resolución (más FPS)
+  if (sc) sc.addEventListener('change', () => setRenderScale(+sc.value));
   // F6: volúmenes separados
   const mv = document.getElementById('musicVol'), sv = document.getElementById('sfxVol');
   if (mv) mv.addEventListener('input', () => { initAudio(); setMusicVolume(mv.value / 100); document.getElementById('musicVal').textContent = mv.value + '%'; });
   if (sv) sv.addEventListener('input', () => { initAudio(); setSfxVolume(sv.value / 100); document.getElementById('sfxVal').textContent = sv.value + '%'; });
   el.addEventListener('mousedown', e => {
-    if (document.pointerLockElement !== el) { initAudio(); el.requestPointerLock(); return; }
-    if (e.button === 0) { if (weaponsState.phase === 'shield') shieldBash(); else fireWeapon(); }   // F3a: escudo = empujón
-    if (e.button === 2) ADS.on = true;                 // F3b: clic derecho = apuntar (el cuchillo queda en V)
+    if (document.pointerLockElement !== el) { initAudio(); if (!gumBlock()) el.requestPointerLock(); return; }
+    // F5.24: con la GRAVE WHISPER (dos pistolas) cada clic dispara una mano: izquierdo la izquierda, derecho la derecha
+    const dual = !!(curDef() && curDef().dual) && weaponsState.phase !== 'shield';
+    if (e.button === 0) { if (weaponsState.phase === 'shield') shieldBash(); else fireWeapon(dual ? 'L' : undefined); }   // F3a: escudo = empujón
+    if (e.button === 2) { if (dual) fireWeapon('R'); else ADS.on = true; }   // F3b: clic derecho = apuntar (el cuchillo queda en V)
     if (e.button === 1) { e.preventDefault(); meleeAttack(); }   // clic de la ruedita = cuchillo
   });
   // girar la ruedita también acuchilla (el cooldown del cuchillo evita que una vuelta larga pegue de más).
@@ -151,8 +171,12 @@ function bindInput() {
   el.addEventListener('contextmenu', e => e.preventDefault());   // clic derecho = cuchillo, no menú
   document.addEventListener('pointerlockchange', () => {
     const locked = document.pointerLockElement === el;
-    state.running = locked && !state.gameOver;
-    if (locked) { MENU.started = true; showMenu(null); }
+    state.running = locked && !state.gameOver && !LOADSCR.on;
+    if (locked) {
+      // F5.28e: partida nueva: 1 s con el wallpaper (y compila los shaders); después arranca
+      if (!MENU.started) { state.running = false; startLoading(CONFIG.LOADING.start, true, () => { state.running = document.pointerLockElement === el && !state.gameOver; }); }
+      MENU.started = true; showMenu(null);
+    }
     else {
       for (const k in keys) keys[k] = false;
       ADS.on = false;
@@ -169,6 +193,7 @@ function bindInput() {
     initAudio();
     resetGame();
     MENU.started = false;
+    if (!presetReady()) { showMenu('main'); gumBlock(); return; }   // F5.19: se gastó un chicle del preset
     el.requestPointerLock();                       // si lo rechaza, pointerlockerror muestra el menú
   });
   document.addEventListener('mousemove', e => {
@@ -184,7 +209,7 @@ function bindInput() {
   document.addEventListener('keydown', e => {
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
-    if (!state.running) return;
+    if (!state.running || BUNK.travel) return;                        // F5.19c: en el viaje al búnker / portal, nada
     if (e.code === 'KeyR') reloadWeapon();
     if (e.code === 'KeyQ') switchWeapon(1);
     if (e.code === 'Digit1') selectWeapon(0);          // F3a: 1 y 2 = armas, 3 = escudo
@@ -194,6 +219,7 @@ function bindInput() {
     if (e.code === 'KeyG' && !e.repeat) startCook();   // soltar G la tira (updateGrenades mira keys.KeyG)
     if (e.code === 'Digit4' && !e.repeat) throwMonkey();   // F5.11: langostino bailarín
     if (e.code === 'KeyT' && !e.repeat) useHeldGum();  // F5.18b: chicle con cargas
+    if (e.code === CONFIG.MAPVIEW.key && !e.repeat) toggleMap();   // F5.24: el mapa
     if (e.code === 'KeyF' && !e.repeat) interact();   // sin repeat: mantener F no compra dos veces
     debugKey(e.code, e.repeat);                        // P, N, [, ], O, B, H: solo con CONFIG.DEBUG_MODE (debug.js)
   });
@@ -203,7 +229,16 @@ function bindInput() {
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
-
+  updateLoading(dt);                     // F5.28e: la pantalla de carga (el juego no corre mientras está)
+  gameUpdate(dt);
+  if (!state.running && MENU.mode === 'main') { menuCamera(); updateWeaponPreview(dt); updateGumDrum(dt); }   // F5.18: el mundo detrás del menú (F5.28d: el tambor)
+  weaponScene.visible = state.running || MENU.mode === 'pause';
+  if (renderer.info) renderer.info.reset();
+  renderFrame(dt);                       // F5.28e (gfx.js): mundo, corrección de color y el arma encima
+}
+// F5.24: toda la lógica de un frame (sin dibujar). La usa animate() y también tools/sim/soak.js, que juega partidas
+// enteras en Node (el mismo orden que en el navegador)
+function gameUpdate(dt) {
   if (state.running) {
     updatePlayer(dt);
     updateFootsteps(dt);                // F6: pasos por superficie
@@ -217,6 +252,7 @@ function animate() {
     updateGiant(dt);                    // F5.11: calamar gigante y los calamares que escupe
     updateBoss(dt);                     // F5: niebla, sombrero volando, barra, visión borrosa
     updateWeapon(dt);
+    updateVoxFire(clock.elapsedTime);   // F5.28f
     updateGrenades(dt);
     updateMonkeys(dt);                  // F5.11: langostino bailarín
     updateBlood(dt);
@@ -227,12 +263,15 @@ function animate() {
     updatePerks(dt);
     updateDown(dt);                     // F5.18: tirado con Quick Revive
     updateGums(dt);                     // F5.18b: chicles
+    updateBarriers(dt);                 // F5.19b: tablas y reparación
     updateShield(dt);
     updateQuest(dt);                    // F5.5: después de updateShield (comparten la barra de armado)
     updateClams(dt);                    // F5.14: almejas (también usa la barra)
     updateGarden(dt);                   // F5.6: plantas carnívoras
     updateTraps(dt);                    // F5.9
     updateBunker(dt);                   // F5.11: estatuas, escotilla y fundido
+    updateCatacombs(dt);                // F5.28e: llamas, gotas, plantas y palancas de las catacumbas
+    updateTrophies(dt);                 // F5.26: trofeos, altar, bombas de slime y la cría domesticada
     updateWeaponFx(dt);
     updateInteract();
     // fuego automático sostenido
@@ -242,28 +281,23 @@ function animate() {
     updateRockets(dt);                  // F5.11: cohetes de la bazooka
     STATS.time += dt;
   }
+  else if (DEATH.on) updateDeathCam(dt);   // F5.19b: cinemática de muerte
   updateZombieAudio(dt);
   updateFlameAudio();
   updateAmbience();
   updateMusic();                        // F6: marimba / tema del boss
+  updateGameAudio();                    // F5.19c: pausa y muerte = silencio (menos la música de muerte)
 
   updateHUD(dt);
   updateFeelUI(dt);
   updatePowerupUI(dt);
   updatePromptUI(dt);
   updateTheme(dt);
+  updateVoxTrees();                     // F5.25 A: árboles de cubos: qué celdas se ven y con qué detalle
   updateQuality(dt);
   updateGfx(dt);                        // F7a: sombras que siguen al jugador, post, sol y luna
   if (dmgT > 0) { dmgT -= dt; UI.dmg.style.opacity = Math.max(0, dmgT / CONFIG.FEEL.hurtFlash).toFixed(2); }
   updateDebug(dt);
-
-  if (!state.running && MENU.mode === 'main') { menuCamera(); updateWeaponPreview(dt); }   // F5.18: el mundo detrás del menú
-  weaponScene.visible = state.running || MENU.mode === 'pause';
-  if (renderer.info) renderer.info.reset();
-  renderer.clear();
-  renderer.render(scene, camera);
-  renderer.clearDepth();                 // el arma nunca la corta una pared
-  renderer.render(weaponScene, weaponCamera);
 }
 
 init();

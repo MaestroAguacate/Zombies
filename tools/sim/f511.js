@@ -29,9 +29,9 @@ const nearNav = (x, z) => { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; d
 fresh(true); setPlayer(-22, 29);
 // F5.15: al oeste del jardín es espesura; del rancho al mar va el sendero de la Playa del Calamar (R19)
 check(!G.roomAt(-30, 8) && G.inThicket(-30, 8), 'F5.15: entre el jardín oeste y el rancho es espesura (no se camina)');
-check(G.roomAt(-44, 8).id === 'R19' && G.roomAt(-30, -15).id === 'R10', 'F5.15: sendero rancho → Playa del Calamar (R19) y la playa oeste es R10');
-check(nearNav(-44, 8) && nearNav(-44, -10), 'se llega caminando desde el rancho por el sendero');
-check(G.roomAt(0, 48).id === 'R15' && nearNav(-20, 48) && nearNav(30, 48), 'jardín norte: de un jardín al otro por detrás del sótano');
+check(G.roomAt(-59, 8).id === 'R19' && G.roomAt(-30, -15).id === 'R10', 'F5.15: sendero rancho → Playa del Calamar (R19) y la playa oeste es R10 (F5.19: corrido)');
+check(nearNav(-59, 8) && nearNav(-59, -10), 'se llega caminando desde el rancho por el sendero');
+check(!G.roomAt(0, 48) && G.inThicket(0, 48), 'F5.19: sin jardín norte (detrás del sótano es espesura)');
 fresh(false); Object.keys(state.doors).filter(id => id !== 'D20' && !/^H\d$/.test(id)).forEach(G.openDoor); setPlayer(0, -10);
 { const d = G.flowAt(-60, 60);   // F5.15: el Claro del Búnker está detrás de las lianas H2/H3
   check(d < 0, 'con el lazo y las lianas cerradas, desde la playa no se llega al Claro del Búnker', `(${d})`); }
@@ -78,17 +78,18 @@ clearZ(); feed(s2, B.eatCrawlers, B.eatDogs);
 check(BUNK.open && NAV.hatch && BUNK.seahorse.visible, 'con las 2: se abre la escotilla, el enlace y el caballito de mar');
 player.pos.set(B.hatch.x, P.height, B.hatch.z + FC * 0.8); G.updateInteract();
 check(G.promptFor(G.interactState).text === '[F] Go down to the bunker' && G.interact(), 'F: bajar');
-for (let i = 0; i < 60 * B.fade * 2 + 5; i++) { G.tick(dt); G.updateBunker(dt); }
+for (let i = 0; i < 60 * B.travel + 5; i++) { G.tick(dt); G.updateBunker(dt); }   // F5.19c: el viaje dura travel s
 check(G.inBunker() && Math.abs(player.pos.y - (B.y + P.height)) < 1e-6 && state.health === 100, 'fundido y aparecés abajo (sin daño)', `(y ${player.pos.y.toFixed(2)})`);
 // zombie de arriba baja por la escotilla, escondido, y llega con los ojos rojos
 clearZ(); G.updateFlowField(true);
 const dz = zombieAt(HO[0] + 4, HO[1] + FC * 3);
 let hidden = false;
-for (let i = 0; i < 60 * 25 && !(dz.redEyes && G.groundY(dz.px, dz.pz) < -1 && dz.state === 'walk'); i++) {
+// (F5.28e: la escotilla está en la cueva, a -6: "abajo" es el piso del búnker, B.y)
+for (let i = 0; i < 60 * 25 && !(dz.redEyes && G.groundY(dz.px, dz.pz) < B.y + 1 && dz.state === 'walk'); i++) {
   G.tick(dt); G.updateFlowField(false); G.updateZombies(dt); state.health = 100;
   if (!dz.root.visible && dz.alive) hidden = true;
 }
-check(hidden && dz.redEyes && G.groundY(dz.px, dz.pz) < -1, 'un zombie del jardín baja por la escotilla (escondido) con los ojos rojos');
+check(hidden && dz.redEyes && G.groundY(dz.px, dz.pz) < B.y + 1, 'un zombie del jardín baja por la escotilla (escondido) con los ojos rojos');
 // Mule Kick y bazooka en el búnker
 state.power = true;
 const mk = G.PERKM.machines.mule;
@@ -199,9 +200,9 @@ check(GIANT.state === 'off', 'con la playa cerrada no sale');
 CONFIG.DOGS.enabled = false;
 
 // 6) tortugas desde la R11: cada mordisco saca la vida de la R10
-fresh(true); clearZ(); setPlayer(-45, 36); state.round = 15;
+fresh(true); clearZ(); setPlayer(-60, 36); state.round = 15;   // F5.19: el rancho, 15 m más al oeste
 const TC = CONFIG.TRAPS.turtles, hp15 = CONFIG.ZOMBIE.health(15);
-const tz = zombieAt(-47, 23, hp15); tz.state = 'idle';
+const tz = zombieAt(-62, 23, hp15); tz.state = 'idle';
 G.useTrap(TRAPS.turtles);
 let firstBite = null;
 for (let i = 0; i < 60 * 15 && tz.alive; i++) { G.tick(dt); G.updateTraps(dt); if (firstBite === null && tz.health < hp15) firstBite = hp15 - tz.health; }

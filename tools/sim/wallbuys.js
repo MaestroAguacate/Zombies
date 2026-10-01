@@ -84,21 +84,22 @@ check(state.weapons.map(w => w.id).join() === 'rifle,smg' && state.currentWeapon
 state.currentWeapon = 1;
 state.weapons[1].mag = 5;
 weaponsState.phase = 'reloading'; weaponsState.phaseT = 0;
-const lm = wb('lmg');
-at(lm.mx + 1.2, lm.mz); state.points = 2500;
+const lm = wb('lmg'), lf = lm.face || 1;                                  // F5.19: delante de la tiza (el embarcadero termina detrás)
+at(lm.mx + (lm.axis === 'z' ? 0 : lf * 1.2), lm.mz + (lm.axis === 'z' ? lf * 1.2 : 0)); state.points = 2500;
 G.interact();
 check(weaponsState.phase === 'switching', 'recarga cancelada');
 settle(); settle();
 const lslot = state.weapons[state.currentWeapon];
-check(lslot.id === 'lmg' && lslot.mag === 100 && lslot.reserve === 300, 'LMG llena, sin transferencia fantasma', `(${lslot.mag}/${lslot.reserve})`);
+const LD = CONFIG.WEAPONS.lmg;                                             // F5.19d: 75 / 225
+check(lslot.id === 'lmg' && lslot.mag === LD.magSize && lslot.reserve === LD.reserveMax, 'LMG llena, sin transferencia fantasma', `(${lslot.mag}/${lslot.reserve})`);
 
 // 8) automática: cadencia y retroceso/shake por arma
 const L = CONFIG.WEAPONS.lmg;
 G.tick(1); G.setCam(0);
 G.fireWeapon(); G.fireWeapon();
-check(lslot.mag === 99, 'dos disparos en el mismo instante = uno');
+check(lslot.mag === L.magSize - 1, 'dos disparos en el mismo instante = uno');
 G.tick(L.fireRate / 1000 + 0.001); G.fireWeapon();
-check(lslot.mag === 98, 'segundo disparo tras fireRate');
+check(lslot.mag === L.magSize - 2, 'segundo disparo tras fireRate');
 ['recoilP', 'recoilY'].forEach(k => { feel[k].x = 0; feel[k].v = 0; }); feel.trauma = 0;
 G.feelOnFire(L);
 check(Math.abs(feel.trauma - L.fireShake) < 1e-9, 'fireShake por arma', `(${feel.trauma})`);

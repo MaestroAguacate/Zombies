@@ -30,6 +30,7 @@ for (const p of solid) {
 check(under > 0 && free === 0, 'celdas bajo props: bloqueadas', `(${under} celdas)`);
 
 // 3) conectividad: con todas las puertas abiertas, todo alcanzable desde la sala
+G.setSquidHead(G.CONFIG.SQUIDHEAD.openRound, true);                    // F5.19: la cabeza del calamar es una caja de R19 (se abre en la R13)
 player.pos.set(0, 1.7, 10); G.updateFlowField(true);
 const rooms = G.ROOMS.filter(r => !r.hidden);
 const unreached = rooms.filter(r => {

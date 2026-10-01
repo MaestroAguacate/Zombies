@@ -76,7 +76,7 @@ js += `\n;globalThis.G={scene,state,player,camera,clock,CONFIG,NAV,WORLD,FLOW,ZP
  GREN,startCook,releaseGrenade,spawnGrenade,stepGrenade,explodeAt,updateGrenades,addRoundGrenades,resetGrenades,
  sfxPin,sfxGrenadeBounce,sfxExplosion,
  PERKM,PERK_KEYS,hasPerk,maxHealth,perkRate,perkDmg,perkReload,sprintMul,staminaMul,turnOnPower,perkStatus,buyPerk,
- tryRevive,clamPress,attsFor,saveProfile,spendPoints,updateGums,GUMM,gumActive,useGumMachine,takeGum,activateGum,useHeldGum,applyGum,resetGums,gumCount,setPresetSlot,presetGums,rollGumPack,useGumItem,addInk,rollInk,DEV,devMaxAccount,ACCOUNTS,createAccount,switchAccount,renameAccount,deleteAccount,accountNames,gumPrompt,gumNear,gumCost,buildWeaponModel,addAttachmentModels,CRASH,PROFILE,xpForLevel,levelOf,rankLevel,tierName,addXP,attDef,toggleAttachment,setCamo,attUnlocked,camoUnlocked,sanitizeLoadout,adsSpread,ADS,slotDef,resetMatchXP,levelProgress,showMenu,menuPanel,MENU,pickMap,DOWN,updateDown,startDown,endDown,fleeZombie,eyeDrop,updatePerks,resetPerks,stamina,sfxPowerOn,sfxJingle,sfxPerkDrink,sfxRevive,sfxBreath,
+ tryRevive,clamPress,attsFor,saveProfile,spendPoints,updateGums,GUMM,gumActive,useGumMachine,takeGum,activateGum,useHeldGum,applyGum,resetGums,gumCount,setPresetSlot,presetGums,presetReady,RSHARK,updateRiverSharks,weaponLevel,wxpForLevel,addWeaponXP,weaponProgress,clamDropOffer,renderShopPanel,templeColumns,buildBayBounds,sanitizePreset,blankAccount,gumClassic,rollGumPack,useGumItem,addInk,rollInk,DEV,devMaxAccount,ACCOUNTS,createAccount,switchAccount,renameAccount,deleteAccount,accountNames,gumPrompt,gumNear,gumCost,buildWeaponModel,addAttachmentModels,CRASH,PROFILE,xpForLevel,levelOf,rankLevel,tierName,addXP,attDef,toggleAttachment,setCamo,attUnlocked,camoUnlocked,sanitizeLoadout,adsSpread,ADS,slotDef,resetMatchXP,levelProgress,showMenu,menuPanel,MENU,pickMap,DOWN,updateDown,startDown,endDown,fleeZombie,eyeDrop,updatePerks,resetPerks,stamina,sfxPowerOn,sfxJingle,sfxPerkDrink,sfxRevive,sfxBreath,
  PAPST,usePap,grabPap,papPrompt,papDef,slotDef,curSlot,sfxPapWork,sfxPapDone,
  SHIELDST,SHIELD_PARTS,rollShieldSpots,pickPart,benchPrompt,benchPress,toggleShield,unequipShield,shieldBlocks,
  shieldBash,updateShield,resetShield,selectWeapon,switchWeapon,sfxPartPickup,sfxShieldTake,sfxShieldHit,sfxShieldBreak,sfxShieldBash,
@@ -90,12 +90,42 @@ js += `\n;globalThis.G={scene,state,player,camera,clock,CONFIG,NAV,WORLD,FLOW,ZP
  throwGuitar,fireCoco,bossGun,updateBossShots,canShootAt,projBlocked,
  QUEST,palmTop,hitPalm,cocoSpot,dropString,shootShell,shellReady,plantEat,plantAlien,placeShellOnTurtle,questPieces,pickQuestPiece,questCount,haveWave,workshopPrompt,
  workshopPress,takeWave,loseWave,fireWave,updateQuest,craftWave,resetQuest,bossDeath,traceShot,sfxCoconut,sfxShellRise,
- PLANTS,PIRANHAS,updatePiranhas,resetPiranhas,sfxPiranha,updateGarden,ACID,spitAcid,acidPuddle,updateAcid,wetSandMul,speedCap,spawnGardenDog,resetGarden,walkAt,flightH,inFlight,playerOnTop,powerMissing,sfxPlantWarn,sfxPlantBite,bossesFor,throwSquid,bossEyes,TRAPS,useTrap,updateTraps,trapPrompt,resetTraps,trapKill,setSky,weatherFogFar,RAIN,updateRain,NIGHT,SQPOOL,spawnSquid,squidTick,fuseSquids,fireInk,canInk,INK,updateSquids,mobKind,spawnMob,setSquidSize,squidsAlive,resetZombie,kaboom,KABOOM,updateKaboom,applyPowerup,debugUnlockAll,STARS,plantEatAnim,BUNK,openBunker,statueKill,setSquidHead,SQHEAD,squidRise,TEMPLEFX,CLAMS,rollClam,openClam,clamsRound,resetClams,updateClams,pieceAvailable,clamSnap,updateMusic,MUSIC,musicIntensity,surfaceAt,updateFootsteps,FOOT,sfxRoundDrum,setMusicVolume,setSfxVolume,spatialOut,zombieSteps,ambienceZone,sfxStep,GFX,applyQuality,setShadows,setPost,updateGfx,gfxFilter,paletteAt,BEACH,updateBeach,inThicket,THICKET,buildThicketWalls,DOOR_LINKS,OPEN_LINKS,GIBS,goreKill,loseArm,deathPose,updateGibs,resetGibs,pickW,isHuman,spawnGib,wakeStatue,updateStatues,useHatch,hatchTeleport,updateBunker,inBunker,setZombieEyes,maxWeapons,dropMuleWeapon,MONKEY,giveMonkeys,throwMonkey,updateMonkeys,monkeyLure,FLOW,ROCKETS,launchRocket,updateRockets,updateBow,releaseBow,rollBoxResult,explodeAt,GIANT,giantRise,giantLaunch,updateGiant,giantBusy,beachReachable,equipModel,JUNGLE,startBurn,updateBurns,roman,rainZone,refundBox,rainRoof,portalOn,PORTAL,usePortal,portalNear,BUNK,shootTomb,openPortals,resetPortals,portalCarry,isNav,setFog,SETTINGS,POLICE,policeWake,updatePolice,closeDoor,shellK,SHELLFX,RANCHO,LAMPS};`;
+ PLANTS,PIRANHAS,updatePiranhas,resetPiranhas,sfxPiranha,updateGarden,ACID,spitAcid,acidPuddle,updateAcid,wetSandMul,speedCap,spawnGardenDog,resetGarden,walkAt,flightH,inFlight,playerOnTop,powerMissing,sfxPlantWarn,sfxPlantBite,bossesFor,throwSquid,bossEyes,TRAPS,useTrap,updateTraps,trapPrompt,resetTraps,trapKill,setSky,weatherFogFar,RAIN,updateRain,NIGHT,SQPOOL,spawnSquid,squidTick,fuseSquids,fireInk,canInk,INK,updateSquids,mobKind,spawnMob,setSquidSize,squidsAlive,resetZombie,kaboom,KABOOM,updateKaboom,applyPowerup,debugUnlockAll,STARS,plantEatAnim,BUNK,openBunker,statueKill,setSquidHead,SQHEAD,squidRise,TEMPLEFX,CLAMS,rollClam,openClam,clamsRound,resetClams,updateClams,pieceAvailable,clamSnap,updateMusic,MUSIC,musicIntensity,surfaceAt,updateFootsteps,FOOT,sfxRoundDrum,setMusicVolume,setSfxVolume,spatialOut,zombieSteps,ambienceZone,sfxStep,GFX,applyQuality,setShadows,setPost,updateGfx,gfxFilter,paletteAt,BEACH,updateBeach,inThicket,THICKET,buildThicketWalls,DOOR_LINKS,OPEN_LINKS,GIBS,goreKill,loseArm,deathPose,updateGibs,resetGibs,pickW,isHuman,spawnGib,wakeStatue,updateStatues,useHatch,hatchTeleport,updateBunker,inBunker,setZombieEyes,maxWeapons,dropMuleWeapon,MONKEY,giveMonkeys,throwMonkey,updateMonkeys,monkeyLure,FLOW,ROCKETS,launchRocket,updateRockets,updateBow,releaseBow,rollBoxResult,explodeAt,GIANT,giantRise,giantLaunch,updateGiant,giantBusy,beachReachable,equipModel,JUNGLE,startBurn,updateBurns,roman,rainZone,refundBox,rainRoof,portalOn,PORTAL,usePortal,portalNear,BUNK,shootTomb,openPortals,resetPortals,portalCarry,isNav,setFog,SETTINGS,POLICE,policeWake,updatePolice,closeDoor,shellK,SHELLFX,RANCHO,LAMPS,BARS,updateBarriers,resetBarriers,barrierNear,DEATH,startDeathCam,updateDeathCam,endDeathCam,VOID,updateVoidPlants,resetVoidPlants,camera,quitToMenu,finishDeath,DEV,maxHealth,updateGameAudio,FIRESALE,renderLineupPanel,unseenAtts,unseenTotal,renderWeaponsPanel,
+ papDef,papShotRate,updatePowerupUI,PERKM,buyPerk,turnOnPower,gumPrompt,activateGum,GUMM,PROFILE,curSlot,equipModel,
+ RELICS,papReady,presetReady,presetGums,takeGum,selectPreset,renderGumsPanel,applyGum,perkDmg,maxHealth,
+ startFireSale,endFireSale,boxCost,roundBlink,
+ gameUpdate,flowFrom,idxCenter,lvCellIdx,NAV,debugUnlockAll,startRound,queueRound,throwMonkey,startCook,releaseGrenade,meleeAttack,reloadWeapon,switchWeapon,
+ SHOT_SAMPLE,updateGrenadeHUD,fireWeapon,traceShot,curSlot,curDef,
+ updatePortals,portalEnds,plantRooted,plantTrapStart,plantRootCut,updatePlantTrap,animatePuddle,
+ MAPV,toggleMap,mapReveal,mapSeenAt,updateMapView,resetMapView,GFX,
+ plantTongueStab,plantGrabbed,plantTongueShot,lowHealthK,lowHealthBeat,updateLowHealthAudio,LOWHP,updateHUD,
+ PLANTB,plantBossHit,plantBossBlast,updatePlantBoss,resetPlantBoss,plantSummon,plantPapFree,plantSpitPap,wakePlant,plantBossBar,
+ UP2,isUp2,up2Idx,lvY,idxLevel,roof2At,
+ wakeBeast,beastTick,beastSummon,CRIAS,beastGrabbed,beastTentacleShot,beastTentacleStab,beastSpikesCast,updateBeastSpikes,beastMouth,
+ releaseBeastTentacle,
+ TROPH,bossTrophies,dropTrophy,buyItem,equipItem,placeItem,pickItem,applyItem,itemSpot,canBuyItem,itemDef,renderItemsPanel,MENU,
+ updateTrophies,resetTrophies,perkMax,armorAbsorb,slimeZone,
+ clawsDef,meleeDef,bossKillCount,camoUnlocked,trophiesRound,bossDeath,perkStatus,freePerk,
+ passRewards,passText,claimPass,passTrackHTML,useAccount,ACCOUNTS,levelOf,xpForLevel,addXP,resetMatchXP,BOSS,DOWN,ACID,wetSandMul,updateZombies,updateAcid,updateBoss,
+ BEAST,shootBarrel,blowBarrel,barrelBlast,resetBarrels,breakLadder,fixLadder,ladderBroken,updateBeast,resetBeast,interactState,hatchPrompt,hatchNear,useHatch,openBunker,BUNK,animateBeast,lanternNear,useLantern,LANTERNS,interact,updateBeastDrool,beastLaunch,clock,
+ useHeldGum,updateGums,resetGums,gumActive,gumDef,WRATH,gumWrath,PICKUPS,updatePickups,trySpawnPickup,useBox,BOX,GDRUM,gumDrumMount,favoriteWeapon,
+ CATA,cataGround,cataWalk,cataRamp,cataOpen,cataLeverNear,pullLever,cataLeversOn,updateCatacombs,resetCatacombs,thicketDraw,cutRects,cataLight,
+ HURT,hurtHit,updateHurtHUD,LOADSCR,startLoading,updateLoading,deathEater,GRADE,GVAULT,templeRoofAt,DEATH,
+ DOORLIGHT,updateDoorLights,SHELLFX,VFIRE,updateVoxFire,weaponSeen,deathPool,deathPeekers,FLIGHT,fakeLightAdd,fakeLightTint,nightTint,VOXT,updateVoxTrees,updateTheme,
+ LANTERNS,lanternNear,useLantern,updateLanterns,resetLanterns,houseDark,rollVariant,setZombieVariant,blackFuse,inWindowHole,jumpFrom,setSunForRound,roomAt,placeRoot};`;
 vm.runInContext(js, ctx);
 // F4/F5: las rondas de perros (5-7) y de boss (12, 20...) no las esperan los tests que corren rondas.
 // enemies.js y boss.js las prenden
+// F8: el juego sale con CONFIG.DEBUG_MODE en false; los tests usan sus teclas y la cuenta dev: acá se prende
+ctx.G.CONFIG.DEBUG_MODE = true;
+ctx.G.resetDebug();
 ctx.G.CONFIG.DOGS.enabled = false;
 ctx.G.CONFIG.BOSS.enabled = false;
+// F5.19b: las ventanas con tablas y los saltos tardan más que salir del piso; barriers.js (test) los prende
+ctx.G.CONFIG.BARRIERS.enabled = false;
+// F5.20: la planta jefa del templo esconde el PaP y reemplaza a la tumba; f520.js la prende
+ctx.G.CONFIG.PLANTBOSS.enabled = false;
+ctx.G.resetPlantBoss();
 
 ctx.G.store = store;
 ctx.G.sandbox = ctx;              // para inyectar un AudioContext falso (window.AudioContext) en audio.js

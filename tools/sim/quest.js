@@ -43,10 +43,13 @@ function zombieAt(x, z, hp) {
 // 1) lugares: taller en la playa sin cambiar el grid y alcanzable; cocos arriba de su palmera; muelle
 fresh();
 const col = QUEST.shop.col;
-check(G.roomAt((col.minX + col.maxX) / 2, (col.minZ + col.maxZ) / 2).id === 'R10', 'el taller está en la playa (F5.13)');
+check(G.roomAt((col.minX + col.maxX) / 2, (col.minZ + col.maxZ) / 2).id === 'R17', 'el taller está en el claro, al costado del caparazón (F5.19)');
 col.solid = false; G.buildNavGrid(); const without = Array.from(NAV.cells);
 col.solid = true; G.buildNavGrid(); const withIt = Array.from(NAV.cells);
-check(without.every((v, i) => v === withIt[i]), 'el taller no cambia el grid (va en el anillo pegado a la cerca)');
+// F5.19: contra una pared de espesura (0.5 m, del lado de la espesura) el anillo no bloqueado es de 1 celda: el taller
+// tapa como mucho una columna pegada al borde (no corta caminos: el claro mide 38 m)
+const changed = without.filter((v, i) => v !== withIt[i]).length;
+check(changed <= 6, 'el taller casi no cambia el grid (solo el borde pegado a la espesura)', `(${changed} celdas)`);
 player.pos.set(0, 1.7, -2); G.updateFlowField(true);
 const f0 = shopFront();
 check(G.flowAt(Math.floor(f0.x), Math.floor(f0.z)) >= 0, 'se llega al frente del taller caminando');
@@ -62,7 +65,7 @@ check(seen.size === 4 && !QUEST.coco.g.visible, 'se sortea una de las 4 por part
 {
   const L = Q.shellLand, cx = Math.floor(L.x), cz = Math.floor(L.z);
   G.debugOpenAllDoors(); player.pos.set(-20, 1.7, 30); G.updateFlowField(true);   // (el loop de resetGame de arriba las cerró)
-  check(G.roomAt(L.x, L.z).id === 'R19' && !WORLD.colliders.some(c => c.solid && !c.overhead && L.x > c.minX - 0.3 && L.x < c.maxX + 0.3 && L.z > c.minZ - 0.3 && L.z < c.maxZ + 0.3) &&
+  check(G.roomAt(L.x, L.z).id === 'R22' && !WORLD.colliders.some(c => c.solid && !c.overhead && L.x > c.minX - 0.3 && L.x < c.maxX + 0.3 && L.z > c.minZ - 0.3 && L.z < c.maxZ + 0.3) &&
     nearNav(L), 'F5.13: la caracola cae enfrente de la boca del calamar, libre y donde se llega', `(${cx}, ${cz})`);
   const CH = CONFIG.SQUIDHEAD.chamber;
   check([Q.turtle, Q.shrimp, CONFIG.BUNKER.seahorse].every(T => T.x > CH[0] && T.x < CH[1] && T.z > CH[2] && T.z < CH[3]),
@@ -169,7 +172,7 @@ check(QUEST.shell.phase === 'dull' && QUEST.shell.glow.material.opacity === 0, '
 G.setSquidHead(CONFIG.SQUIDHEAD.openRound, true);
 G.scene.updateMatrixWorld(true);
 const sp = QUEST.shell.g.position.clone();
-player.pos.set(-58, 1.7, -47);
+{ const T = CONFIG.SQUIDHEAD.tunnel; player.pos.set((T[0] + T[1]) / 2, 1.7, T[3] - 2); }
 aimAt(sp.x, sp.y + 0.15, sp.z); shoot();
 check(QUEST.shell.phase === 'dull', 'opaca: el tiro no le hace nada');
 feed(PL[3], Q.plantEat);
@@ -183,7 +186,8 @@ player.pos.set(-58, 1.7, -38);
 aimAt(sp.x, sp.y + 0.15 - (CONFIG.SQUIDHEAD.h + 1) * (1 - CONFIG.SQUIDHEAD.minRise), sp.z); shoot();
 check(QUEST.shell.phase === 'glow', 'F5.13: con la cabeza enterrada no se le llega');
 G.setSquidHead(CONFIG.SQUIDHEAD.openRound, true);
-player.pos.set(-58, 1.7, -47); G.scene.updateMatrixWorld(true);
+{ const T = CONFIG.SQUIDHEAD.tunnel; player.pos.set((T[0] + T[1]) / 2, 1.7, T[3] - 2); }   // F5.19b: adentro del túnel (la cabeza está en el mar)
+G.scene.updateMatrixWorld(true);
 aimAt(sp.x, sp.y + 0.15, sp.z); shoot();
 check(QUEST.shell.phase === 'fall' && !WORLD.hitMeshes.includes(QUEST.shell.hit), 'un tiro desde el túnel del calamar: se cae (y ya no frena balas)');
 update(Q.shellFall + 0.1);

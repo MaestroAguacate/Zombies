@@ -261,79 +261,55 @@ function buildSquidHead() {
   }, 1, 128);
   const inn = new MeshBuilder();
   // ---- afuera: rebanadas de superelipse (redondeada) a lo largo de z; atrás se hunde en el mar ----
-  const E = 2.6, sgn = v => (v < 0 ? -1 : 1);
-  const se = th => { const c = Math.cos(th), s = Math.sin(th); return [sgn(c) * Math.abs(c) ** (2 / E), Math.abs(s) ** (2 / E)]; };
-  const A = k => W / 2 * (1 - 0.22 * Math.max(0, k) ** 2) * (k < 0 ? 1 + 0.08 * k : 1);
+  const E = 2.6;
+  const A = k => W / 2 * 1.06 * (1 - 0.22 * Math.max(0, k) ** 2) * (k < 0 ? 1 + 0.08 * k : 1);   // F5.22: ×1.06, así la cámara no asoma
   const Hh = k => (k < 0 ? H.h * (1 + 0.12 * k) : H.h * (1 - 0.32 * k * k)) + 0.6;
   const sink = k => (k < 0 ? -k * 16 : 0);
   const bump = (k, th) => 1 + 0.035 * Math.sin(k * 23 + th * 5) + 0.025 * Math.sin(k * 41 - th * 9);
-  const P = (k, th) => { const [u, v] = se(th), b = bump(k, th); return [cx + A(k) * u * b, Hh(k) * v * b - sink(k), H.z1 + k * L]; };
-  const nrmOf = (f, a, b, e) => {                                       // normal por diferencias
-    const p = f(a, b), pa = f(a + e, b), pb = f(a, b + e);
-    const ux = pa[0] - p[0], uy = pa[1] - p[1], uz = pa[2] - p[2], vx = pb[0] - p[0], vy = pb[1] - p[1], vz = pb[2] - p[2];
-    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz) || 1;
-    return [nx / l, ny / l, nz / l];
+  // F5.25 (Diego: "todo cúbico"): la piel de afuera en COLUMNAS DE CUBOS de VX m. Cada columna va de su tope (la misma
+  // superelipse de antes: mismo ancho, alto y hundido en el mar) hasta el tope más bajo de sus vecinas, así queda una
+  // cáscara escalonada sin rellenar la cámara de adentro. La fila del frente es la cara de la boca, con el hueco del túnel.
+  // Tonos: manchas de cromatóforos (hash) y la cresta más clara
+  const kEnd = 1 - 1 / L, kBeg = -0.8, VX = 0.8, SK = CONFIG.SQUIDBAY.waterY - 0.8;
+  const hs = (a, b) => { const s = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return s - Math.floor(s); };
+  const topAt = (x, z) => {                                            // tope de la piel en (x, z), o -Infinity afuera
+    const k = (z - H.z1) / L;
+    if (k < kBeg || k > kEnd + 1e-6) return -Infinity;
+    const a = A(k), ux = Math.abs(x - cx) / a;
+    if (ux >= 1) return -Infinity;
+    const c = ux ** (E / 2), v = Math.sqrt(Math.max(0, 1 - c * c)) ** (2 / E);
+    return Hh(k) * v * bump(k, Math.acos(Math.min(1, c))) - sink(k);
   };
-  const kEnd = 1 - 1 / L, kBeg = -0.8, NK = 44, NTH = 28;
-  for (let i = 0; i < NK; i++) for (let j = 0; j < NTH; j++) {
-    const k0 = kBeg + (kEnd - kBeg) * i / NK, k1 = kBeg + (kEnd - kBeg) * (i + 1) / NK, t0 = Math.PI * j / NTH, t1 = Math.PI * (j + 1) / NTH;
-    const q = [P(k0, t0), P(k1, t0), P(k1, t1), P(k0, t1)];
-    if (q.every(p => p[1] < -1.5)) continue;                           // bajo el agua
-    const n = [[k0, t0], [k1, t0], [k1, t1], [k0, t1]].map(([a, b2], m) => {       // normal hacia afuera
-      const v = nrmOf(P, a, b2, 1e-3), p = q[m], ox = (p[0] - cx) / A(a), oy = (p[1] + sink(a)) / Hh(a);
-      return v[0] * ox + v[1] * oy < 0 ? v.map(x => -x) : v;
-    });
-    const uv = [[k0 * L / 4, t0 * 3], [k1 * L / 4, t0 * 3], [k1 * L / 4, t1 * 3], [k0 * L / 4, t1 * 3]];
-    fl.quadN(q, n, uv, skin[(i + j) % 3]);
-  }
-  // ---- la cara de la boca: se abomba hacia afuera (el centro en z2, el borde un metro atrás), con el hueco ----
-  const F = (r, th) => { const [u, v] = se(th), b = bump(kEnd, th); return [cx + A(kEnd) * u * b * r, Hh(kEnd) * v * b * r, mz - 1 + (1 - r * r)]; };
-  const inMouth = p => Math.abs(p[0] - tcx) < TW / 2 + 0.25 && p[1] < TH + 0.25;
-  for (let i = 0; i < 18; i++) for (let j = 0; j < 40; j++) {
-    const r0 = i / 18, r1 = (i + 1) / 18, t0 = Math.PI * j / 40, t1 = Math.PI * (j + 1) / 40;
-    const q = [F(r0, t0), F(r1, t0), F(r1, t1), F(r0, t1)];
-    if (q.some(inMouth)) continue;
-    const n = q.map(p => { const x = (p[0] - cx) / A(kEnd), y = p[1] / Hh(kEnd), l = Math.hypot(x * 0.9, y * 0.9, 1); return [x * 0.9 / l, y * 0.9 / l, 1 / l]; });
-    fl.quadN(q, n, [[r0 * 3, t0 * 3], [r1 * 3, t0 * 3], [r1 * 3, t1 * 3], [r0 * 3, t1 * 3]], skin[(i + j) % 3]);
-  }
-  // ---- adentro: túnel en arco (costillas cada 1.2 m) y cámara redondeada, carne con venas ----
-  const arch = (s, z, x1, x2, top) => {                                 // s 0..1: pared izq -> arco -> pared der
-    const w = (x2 - x1) / 2, xm = (x1 + x2) / 2, wall = top * 0.5, rib = 0.14 * Math.abs(Math.sin(z * Math.PI / 1.2));
-    const per = 2 * wall + Math.PI * w, d = s * per;
-    if (d < wall) return [x1 - rib, d, z, 1, 0];
-    if (d > per - wall) return [x2 + rib, per - d, z, -1, 0];
-    const a = Math.PI - (d - wall) / w, h = top - wall;
-    return [xm + Math.cos(a) * (w + rib), wall + Math.sin(a) * (h + rib), z, -Math.cos(a), -Math.sin(a)];
-  };
-  const tube2 = (x1, x2, z1, z2, top, nz, ns) => {
-    for (let i = 0; i < nz; i++) for (let j = 0; j < ns; j++) {
-      const za = z1 + (z2 - z1) * i / nz, zb = z1 + (z2 - z1) * (i + 1) / nz, s0 = j / ns, s1 = (j + 1) / ns;
-      const pts = [arch(s0, za, x1, x2, top), arch(s0, zb, x1, x2, top), arch(s1, zb, x1, x2, top), arch(s1, za, x1, x2, top)];
-      inn.quadN(pts.map(p => [p[0], p[1], p[2]]), pts.map(p => [p[3], p[4], 0]), [[s0 * 4, za / 3], [s0 * 4, zb / 3], [s1 * 4, zb / 3], [s1 * 4, za / 3]], [inner, 0xb06a7a, 0xc88494][(i + j) % 3]);
+  const zf = H.z1 + kEnd * L, nz = Math.ceil((zf - (H.z1 + kBeg * L)) / VX), nx = Math.ceil(W * 1.1 / VX / 2);
+  const tops = new Map(), key = (i, j) => i + ',' + j;
+  for (let j = 0; j < nz; j++) for (let i = -nx; i <= nx; i++) tops.set(key(i, j), topAt(cx + i * VX, zf - VX / 2 - j * VX));
+  for (let j = 0; j < nz; j++) for (let i = -nx; i <= nx; i++) {
+    let t = tops.get(key(i, j));
+    if (!(t > SK)) continue;
+    const x = cx + i * VX, z = zf - VX / 2 - j * VX, h = hs(i, j);
+    t = Math.round(t / 0.2) * 0.2;                                     // escalones de 20 cm
+    let lo = Infinity;
+    for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const n = tops.get(key(i + a, j + b)); lo = Math.min(lo, n === undefined || !(n > SK) ? SK : n); }
+    lo = Math.max(SK, Math.min(lo, t - VX) - 0.1);
+    if (j === 0) lo = SK;                                              // la cara de la boca baja hasta el agua
+    // la columna va en cubos de VX apilados desde arriba (así la textura no se estira y cada cubo lleva su tono)
+    const stack = (y0, y1) => {
+      for (let y = y1, n = 0; y > y0 + 1e-3; y -= VX, n++) {
+        const hh = Math.min(VX, y - y0), q = hs(i * 3 + n, j * 7 - n);
+        const c = n === 0 && Math.abs(i) < 2 && t > 8 ? 0xfff0f4 : q < 0.1 ? 0x8a4458 : q < 0.25 ? skin[2] : skin[(i + j + n) % 3];
+        fl.box(x, y - hh / 2, z, VX, hh, VX, c);
+      }
+    };
+    if (j <= 1 && Math.abs(x - tcx) < TW / 2 + 0.25) {                 // hueco del túnel: arriba del techo y abajo del piso
+      if (t > TH + 0.25) stack(TH + 0.25, t);
+      stack(SK, 0);
+      continue;
     }
-  };
-  tube2(tx1, tx2, tz1, mz - 0.3, TH, 20, 16);
-  // la cámara: un túnel ancho de x, cerrado atrás y adelante por dos tapas en arco (la de adelante con el hueco del túnel)
-  tube2(cx1, cx2, cz1, cz2, CH, 16, 20);
-  for (const [z, face] of [[cz1, 1], [cz2, -1]]) {
-    const NS = 24, NR = 10;
-    for (let j = 0; j < NS; j++) for (let i = 0; i < NR; i++) {
-      const s0 = j / NS, s1 = (j + 1) / NS, r0 = i / NR, r1 = (i + 1) / NR;
-      const pt = (s, r) => { const a = arch(s, z, cx1, cx2, CH), xm = (cx1 + cx2) / 2; return [xm + (a[0] - xm) * r, a[1] * r + (1 - r) * 0.02 * 0, z - face * 0.4 * (1 - r) * 0]; };
-      const q = [pt(s0, r0), pt(s0, r1), pt(s1, r1), pt(s1, r0)];
-      if (face < 0 && q.some(p => Math.abs(p[0] - tcx) < TW / 2 && p[1] < TH)) continue;
-      inn.quadN(q, q.map(() => [0, 0, face]), [[s0 * 4, r0], [s0 * 4, r1], [s1 * 4, r1], [s1 * 4, r0]], [inner, 0xb06a7a][(i + j) % 2]);
-    }
+    stack(lo, t);
+    if (h > 0.93 && t > 2) fl.box(x + (h - 0.965) * 6, t + 0.08, z, 0.3, 0.16, 0.3, 0xc05878);   // grano de piel
   }
-  // costillas de cartílago en el techo de la cámara y el túnel
-  for (let z = cz1 + 1.2; z < cz2 - 0.5; z += 1.8) {
-    const pts = []; for (let k = 0; k <= 10; k++) { const a = arch(0.08 + 0.84 * k / 10, z, cx1 + 0.3, cx2 - 0.3, CH - 0.3); pts.push([a[0], a[1], a[2]]); }
-    fl.tube(pts, 0.18, 0.18, 0xd8a8b0, 20, 5);
-  }
-  // piso de carne oscura, con pliegues
-  const floor = (x1, x2, z1, z2) => { fl.box((x1 + x2) / 2, 0.02, (z1 + z2) / 2, x2 - x1, 0.04, z2 - z1, dark);
-    for (let i = 0; i < (x2 - x1) * (z2 - z1) / 6; i++) fl.blob(x1 + 0.4 + rr() * (x2 - x1 - 0.8), 0.02, z1 + 0.3 + rr() * (z2 - z1 - 0.6), 0.3 + rr() * 0.4, 0.06, 0.2 + rr() * 0.3, 0x5a1a28, i, 0, rr() * 3, 0); };
-  floor(tx1, tx2, tz1, mz); floor(cx1, cx2, cz1, cz2);
+  // ---- adentro (F5.21: todo en cubos, y la cámara ocupa casi toda la cabeza) ----
+  buildSquidGut(inn, fl, gl, rr);
   // ---- ojos muertos a los costados: globo lechoso con párpado caído ----
   for (const s of [-1, 1]) {
     const x = cx + s * (A((eyeZ - H.z1) / L) - 0.5);
@@ -369,11 +345,6 @@ function buildSquidHead() {
   tent(tx1 - 2.6, mz - 0.8, -0.35, 10, 0.6); tent(tx2 + 2.6, mz - 0.8, 0.35, 10, 0.6);
   fl.blob(cx + 2, 0.4, H.z1 - 18, 2.4, 1.4, 3.4, 0xffffff, 2, 0.4, 0.3, 0);                          // aleta asomando del agua
   // ---- saliva que brilla: charcos, hilos del techo y el borde de la boca ----
-  for (let i = 0; i < 30; i++) {
-    const inT = i < 16, x = inT ? tx1 + 0.4 + rr() * (TW - 0.8) : cx1 + 0.4 + rr() * (cx2 - cx1 - 0.8), z = inT ? tz1 + rr() * (mz - tz1 - 0.3) : cz1 + 0.3 + rr() * (cz2 - cz1 - 0.3);
-    gl.blob(x, 0.05, z, 0.3 + rr() * 0.5, 0.03, 0.3 + rr() * 0.5, 0x6aff9a, i);
-    if (i % 2) { const top = inT ? TH : CH, hh = 0.6 + rr() * 1.2; gl.seg([x, top - 0.2, z], [x, top - 0.2 - hh, z], 0.03, 0.015, 0x8affc0, 4); gl.sphere(x, top - 0.25 - hh, z, 0.06, 0.09, 0.06, 0x8affc0, 6); }
-  }
   for (let i = 0; i < 8; i++) { const p = lipPts[3 + i * 2], hh = 0.5 + (i % 3) * 0.4; gl.seg([p[0], p[1] - 0.4, p[2] + 0.1], [p[0], p[1] - 0.4 - hh, p[2] + 0.1], 0.04, 0.02, 0x8affc0, 4); }
   const g = new THREE.Group();
   const mats = [
@@ -386,8 +357,151 @@ function buildSquidHead() {
     const m = mb.mesh(mat);
     scene.remove(m); m.matrixAutoUpdate = true; m.userData.theme = false; g.add(m);
   }
+  buildSquidHeart(g);                                                  // F5.22: el corazón que late
   scene.add(g);
   SQHEAD.g = g;
+}
+// F5.21: las tripas de la cabeza en cubos. inn = carne de adentro (textura de venas), fl = cartílago y hueso, gl = lo
+// que brilla. Túnel y cámara en arco (paredes, techo abovedado, tapas), costillas, venas y sacos que brillan, colmillos
+// en el techo del túnel, saliva, y el entrepiso: galerías de placas de cartílago con barandas de hueso, pilares y la
+// escalera de vértebras. Todo en coordenadas del mundo con la cabeza a su altura final (el grupo sube con dy)
+function buildSquidGut(inn, fl, gl, rr) {
+  const H = CONFIG.SQUIDHEAD, v = 0.5, [tx1, tx2, tz1] = H.tunnel, [cx1, cx2, cz1, cz2] = H.chamber, mz = H.z2;
+  const TH = H.tunnelH, CH = H.chamberH, D = H.deck, y = UP.y;
+  const FLESH = [0x8a3448, 0x7a2a3e, 0x9a4458, 0x6a2234, 0xa85468], DARK = [0x3a1018, 0x4a1622, 0x2e0c14];
+  const CART = [0xd8a8b0, 0xc8909a, 0xe8c0c4], BONE = [0xe8dcc8, 0xd8ccb0];
+  const hsh = (a, b, c) => { const s = Math.sin(a * 12.9898 + b * 78.233 + c * 37.719) * 43758.5453; return s - Math.floor(s); };
+  const archTop = (x, x1, x2, top) => {                                 // alto del techo abovedado en x
+    const w = (x2 - x1) / 2, dx = Math.abs(x - (x1 + x2) / 2), wall = top * 0.5;
+    return dx >= w ? wall : wall + (top - wall) * Math.sqrt(1 - (dx / w) ** 2);
+  };
+  const flesh = (x, yy, z) => { const f = hsh(x, yy, z); return f < 0.05 ? 0xff5a7a : FLESH[Math.floor(f * 5)]; };
+  // una bóveda: piso, paredes y techo de cubos (con relleno donde el techo baja de a saltos), tapas opcionales
+  const vault = (x1, x2, z1, z2, top, capBack, capFront, hole) => {
+    for (let x = x1 + v / 2; x < x2; x += v) {
+      const h = archTop(x, x1, x2, top), hn = Math.min(archTop(x - v, x1, x2, top), archTop(x + v, x1, x2, top));
+      for (let z = z1 + v / 2; z < z2; z += v) {
+        inn.box(x, -0.12, z, v, 0.25, v, DARK[Math.floor(hsh(x, 1, z) * 3)]);                      // piso
+        if (hsh(x, 2, z) < 0.12) inn.box(x, 0.12, z, v, 0.2 + hsh(x, 3, z) * 0.2, v, 0x5a1a28);     // pliegues
+        for (let yy = h; yy >= Math.min(h, hn) - 0.01; yy -= v) inn.box(x, yy + v / 2, z, v, v, v, flesh(x, yy, z));   // techo
+      }
+    }
+    for (const x of [x1 - v / 2, x2 + v / 2]) for (let z = z1 + v / 2; z < z2; z += v)       // paredes
+      for (let yy = 0; yy < top * 0.5 + v; yy += v) inn.box(x, yy + v / 2, z, v, v, v, flesh(x, yy, z));
+    for (const [z, on] of [[z1 - v / 2, capBack], [z2 + v / 2, capFront]]) {
+      if (!on) continue;
+      for (let x = x1 - v / 2; x < x2 + v; x += v) {
+        const h = archTop(Math.min(x2 - 0.01, Math.max(x1 + 0.01, x)), x1, x2, top);
+        for (let yy = 0; yy < h + v / 2; yy += v) {
+          if (hole && Math.abs(x - hole[0]) < hole[1] && yy < hole[2]) continue;
+          inn.box(x, yy + v / 2, z, v, v, v, flesh(x, yy, z));
+        }
+      }
+    }
+  };
+  vault(tx1, tx2, cz2, mz - 0.3, TH, false, false);
+  vault(cx1, cx2, cz1, cz2, CH, true, true, [(tx1 + tx2) / 2, (tx2 - tx1) / 2, TH]);
+  // costillas de cartílago cruzando la bóveda de la cámara, cada 2.5 m
+  for (let z = cz1 + 1.5; z < cz2 - 0.5; z += 2.5)
+    for (let x = cx1 + 0.3; x < cx2 - 0.2; x += 0.4) fl.box(x, archTop(x, cx1, cx2, CH) - 0.35, z, 0.42, 0.42, 0.5, CART[Math.floor(hsh(x, z, 4) * 3)]);
+  // colmillos que cuelgan del techo del túnel y venas / sacos que brillan en las paredes
+  for (let z = tz1 + 0.5; z < mz - 0.6; z += 1.1) for (const x of [tx1 + 0.6, tx2 - 0.6]) {
+    const t = archTop(x, tx1, tx2, TH);
+    for (let k = 0; k < 3; k++) fl.box(x, t - 0.2 - k * 0.25, z, 0.3 - k * 0.08, 0.25, 0.3 - k * 0.08, BONE[k % 2]);
+  }
+  for (const x of [cx1 + 0.05, cx2 - 0.05]) for (let z = cz1 + 1; z < cz2 - 1; z += 1.7) {
+    let yy = 0.4 + hsh(x, z, 5) * 0.5;
+    for (let k = 0; k < 7; k++, yy += 0.45) gl.box(x, yy, z + Math.sin(k * 1.3 + z) * 0.25, 0.12, 0.45, 0.12, 0x8affc0);   // vena
+    if (hsh(x, z, 6) < 0.5) { gl.box(x, 2.6, z + 0.6, 0.5, 0.6, 0.5, 0x6aff9a); gl.box(x, 2.6, z + 0.6, 0.3, 0.8, 0.3, 0xb8ffd0); }   // saco
+  }
+  // saliva: charcos en el piso (cuadrados que brillan) e hilos que cuelgan del techo y de las galerías
+  for (let i = 0; i < 26; i++) {
+    const inT = i < 8, x = inT ? tx1 + 0.5 + rr() * (tx2 - tx1 - 1) : cx1 + 0.5 + rr() * (cx2 - cx1 - 1);
+    const z = inT ? cz2 + 0.5 + rr() * (mz - cz2 - 1) : cz1 + 0.5 + rr() * (cz2 - cz1 - 1), n = 1 + Math.floor(rr() * 3);
+    for (let a = -n; a <= n; a++) for (let b = -n; b <= n; b++) if (a * a + b * b <= n * n) gl.box(x + a * 0.3, 0.03, z + b * 0.3, 0.3, 0.02, 0.3, 0x6aff9a);
+    const top = inT ? archTop(x, tx1, tx2, TH) : archTop(x, cx1, cx2, CH), L = 2 + Math.floor(rr() * 4);
+    for (let k = 0; k < L; k++) gl.box(x, top - 0.15 - k * 0.3, z, 0.06, 0.3, 0.06, 0x8affc0);
+  }
+  // ---- F5.22 (Diego: "que no sean de madera, que sean órganos del calamar"): el entrepiso ----
+  const MEMB = [0xb0607a, 0x9a4a68, 0xc07890, 0xa85470], TENT = [0xe0b0c0, 0xc88898, 0xf0c8d4], SUCK = 0xfff0f4;
+  const walk = (x, z) => D.walk.some(r => x >= r[0] && x < r[1] && z >= r[2] && z < r[3]);
+  // galerías: membranas carnosas con venas, capilares que brillan y un labio que cuelga en los bordes libres
+  for (const [x1, x2, z1, z2] of D.walk) for (let x = x1 + v / 2; x < x2; x += v) for (let z = z1 + v / 2; z < z2; z += v) {
+    const vein = Math.abs(Math.sin(x * 1.7 + Math.sin(z * 0.9) * 2)) < 0.12;
+    fl.box(x, y - 0.12, z, v, 0.24, v, vein ? 0x5a1a30 : MEMB[Math.floor(hsh(x, 7, z) * 4)]);
+    if (hsh(x, 8, z) < 0.06) gl.box(x, y + 0.01, z, 0.24, 0.02, 0.24, 0xff7aa8);                    // capilar
+    if (!walk(x - v, z) || !walk(x + v, z) || !walk(x, z - v) || !walk(x, z + v)) {
+      const L = 1 + Math.floor(hsh(x, 9, z) * 3);
+      for (let k = 0; k < L; k++) fl.box(x, y - 0.4 - k * 0.3, z, v * (1 - k * 0.2), 0.3, v * (1 - k * 0.2), k ? 0x7a2a44 : MEMB[1]);   // labio que cuelga
+      if (hsh(x, 10, z) < 0.25) for (let k = 0; k < 3; k++) gl.box(x, y - 0.5 - L * 0.3 - k * 0.25, z, 0.05, 0.25, 0.05, 0x8affc0);   // gota de baba
+    }
+  }
+  // pilares: tentáculos enroscados, más gruesos abajo, con ventosas de un lado
+  for (const [x, z] of D.pillars) {
+    const n = Math.round((y - 0.2) / 0.3);
+    for (let k = 0; k < n; k++) {
+      const a = k * 0.45 + x, r = 0.12, s = 0.62 - k * 0.012, yy = k * 0.3 + 0.15;
+      fl.box(x + Math.cos(a) * r, yy, z + Math.sin(a) * r, s, 0.32, s, TENT[k % 3], 0, a, 0);
+      if (k % 2) fl.box(x + Math.cos(a) * (r + s / 2), yy, z + Math.sin(a) * (r + s / 2), 0.12, 0.16, 0.16, SUCK, 0, a, 0);   // ventosa
+    }
+    for (let k = 0; k < 6; k++) { const a = k * 1.05; fl.box(x + Math.cos(a) * 0.55, 0.12, z + Math.sin(a) * 0.55, 0.36, 0.24, 0.36, TENT[1], 0, a, 0); }   // se abre en el piso
+  }
+  // barandas: cordones de cartílago rosado, con nudos, sobre postes cortos que parecen dedos
+  const G = CONFIG.GARDEN.railH, gaps = D.flights.map(f => f.gap);
+  for (const [x1, x2, z1, z2] of D.walk) for (let x = x1; x < x2; x++) for (let z = z1; z < z2; z++) {
+    const cx = x + 0.5, cz = z + 0.5;
+    const edges = [[!walk(cx - 1, cz) && x !== cx1, 'x', x, cz], [!walk(cx + 1, cz) && x + 1 !== cx2, 'x', x + 1, cz],
+                   [!walk(cx, cz - 1) && z !== cz1, 'z', z, cx], [!walk(cx, cz + 1) && z + 1 !== cz2, 'z', z + 1, cx]];
+    for (const [on, ax, line, a] of edges) {
+      if (!on || gaps.some(gp => gp[0] === ax && gp[1] === line && a >= gp[2] && a < gp[3])) continue;   // llegadas de las rampas
+      const px = ax === 'x' ? line : a, pz = ax === 'x' ? a : line;
+      for (let k = 0; k < 4; k++) fl.box(px, y + 0.14 + k * 0.24, pz, 0.2 - k * 0.03, 0.24, 0.2 - k * 0.03, TENT[k % 3]);   // dedo
+      fl.box(px, y + G - 0.05, pz, ax === 'x' ? 0.18 : 1.02, 0.18, ax === 'x' ? 1.02 : 0.18, 0xd87898);   // cordón
+      fl.box(px, y + G - 0.05, pz, 0.26, 0.24, 0.26, 0xb85070);                                         // nudo
+    }
+  }
+  // rampas: la lengua (papilas, rosada, se afina arriba) y el esófago (anillos que la envuelven)
+  for (const F of D.flights) {
+    const steps = F.steps, run = (F.z2 - F.z1) / steps, rise = y / steps;                // suben hacia -z
+    for (let i = 0; i < steps; i++) {
+      const za = F.z2 - (i + 1) * run, h = (i + 1) * rise, zc = za + run / 2;
+      for (let x = F.x1 + v / 2; x < F.x2; x += v) {
+        const top = F.organ === 'tongue' ? [0xd84a6a, 0xc83a5a][i % 2] : [0x9a3a4a, 0x8a2e40][i % 2];
+        fl.box(x, h - 0.12, zc, v, 0.24, run, top);                                                  // pisada
+        if (F.organ === 'tongue' && hsh(x, i, 11) < 0.5) fl.box(x + 0.1, h + 0.03, zc, 0.1, 0.06, 0.1, 0xf08aa8);   // papilas
+        for (let yy = 0; yy < h - 0.24; yy += 0.5) inn.box(x, yy + 0.25, zc, v, 0.5, run, FLESH[(i + Math.floor(yy * 2)) % 5]);   // carne debajo
+      }
+      if (F.organ === 'gullet' && i % 3 === 1) {                                               // anillo del esófago
+        const w = F.x2 - F.x1, xm = (F.x1 + F.x2) / 2;
+        for (let a = 0; a <= 12; a++) {
+          const t = a / 12 * Math.PI, rx = Math.cos(t) * (w / 2 + 0.3), ry = Math.sin(t) * 2.3;
+          fl.box(xm + rx, h + ry, zc, 0.3, 0.3, 0.35, a % 2 ? 0x7a2a3e : 0x9a3a52);
+        }
+      }
+    }
+    if (F.organ === 'tongue') for (let k = 0; k < 5; k++) gl.box((F.x1 + F.x2) / 2 + (k % 2 ? 0.4 : -0.4), 0.03, F.z2 + 0.4 + k * 0.3, 0.3, 0.02, 0.3, 0x6aff9a);   // babea abajo
+  }
+  // órganos: agallas en las paredes (ranuras con bordes que brillan) y la bolsa de tinta colgando del techo del hueco norte
+  for (const x of [cx1 + 0.3, cx2 - 0.3]) for (let z = cz1 + 3; z < cz2 - 3; z += 4) for (let k = 0; k < 5; k++) {
+    inn.box(x, 1.2 + k * 0.45, z, 0.2, 0.18, 2.2, 0x2a0610);
+    gl.box(x, 1.32 + k * 0.45, z, 0.22, 0.05, 2.2, 0xff6a9a);
+  }
+  voxBlob(inn, gl, -88, CH - 2.3, -45, 1.3, 1.6, 1.3, 0.3, (xx, yy2, zz) => [pbHash(xx, yy2, zz) > 0.93 ? 0x9a4aff : 0x0a0610, pbHash(xx, yy2, zz) > 0.93]);
+  for (let k = 0; k < 4; k++) fl.box(-88, CH - 0.5 + k * 0.1, -45, 0.4, 0.3, 0.4, 0x3a1020);   // el cordón que la cuelga
+}
+// F5.22: el corazón del calamar (en el hueco sur): late. Grupo aparte, hijo del de la cabeza
+function buildSquidHeart(g) {
+  const O = CONFIG.SQUIDHEAD.deck.heart, hm = new MeshBuilder(), hg = new MeshBuilder(), heart = new THREE.Group();
+  heart.position.set(O[0], 1.5, O[1]);
+  voxBlob(hm, hg, 0, 0, 0, O[2], 1.5, O[2] * 0.85, 0.3, (x, y, z) => {
+    const f = pbHash(x, y, z), vein = Math.abs(Math.sin(x * 3 + y * 2)) < 0.15;
+    return vein ? [0xff4a6a, true] : [f < 0.3 ? 0x7a0a1a : f < 0.6 ? 0x9a1428 : 0xb82038, false];
+  });
+  for (let k = 0; k < 3; k++) for (let j = 0; j < 5; j++) hm.box(-0.6 + k * 0.6, 1.4 + j * 0.3, (k - 1) * 0.2, 0.36 - j * 0.04, 0.3, 0.36 - j * 0.04, j % 2 ? 0x6a1a2a : 0x8a2238);   // arterias
+  for (const [mb, mat] of [[hm, new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x2a0408 })], [hg, new THREE.MeshBasicMaterial({ vertexColors: true })]]) {
+    const m = mb.mesh(mat); if (m) { scene.remove(m); m.matrixAutoUpdate = true; m.userData.theme = false; heart.add(m); }
+  }
+  g.add(heart); SQHEAD.heart = heart;
 }
 // rise de la ronda n (0..1)
 function squidRise(n) {
@@ -417,6 +531,10 @@ function moveSquidHead(y) {
   if (S && (S.phase === 'dull' || S.phase === 'glow')) S.g.position.y = y + 1.98 * CONFIG.QUEST.turtle.scale;
 }
 function updateSquidHead(dt) {
+  if (SQHEAD.heart && SQHEAD.open) {                                   // F5.22: late (dos golpes y una pausa)
+    const t = clock.elapsedTime % 1.1, k = 1 + 0.07 * Math.exp(-(((t - 0.1) / 0.06) ** 2)) + 0.05 * Math.exp(-(((t - 0.32) / 0.07) ** 2));
+    SQHEAD.heart.scale.setScalar(k);
+  }
   if (SQHEAD.target === undefined || SQHEAD.dy === SQHEAD.target) return;
   const d = SQHEAD.target - SQHEAD.dy, step = 0.6 * dt;               // sube 0.6 m/s, temblando
   moveSquidHead(Math.abs(d) < step ? SQHEAD.target : SQHEAD.dy + Math.sign(d) * step);
@@ -441,6 +559,7 @@ function shellReady() {
 function shootShell() {
   const S = QUEST.shell, L = CONFIG.QUEST.shellLand;
   if (S.phase !== 'glow') return false;
+  if (!SQHEAD.open) return false;           // F5.19b: enterrada en el mar, la bala llegaba por el agua (sin piso que la frene)
   S.phase = 'fall'; S.t = 0;
   S.from.copy(S.g.position); S.to.set(L.x, groundY(L.x, L.z) + 0.02, L.z);
   S.x = L.x; S.z = L.z;
@@ -503,7 +622,7 @@ function takeWave() {
   if (state.weapons.length < maxWeapons()) { state.weapons.push(s); state.currentWeapon = state.weapons.length - 1; }
   else state.weapons[state.currentWeapon] = s;
   equipModel(slotDef(s)); raiseWeapon(); updateAmmoHUD();
-  sfxShieldTake();
+  if (!playSample('musica_al_agarrar_la_wonder_weapon', { dest: AUDIO.game })) sfxShieldTake();   // F5.19c
 }
 // Quick Revive: la Ola sale del inventario y vuelve al taller (con su munición)
 function loseWave() {
@@ -526,7 +645,7 @@ function fireWave(def) {
   let hits = 0, kills = 0;
   for (const z of state.zombies.slice()) {
     if (!z.alive || (z.level || 0) !== pl) continue;
-    const g = z.level === 1 ? UP.y : groundY(z.px, z.pz);
+    const g = z.level ? lvY(z.level) : groundY(z.px, z.pz);
     // punto del cuerpo (segmento vertical g+0.2..g+1.8) más cercano al eje, como el lanzallamas
     _qv.set(z.px - eye.x, g + 1.1 - eye.y, z.pz - eye.z);
     const yc = Math.max(g + 0.2, Math.min(g + 1.8, eye.y + dir.y * _qv.dot(dir)));
@@ -597,6 +716,7 @@ function updateQuest(dt) {
   if (H.phase === 'dull' && !state.quest.shell && !state.quest.built && shellReady()) {
     H.phase = 'glow';
     sfxShellRise();
+    playSample('musica_al_haber_llenado_todas_las_plantas_carnivoras', { dest: AUDIO.game });   // F5.19c
   }
   if (H.phase === 'glow' || H.phase === 'fall' || H.phase === 'ground') {
     const k = 0.6 + 0.4 * Math.sin(t * 4);
@@ -630,6 +750,7 @@ function updateQuest(dt) {
     UI.craft.style.opacity = '1';
     UI.craftBar.style.width = (100 * QUEST.craftT / Q.craftTime).toFixed(1) + '%';
   }
+  craftMusic(QUEST.craftT > 0 || SHIELDST.craftT > 0);              // F5.19c: música mientras se arma (escudo u Ola)
   QUEST.shopModel.visible = state.quest.built && !haveWave();
   // la ola se abre hasta el alcance y se desvanece
   if (QUEST.fxT > 0) {
@@ -650,6 +771,7 @@ function updateQuest(dt) {
 function craftWave() {
   const def = CONFIG.WEAPONS.wave;
   state.quest.built = true;
+  voice('audio_personaje_al_construir_wonder_weapon', 1, 0);           // F5.19
   QUEST.slot = { id: 'wave', mag: def.magSize, reserve: def.reserveMax };
   takeWave();
   showBanner(def.name, 1.6);

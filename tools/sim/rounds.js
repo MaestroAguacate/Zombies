@@ -26,7 +26,7 @@ for (let n = 1; n <= 6; n++) {
   check(perRound[n] === CONFIG.ZOMBIE.count(n), 'cantidad ronda ' + n);
 }
 console.log('pausas entre rondas (s):', pauses.join(', '));
-check(pauses.every(p => Math.abs(p - 8) < 0.05), 'pausa de 8s');
+check(pauses.every(p => Math.abs(p - G.CONFIG.ROUNDS.intermission) < 0.05), 'F5.19: pausa de ' + G.CONFIG.ROUNDS.intermission + ' s (los zombies salen a los 12 s)');
 console.log('max vivos simultáneos:', maxAlive); check(maxAlive <= 8, 'tope 8 vivos');
 // puntos: mitad headshot. 500 + sum(kills body*60 + head*130)
 let exp = CONFIG.ECONOMY.startPoints;
@@ -84,7 +84,7 @@ check(state.health === 100 && state.points === CONFIG.ECONOMY.startPoints, 'hp/p
 check(roundState.phase === 'pause' && roundState.next === 1, 'ronda 1 re-encolada');
 // tras reset, solo spawnea en el porche (puertas cerradas)
 state.running = true; player.pos.set(0, 1.7, 0); G.setCam(0);
-for (let i = 0; i < 60 * 12; i++) { G.tick(dt); G.updateRounds(dt); G.updateFlowField(false); G.updateZombies(dt); state.health = 100; }
+for (let i = 0; i < 60 * (12 + CONFIG.ROUNDS.firstDelay); i++) { G.tick(dt); G.updateRounds(dt); G.updateFlowField(false); G.updateZombies(dt); state.health = 100; }
 const rooms = new Set(state.zombies.map(q => G.roomAt(q.px, q.pz)?.id));
 console.log('cuartos con zombies tras reset:', [...rooms].join(','));
 check(rooms.size === 1 && rooms.has('R1'), 'solo R1 con puertas cerradas');

@@ -85,8 +85,9 @@ function buildRelics() {
     g.add(lamp);
     g.updateMatrixWorld(true);
     const f = relicWorld(sp, 0, front + 0.1), e = relicWorld(sp, GS.w * 0.38, -GS.d * 0.3);
+    const y0 = sp.y || 0;                                            // F5.22: puede ir arriba (el anillo del caparazón)
     RELICS.gens[key] = { key, room: sp.room, x: sp.x, z: sp.z, g: g, body: r.body, col: r.col, lamp,
-                         fx: f.x, fy: 0.7, fz: f.z, ex: e.x, ey: GS.h + 0.55, ez: e.z, puff: 0 };
+                         fx: f.x, fy: y0 + 0.7, fz: f.z, ex: e.x, ey: y0 + GS.h + 0.55, ez: e.z, puff: 0 };
   }
 
   //--- cajas de almas ---
@@ -130,22 +131,119 @@ function buildRelics() {
                           lamp, glow, bar, fill, barW };   // F5.8: sin el círculo rojo en el piso (pedido de Diego)
   }
 
+  buildPapRelic();
+
+  mb.setFrame(null);
+  const merged = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
+  merged.userData.theme = false;                                  // MeshBuilder lo marca como tema: esto es lógica
+  merged.updateMatrix();
+}
+// F5.21: el Pack-a-Punch con su propio MeshBuilder (antes iba en el mesh fusionado de todas las reliquias): así todo el
+// cuerpo cuelga de RELICS.pap.g, se esconde con él y la planta jefa lo puede escupir entero (cinemática)
+function buildPapRelic() {
+  const mb = new MeshBuilder();
   //--- Pack-a-Punch (apagado hasta papReady) ---
   const PS = CONFIG.PAP.spot, PZ = CONFIG.PAP.size;
   const r = relicBody(mb, PS, PZ, 0x4a3a5a, 'pap', 'world');
-  const g = r.g, front = PZ.d / 2;
-  mb.box(0, PZ.h + 0.06, 0, PZ.w + 0.1, 0.12, PZ.d + 0.1, 0x2a2230);                    // techo
-  [-1, 1].forEach(s => mb.box(s * (PZ.w / 2 + 0.08), 1.1, 0, 0.2, 0.7, 0.2, 0x6a6a70)); // rodillos
-  mb.box(0, 0.95, front + 0.12, PZ.w * 0.65, 0.08, 0.3, 0x141418);                      // bandeja
-  const lamp = basicBox(PZ.w * 0.8, 0.1, 0.06, 0x303038, 0, PZ.h - 0.1, front + 0.02);
+  const g = r.g, front = PZ.d / 2, W = PZ.w, H = PZ.h, D = PZ.d;
+  // F5.19b (Diego: "tipo calamar, mítico, azteca, brillante y surreal"): un altar azteca escalonado de piedra con frisos
+  // de jade y oro, y encima un calamar-dios: manto morado con manchas que brillan, ojos enormes, tentáculos que bajan
+  // por los costados y rodean la boca (el pico, por donde entra el arma). A los costados, dos piedras del sol que
+  // giran al trabajar (`rollers`). Lo que brilla va en `pg` (MeshBasic con color por vértice; `neon` lo apaga y prende).
+  // Ninguna luz nueva. El collider sigue siendo PZ
+  const stone = 0x6a6258, stoneD = 0x4a443c, jade = 0x2a9a7a, gold = 0xd8a830, red = 0xa8322a, mantle = 0x6a2a8a, mantleD = 0x4a1a64;
+  const pg = new MeshBuilder(); pg.setFrame(PS.x, PS.y || 0, PS.z, PS.rot);
+  const CY = 0x5af8ff, MG = 0xff4af0, GD = 0xffd84a;
+  // altar escalonado: 3 gradas con friso de grecas
+  for (let k = 0; k < 3; k++) {
+    const w = W + 1.0 - k * 0.3, d = D + 0.8 - k * 0.25, y = k * 0.16;
+    mb.box(0, y + 0.08, 0, w, 0.16, d, k % 2 ? stoneD : stone);
+    for (let i = 0; i < 9; i++) mb.box(-w / 2 + (i + 0.5) * w / 9, y + 0.08, d / 2 + 0.005, w / 9 - 0.04, 0.07, 0.01, i % 2 ? jade : gold);   // greca
+    pg.box(0, y + 0.155, d / 2 + 0.01, w - 0.1, 0.012, 0.01, k === 1 ? MG : CY);
+  }
+  mb.box(0, 0.78, 0, W + 0.06, 0.6, D + 0.06, stone);                                   // bloque del cuerpo
+  for (const s of [-1, 1]) {                                                             // frisos laterales: glifos de serpiente
+    mb.box(s * (W / 2 + 0.04), 0.78, 0, 0.02, 0.5, D - 0.1, jade);
+    for (let k = 0; k < 4; k++) mb.box(s * (W / 2 + 0.055), 0.62 + (k % 2) * 0.3, -D / 2 + 0.18 + k * 0.22, 0.02, 0.12, 0.14, gold);
+    pg.box(s * (W / 2 + 0.06), 0.78, 0, 0.012, 0.03, D - 0.2, CY);
+  }
+  // el pico: marco de oro con dientes de obsidiana, hueco oscuro que brilla por dentro
+  mb.box(0, 1.05, front + 0.05, W * 0.74, 0.56, 0.1, gold);
+  mb.box(0, 1.05, front + 0.08, W * 0.58, 0.38, 0.06, 0x050208);
+  for (let k = 0; k < 7; k++) {
+    const x = -W * 0.24 + k * W * 0.08;
+    mb.cyl(x, 1.24, front + 0.1, 0.03, 0.1, 0x1a1420, 0, 5, Math.PI, 0, 0);
+    mb.cyl(x + 0.04, 0.86, front + 0.1, 0.03, 0.1, 0x1a1420, 0, 5);
+  }
+  pg.box(0, 1.05, front + 0.06, W * 0.5, 0.26, 0.01, MG);                              // brillo de adentro
+  mb.box(0, 0.8, front + 0.22, W * 0.66, 0.06, 0.36, stoneD);                           // bandeja de piedra
+  for (const s of [-1, 1]) mb.box(s * W * 0.34, 0.86, front + 0.22, 0.04, 0.1, 0.36, gold);
+  // el manto del calamar (bulboso, hacia atrás y arriba) con aletas y manchas que brillan
+  mb.sphere(0, H + 0.05, -0.1, W * 0.5, 0.75, D * 0.62, mantle, 16);
+  mb.sphere(0, H + 0.62, -0.28, W * 0.34, 0.55, D * 0.44, mantleD, 14, -0.35, 0, 0);
+  for (const s of [-1, 1]) mb.box(s * 0.5, H + 0.95, -0.42, 0.5, 0.04, 0.34, mantle, 0, 0, s * 0.5);   // aletas
+  const rrp = mulberry(777);
+  for (let k = 0; k < 22; k++) {
+    const a = rrp() * Math.PI * 2, e = 0.2 + rrp() * 1.1, rx = W * 0.5, ry = 0.75, rz = D * 0.62;
+    const x = Math.cos(a) * Math.sin(e) * rx, y = H + 0.05 + Math.cos(e) * ry, z = -0.1 + Math.sin(a) * Math.sin(e) * rz;
+    pg.sphere(x * 1.01, y, z * 1.01, 0.035 + rrp() * 0.03, 0.035, 0.035, [CY, MG, GD][k % 3], 6);
+  }
+  // ojos enormes a los costados del frente, con pupila en ranura
+  for (const s of [-1, 1]) {
+    mb.sphere(s * 0.42, H - 0.05, 0.3, 0.2, 0.2, 0.16, gold, 12);
+    pg.sphere(s * 0.43, H - 0.05, 0.4, 0.15, 0.15, 0.1, GD, 12);
+    mb.box(s * 0.43, H - 0.05, 0.5, 0.035, 0.2, 0.02, 0x0a0410);
+  }
+  // corona de plumas de oro y jade (quetzal) detrás del manto
+  for (let k = 0; k < 9; k++) {
+    const a = -1.0 + k * 0.25;
+    mb.box(Math.sin(a) * 0.55, H + 0.9 + Math.cos(a) * 0.35, -0.62, 0.1, 0.62, 0.03, k % 2 ? jade : gold, 0, 0, -a);
+    pg.box(Math.sin(a) * 0.62, H + 0.9 + Math.cos(a) * 0.62, -0.6, 0.06, 0.08, 0.02, k % 2 ? CY : GD);
+  }
+  // tentáculos: bajan por los costados y dos rodean la boca, con ventosas que brillan
+  for (let t = 0; t < 6; t++) {
+    const s = t % 2 ? 1 : -1, j = Math.floor(t / 2), x0 = s * (0.2 + j * 0.2);
+    const pts = [[x0, H - 0.1, 0.35 - j * 0.25], [s * (0.55 + j * 0.12), H - 0.55, 0.52 - j * 0.3], [s * (0.72 + j * 0.1), 0.95, 0.4 - j * 0.3],
+                 [s * (0.9 + j * 0.05), 0.55, 0.62 - j * 0.35], [s * (0.72 + j * 0.2), 0.36, 0.78 - j * 0.4]];
+    mb.tube(pts, 0.1 - j * 0.015, 0.025, j === 1 ? mantleD : mantle, 16, 7);
+    for (let q = 1; q < 5; q++) { const p = pts[q]; pg.sphere(p[0] * 0.98, p[1] - 0.04, p[2] + 0.05, 0.025, 0.025, 0.025, q % 2 ? MG : CY, 5); }
+  }
+  pg.box(0, 1.37, front + 0.1, W * 0.66, 0.025, 0.02, CY);                            // labio de arriba
+  // dos braseros de obsidiana adelante del altar, con fuego violeta (MeshBasic)
+  for (const s of [-1, 1]) {
+    mb.cyl(s * (W / 2 + 0.3), 0.32, front + 0.3, 0.13, 0.35, 0x1a1420, 1.3, 8);
+    pg.sphere(s * (W / 2 + 0.3), 0.8, front + 0.3, 0.1, 0.2, 0.1, MG, 8);
+    pg.sphere(s * (W / 2 + 0.3), 0.75, front + 0.3, 0.14, 0.12, 0.14, 0x9a4aff, 8);
+  }
+  pg.setFrame(null);
+  const pgm = pg.mesh(new THREE.MeshBasicMaterial({ vertexColors: true, color: 0x303038 }));
+  if (pgm) { pgm.userData.theme = false; pgm.updateMatrix(); }
+  // piedras del sol a los costados (grupos: giran al trabajar): disco con anillos, rayos y la cara en el centro
+  const rollers = [-1, 1].map(s => {
+    const rg = new THREE.Group(); rg.position.set(s * (W / 2 + 0.16), 1.2, 0);
+    const rb = new MeshBuilder();
+    rb.cyl(0, -0.04, 0, 0.42, 0.08, stone, 1, 20);
+    rb.cyl(0, 0.04, 0, 0.34, 0.015, gold, 1, 20);
+    rb.cyl(0, 0.055, 0, 0.26, 0.015, jade, 1, 20);
+    rb.cyl(0, 0.07, 0, 0.14, 0.03, gold, 1, 12);
+    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; rb.box(Math.cos(a) * 0.37, 0.05, Math.sin(a) * 0.37, 0.12, 0.03, 0.06, k % 2 ? red : gold, 0, -a, 0); }
+    for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8 + 0.2; rb.box(Math.cos(a) * 0.3, 0.07, Math.sin(a) * 0.3, 0.04, 0.02, 0.04, 0x1a1420); }
+    for (const e of [-1, 1]) rb.box(e * 0.05, 0.09, -0.03, 0.04, 0.02, 0.03, 0x0a0410);   // la cara del sol
+    rb.box(0, 0.09, 0.05, 0.08, 0.02, 0.02, red);
+    const rm = rb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
+    scene.remove(rm); rm.matrixAutoUpdate = true; rm.userData.theme = false; rg.add(rm);
+    rg.rotation.set(0, 0, -s * Math.PI / 2, 'ZYX'); g.add(rg);        // mira hacia afuera; rotation.y lo gira sobre su eje
+    return rg;
+  });
+  const lamp = basicBox(W * 0.8, 0.05, 0.06, 0x303038, 0, 0.5, front + 0.36);   // F5.19b: al pie del cuerpo
   g.add(lamp);
   const screenTex = makeTex((c, s) => {
     c.fillStyle = '#05080a'; c.fillRect(0, 0, s, s);
     c.fillStyle = '#7af0ff'; c.font = 'bold ' + Math.floor(s * 0.2) + 'px monospace'; c.textAlign = 'center';
     c.fillText('PACK-A', s / 2, s * 0.44); c.fillText('PUNCH', s / 2, s * 0.72);
   }, 1, 128);
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.5), new THREE.MeshBasicMaterial({ map: screenTex, color: 0x1a1a1a }));
-  screen.position.set(0, 1.35, front + 0.005);
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.24), new THREE.MeshBasicMaterial({ map: screenTex, color: 0x1a1a1a }));
+  screen.position.set(0, 1.52, front + 0.07);                        // F5.19b: placa entre los ojos del calamar
   g.add(screen);
   const pglow = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.6), new THREE.MeshBasicMaterial({
     map: radialTex('rgba(140,240,255,.9)', 'rgba(80,120,255,.35)'), transparent: true,
@@ -153,7 +251,9 @@ function buildRelics() {
   pglow.position.set(0, 1.1, front + 0.4); pglow.visible = false;
   g.add(pglow);
   g.updateMatrixWorld(true);
-  RELICS.pap = { room: PS.room || 'R11', level: PS.level || 0, x: PS.x, z: PS.z, g, body: r.body, col: r.col, lamp, screen, glow: pglow };
+  RELICS.pap = { room: PS.room || 'R11', level: PS.level || 0, x: PS.x, z: PS.z, g, body: r.body, col: r.col, lamp, screen, glow: pglow,
+                 neon: pgm, rollers };                               // F5.19
+  g.visible = plantPapFree();                                        // F5.20: escondido bajo raíces hasta que la planta lo escupe
 
   // F2b: arma mejorada en la bandeja, una por arma, con camo. Creadas una vez, se prenden y apagan
   const tray = relicWorld(PS, 0, front + 0.12), ty = (PS.y || 0) + 1.12;   // F5.13: arriba del templo
@@ -164,11 +264,16 @@ function buildRelics() {
     scene.add(m);
     PAPST.display[id] = m;
   }
-
+  // el cuerpo y lo que brilla se dibujaron en coordenadas del mundo: cuelgan de g con la inversa de su lugar, así
+  // quedan igual y siguen a g si se mueve
   mb.setFrame(null);
-  const merged = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
-  merged.userData.theme = false;                                  // MeshBuilder lo marca como tema: esto es lógica
-  merged.updateMatrix();
+  const body = mb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true }));
+  const inv = g.matrixWorld.clone().invert();
+  for (const m of [body, pgm]) {
+    if (!m) continue;
+    scene.remove(m); m.userData.theme = false; m.matrixAutoUpdate = false; m.matrix.copy(inv); g.add(m);
+  }
+  g.updateMatrixWorld(true);
 }
 
 
@@ -199,6 +304,8 @@ function soulFromKill(z) {
     const full = state.souls[key] >= S.need;
     spawnRelicFx('soul', z.px, groundY(z.px, z.pz) + 1.2, z.pz, b.x, S.size.h + 0.2, b.z);
     sfxSoul(full);
+    // F5.19c: la música de Diego cuando se llenan las 3 cajas de almas
+    if (full && SOUL_KEYS.every(k => state.souls[k] >= S.need)) playSample('musica_al_haber_llenado_las_cajas_de_almas', { dest: AUDIO.game });
     if (full) checkPap();
     return key;
   }
@@ -206,7 +313,8 @@ function soulFromKill(z) {
 }
 
 function papReady() {
-  return GEN_KEYS.every(k => state.generators[k]) && SOUL_KEYS.every(k => state.souls[k] >= CONFIG.SOULS.need);
+  return GEN_KEYS.every(k => state.generators[k]) && SOUL_KEYS.every(k => state.souls[k] >= CONFIG.SOULS.need) &&
+         plantPapFree();                                           // F5.20: la planta jefa lo escupe al morir
 }
 // lo que falta, para el cartel de la máquina
 function papMissing() {
@@ -225,6 +333,7 @@ function checkPap() {
   P.lamp.material.color.setHex(0x7af0ff);
   P.screen.material.color.setHex(0xffffff);
   P.glow.visible = true;
+  if (P.neon) P.neon.material.color.setHex(0xffffff);                // F5.19: caños, labio y bobinas se prenden
   sfxPapOn();
   return true;
 }
@@ -269,6 +378,7 @@ function papIdle() {
 }
 function papPrompt() {
   const P = CONFIG.PAP;
+  if (!plantPapFree()) return { text: 'Something is buried in the roots...', cost: 0 };   // F5.20
   if (!RELICS.papOn) return { text: 'Pack-a-Punch off - ' + papMissing(), cost: 0 };
   if (PAPST.phase === 'working') return { text: 'Pack-a-Punch working...', cost: 0 };
   if (PAPST.phase === 'ready') return { text: '[F] Take ' + papDef(PAPST.slot.id).name, cost: 0 };
@@ -278,7 +388,13 @@ function papPrompt() {
   return { text: '[F] Pack-a-Punch ' + CONFIG.WEAPONS[s.id].name + ' - ' + P.cost, cost: P.cost };
 }
 function updatePap(dt) {
-  const P = CONFIG.PAP, t = clock.elapsedTime;
+  const P = CONFIG.PAP, t = clock.elapsedTime, R = RELICS.pap;
+  // F5.19: prendida, los rodillos giran despacio (rápido mientras trabaja) y las bobinas laten
+  if (R && RELICS.papOn) {
+    const sp = PAPST.phase === 'working' ? 9 : 0.6;
+    for (const rg of R.rollers || []) rg.rotation.y += dt * sp;
+    if (R.neon) { const k = PAPST.phase === 'working' ? 0.55 + 0.45 * Math.abs(Math.sin(t * 22)) : 0.8 + 0.2 * Math.sin(t * 3); R.neon.material.color.setRGB(k, k, k); }   // F5.19b: los colores van por vértice
+  }
   if (PAPST.phase === 'working') {
     PAPST.t += dt;
     RELICS.pap.glow.material.opacity = 0.5 + 0.5 * Math.abs(Math.sin(t * 14));   // trabaja: brillo nervioso
@@ -386,7 +502,7 @@ function resetRelics() {
   }
   RELICS.papOn = false;
   const P = RELICS.pap;
-  if (P) { P.lamp.material.color.setHex(0x303038); P.screen.material.color.setHex(0x1a1a1a); P.glow.visible = false; }
+  if (P) { P.lamp.material.color.setHex(0x303038); P.screen.material.color.setHex(0x1a1a1a); P.glow.visible = false; if (P.neon) P.neon.material.color.setHex(0x303038); }
   RELICS.fx.forEach(m => { m.visible = false; });
   RELICS.smoke.forEach(m => { m.visible = false; });
   papIdle();                                                       // F2b: nada adentro de la máquina

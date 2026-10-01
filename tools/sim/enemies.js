@@ -97,16 +97,19 @@ clearZ();
 CONFIG.DOGS.enabled = true;
 const firsts = new Set();
 for (let i = 0; i < 300; i++) { G.resetGame(); firsts.add(roundState.nextDog); }
-check([...firsts].sort().join() === '5,6,7', 'la primera ronda de perros cae en la 5, 6 o 7', `(${[...firsts].sort()})`);
+check([...firsts].sort().join() === '10,11', 'F5.19: la primera ronda de perros cae en la 10 o la 11 (Diego: nada de perros antes de la R10)', `(${[...firsts].sort()})`);
 check(G.DPOOL.length === 8 && G.DPOOL.filter(d => d.breed === 'negro').length === 4, '8 perros infernales (F5.7): 4 negros y 4 sarnosos');
 check(G.DPOOL.every(d => d.hitParts.length === 6 && d.hitParts[0].userData.type === 'zombieHead'), 'cabeza, cuerpo y 4 patas reciben balas');
 
 G.resetGame(); state.running = true; G.debugOpenAllDoors();
-player.pos.set(0, P.height, 10); G.setCam(0);
+player.pos.set(0, P.height, -10); G.setCam(0);   // F5.20: en la playa (adentro de la casa sin energía está más oscuro)
+for (let i = 0; i < 60 * 3; i++) { G.tick(dt); G.updateNight(dt); }
 roundState.nextDog = 5;
-G.queueRound(5, 8);
-check(G.UI.banner.textContent === CONFIG.DOGS.banner && NIGHT.target === 1, 'antes de la ronda: "' + CONFIG.DOGS.banner + '" y se hace de noche');
 const hemiDay = WORLD.hemi.intensity, skyDay = WORLD.sky.material.color.getHex();
+G.queueRound(5, 12);
+// F5.19: el cartel sale con el número, a los hudAt s de la pausa
+for (let i = 0; i < Math.round((CONFIG.ROUNDS.hudAt + 0.05) / dt); i++) { G.tick(dt); G.updateRounds(dt); G.updateNight(dt); }
+check(G.UI.banner.textContent === CONFIG.DOGS.banner && NIGHT.target === 1, 'antes de la ronda: "' + CONFIG.DOGS.banner + '" y se hace de noche');
 const kids0 = G.scene.children.length;
 let t = 0, maxAlive = 0, allDogs = true, vmax = 0, flashSeen = false, ammoBefore = false, ammoAtLast = false, ammoEarly = false;
 while (roundState.phase !== 'active' && t < 20) { G.tick(dt); G.updateRounds(dt); G.updateNight(dt); t += dt; }
@@ -142,6 +145,7 @@ check(flashSeen, 'relámpago al aparecer');
 check(ammoAtLast && !ammoEarly, 'el último perro suelta Max Ammo (y ninguno antes)');
 check(G.scene.children.length === kids0, 'la escena no crece (pools)', `(${kids0})`);
 const dark6 = CONFIG.WEATHER.darkBy(6);
+for (let i = 0; i < Math.round((CONFIG.ROUNDS.hudAt + 0.1) / dt); i++) { G.tick(dt); G.updateRounds(dt); }   // F5.19: el número cambia a los hudAt s
 check(roundState.phase === 'pause' && roundState.next === 6 && NIGHT.target === dark6 && G.UI.banner.textContent === 'ROUND 6', 'termina: ronda 6 y aclara (F5.9: al cielo de la R6)');
 for (let i = 0; i < 60 * 3; i++) { G.tick(dt); G.updateNight(dt); }
 const hemiNight = CONFIG.DOGS.night.hemi;
@@ -175,7 +179,9 @@ G.resetGame(); state.running = true; state.round = 2;
 G.debugKey('KeyK', false);
 check(state.round === 3 && roundState.dogs && G.UI.banner.textContent === CONFIG.DOGS.banner, 'K: la siguiente ronda es de perros, con el cartel');
 G.resetGame();
-check(!roundState.dogs && NIGHT.target === 0 && NIGHT.k === 0 && Math.abs(WORLD.hemi.intensity - hemiDay) < 1e-9, 'resetGame: de día, sin perros');
+const dayK = NIGHT.target === 0 && NIGHT.k === 0;
+player.pos.set(0, P.height, -10); for (let i = 0; i < 60 * 3; i++) { G.tick(dt); G.updateNight(dt); }   // F5.20: afuera de la casa
+check(!roundState.dogs && dayK && Math.abs(WORLD.hemi.intensity - hemiDay) < 1e-9, 'resetGame: de día, sin perros');
 check(G.DPOOL.every(d => !d.active && !d.root.visible), 'resetGame: perros guardados');
 
 // apagado (como en el resto de los tests): nunca hay ronda de perros

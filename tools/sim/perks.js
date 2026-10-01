@@ -31,11 +31,14 @@ fresh();
 const cols = WORLD.colliders.filter(c => c.tag.startsWith('perk:'));
 check(cols.length === 6, '6 máquinas con collider (F5.11: + Mule Kick)');
 check(G.PERK_KEYS.every(k => G.roomAt(L[k].x, L[k].z).id === L[k].room), 'cada una en su cuarto');
+// F5.28e: Speed Cola está en la cueva (R24): las paredes de roca quedan del lado de la roca, así que la máquina sí ocupa
+// su celda (la cueva es ancha: no traba nada). Esa se saltea acá y f528.js mira que se llegue a ella
+const houseCols = cols.filter(c => { const r = G.roomAt((c.minX + c.maxX) / 2, (c.minZ + c.maxZ) / 2); return !(r && r.cata); });
 const withM = Uint8Array.from(G.NAV.cells);
-cols.forEach(c => { c.solid = false; }); G.buildNavGrid();
+houseCols.forEach(c => { c.solid = false; }); G.buildNavGrid();
 const same = G.NAV.cells.every((v, i) => v === withM[i]);
-cols.forEach(c => { c.solid = true; }); G.buildNavGrid();
-check(same, 'no cambian el grid');
+houseCols.forEach(c => { c.solid = true; }); G.buildNavGrid();
+check(same, 'no cambian el grid (salvo la de la cueva)');
 G.openBunker();                                           // F5.11: Mule Kick está en el búnker (con la escotilla)
 player.pos.set(0, 1.7, -2); G.updateFlowField(true);
 const unreach = G.PERK_KEYS.filter(k => {

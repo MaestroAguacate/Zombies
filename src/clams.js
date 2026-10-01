@@ -37,7 +37,7 @@ function buildClams() {
     mb.box(0, up * 0.025, -0.02, 0.3, 0.05, 0.08, 0xc8c8c8);            // orejuelas de la bisagra
     return mb;
   };
-  const nests = new MeshBuilder(), nestGeo = new THREE.CylinderGeometry(0.7, 0.8, 0.08, 10);
+  const nests = new MeshBuilder();
   for (const s of C.spots) {
     const sp = clamSnap(s), g = new THREE.Group();
     g.position.set(sp.x, groundY(sp.x, sp.z), sp.z);
@@ -50,7 +50,7 @@ function buildClams() {
     }
     bottom.position.y = 0.1; top.position.set(0, 0.14, -0.02);        // bisagra atrás (z -0.02)
     g.add(bottom); g.add(top);
-    nests.add(nestGeo, sp.x, groundY(sp.x, sp.z) + 0.04, sp.z, 1, 1, 1, 0, 0, 0, 0x5a4a34);   // la canasta
+    nests.cyl(sp.x, groundY(sp.x, sp.z), sp.z, 0.8, 0.08, 0x5a4a34, 0.88, 10);   // la canasta (F5.25: de cubos)
     const prize = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.18), new THREE.MeshBasicMaterial({ color: 0xffffff }));
     prize.position.set(0, 0.26, 0.22); prize.visible = false; g.add(prize);
     const glow = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), new THREE.MeshBasicMaterial({ map: halo, color: C.colors[0],
@@ -128,6 +128,7 @@ function openClam(c, force) {                                        // force: p
   const B = CONFIG.CLAMS.bigSquid, type = force || rollClam(c.stage);
   CLAMS.last = type;
   c.used = true; c.openT = 2.5;
+  playSample('abrir_alguna_almeja');                                  // F5.19
   c.prize.material.color.setHex(CONFIG.CLAMS.colors[c.stage]); c.prize.visible = true;
   if (type === 'zombie') clamSpawn(ZPOOL, c, 'normal');
   else if (type === 'squid') clamSpawn(SQPOOL, c);
@@ -153,6 +154,8 @@ function openClam(c, force) {                                        // force: p
     c.openT = 0; c.prize.visible = false;
     showBanner(CONFIG.WEAPONS[id].name + ' — [F] take', 2);
   }
+  // F5.24: vuelve a vacía y crece de nuevo desde cero: verde en `regrow` rondas
+  c.stage = 0; c.next = state.round + CONFIG.CLAMS.regrow;
   clamPaint(c);
   sfxShellRise();
   return type;

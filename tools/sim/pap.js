@@ -50,8 +50,9 @@ pts = state.points;
 check(press() && state.points === pts, 'F la agarra (gratis)');
 const s = G.curSlot(), d = G.curDef(), b = CONFIG.WEAPONS.m1911;
 check(s.pap && d.pap && d.name === 'GRAVE WHISPER', 'queda mejorada: GRAVE WHISPER');
-check(d.damage === b.damage * 2 && d.magSize === Math.ceil(b.magSize * 1.5) && d.reserveMax === Math.ceil(b.reserveMax * 1.5),
-  'daño ×2, cargador y reserva ×1.5', `(${d.damage} · ${d.magSize} / ${d.reserveMax})`);
+check(d.damage === b.damage * 2 * (b.papDmgMul || 1) && d.magSize === Math.ceil(b.magSize * 1.5) * (b.papDual ? 2 : 1) && d.reserveMax === Math.ceil(b.reserveMax * 1.5),
+  'daño ×2, cargador y reserva ×1.5 (F5.19c: la pistola, dos: cargador ×2)', `(${d.damage} · ${d.magSize} / ${d.reserveMax})`);
+check(d.dual && d.explosive, 'F5.19c: la pistola con PaP son dos y las balas explotan');
 check(s.mag === d.magSize && s.reserve === d.reserveMax, 'sale llena');
 check(b.damage === 40 && !b.pap, 'CONFIG.WEAPONS no se tocó');
 let camo = 0; weaponsState.model.traverse(o => { if (o.isMesh && o.material.emissive && o.material.emissive.getHex() === 0x3a1a5a) camo++; });
@@ -68,19 +69,26 @@ function dmgPerShot() {
   player.pos.set(0, 1.7, 10); G.setCam(0); G.updateFlowField(true);
   const q = G.spawnZombie(); q.state = 'walk'; q.px = 0; q.pz = 7; q.health = 1e6;
   G.placeRoot(q, 0); G.scene.updateMatrixWorld(true);
-  weaponsState.phase = 'idle'; weaponsState.lastShot = -1e9; G.curSlot().mag = 5;
+  weaponsState.phase = 'idle'; weaponsState.lastShot = -1e9; weaponsState.handShot = { L: -1e9, R: -1e9 }; G.curSlot().mag = 5;   // F5.24: cada mano con su reloj
   G.fireWeapon();
   return 1e6 - q.health;
 }
+// F5.19c: la M1911 con PaP además explota; la bala sola (sin la explosión) pega el doble
+// (F5.24: hasta la R9 la GRAVE WHISPER mata de un tiro: el daño se mide en una ronda más alta)
+const r0 = state.round; state.round = Math.max(r0, (CONFIG.WEAPONS.m1911.papOneShot || 0) + 1);
+const pd = G.papDef('m1911'), ex = pd.explosive; pd.explosive = null;
 const dPap = dmgPerShot();
+pd.explosive = ex;
 G.curSlot().pap = false; const dBase = dmgPerShot(); G.curSlot().pap = true;
-check(dBase > 0 && dPap === dBase * 2, 'un disparo pega el doble', `(${dBase} -> ${dPap})`);
+check(dBase > 0 && dPap === dBase * 2 * (CONFIG.WEAPONS.m1911.papDmgMul || 1), 'un disparo pega el doble (F5.19d: GRAVE WHISPER ×1.5 más)', `(${dBase} -> ${dPap})`);
+check(dmgPerShot() > dPap, 'F5.19c: y con la explosión, más', `(${Math.round(dmgPerShot())})`);
+state.round = r0;
 
 // 6) munición: Max Ammo llena la reserva mejorada; en la pared cuesta 2500
 fresh(); press(); wait(P.time + 0.1); press();
 G.curSlot().mag = 1; G.curSlot().reserve = 0;
 G.applyPowerup('maxammo');
-check(G.curSlot().mag === 12 && G.curSlot().reserve === 120, 'Max Ammo llena 12 / 120 (no 8 / 80)');
+check(G.curSlot().mag === 24 && G.curSlot().reserve === 120, 'Max Ammo llena 24 / 120 (F5.19c: dos pistolas, cargador ×2)');
 fresh(); G.giveWeapon('smg'); press(); wait(P.time + 0.1); press();
 const smg = G.curSlot(); smg.reserve = 10;
 const wb = G.WALLBUYS.find(w => w.weapon === 'smg');
@@ -108,8 +116,8 @@ check(PAPST.phase === 'ready', 'a los 9.8 s de salir sigue disponible');
 wait(0.3);
 check(PAPST.phase === 'idle' && state.weapons.length === 0 && Object.values(PAPST.display).every(m => !m.visible), 'a los 10 s se pierde');
 
-// 9) las demás armas: daño de área (Ray Gun) y dps (lanzallamas) también ×2
-check(G.papDef('raygun').damage === 1000 && G.papDef('flamethrower').dps === 80 && G.papDef('shotgun').damage === 50, 'Ray Gun 1000, lanzallamas 80/s, escopeta 50 por perdigón');
+// 9) las demás armas: daño de área (Ray Gun) también ×2 (F5.28: sin lanzallamas)
+check(G.papDef('raygun').damage === 1000 && G.papDef('shotgun').damage === 50, 'Ray Gun 1000, escopeta 50 por perdigón');
 
 // 10) reset
 fresh(); press();

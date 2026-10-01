@@ -1,2 +1,6 @@
 ﻿node_modules/
 shots/
+tools/sim/soak-report.json
+tools/sim/f520b/
+tools/sim/f521/
+tools/sim/f522/

@@ -8,9 +8,15 @@
 const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
-let pw;
+let pw, exe;
 try { pw = require('playwright'); } catch (e) {
-  pw = require(path.join(execSync('npm root -g').toString().trim(), 'playwright'));
+  try { pw = require(path.join(execSync('npm root -g').toString().trim(), 'playwright')); }
+  catch (e2) {
+    // F5.19c: en la compu de Diego (Windows) no hay Playwright global: playwright-core de tools/sim + el Chrome instalado
+    pw = require(path.join(__dirname, 'sim', 'node_modules', 'playwright-core'));
+    exe = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe']
+      .find(p => fs.existsSync(p));
+  }
 }
 const ROOT = path.join(__dirname, '..');
 const views = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
@@ -19,6 +25,7 @@ fs.mkdirSync(out, { recursive: true });
 
 (async () => {
   const browser = await pw.chromium.launch({
+    executablePath: exe,
     args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl']
   });
   const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
