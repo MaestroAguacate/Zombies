@@ -40,6 +40,7 @@ function useAccount(name) {
   // F5.28: trofeos de boss (moneda de la tienda ITEMS), ítems comprados y el equipado
   PROFILE.trophies = a.trophies || {}; PROFILE.items = a.items || {}; PROFILE.itemEquip = a.itemEquip || null;
   PROFILE.krakenSlayer = !!a.krakenSlayer;                      // F5.29: mató al Kraken (el camo KRAKEN)
+  PROFILE.krakenEggs = a.krakenEggs | 0;                         // F5.29f: el trofeo: un huevo de calamar por easter egg terminado
   // F5.20: 3 sets de chicles (una cuenta de antes arranca con su set en el primero)
   PROFILE.presetIdx = Math.max(0, Math.min(CONFIG.GUMS.presetSets - 1, a.presetIdx | 0));
   PROFILE.presets = Array.isArray(a.presets) ? a.presets.map(p => Array.isArray(p) ? p.slice(0, CONFIG.GUMS.presetSize) : []) : [PROFILE.preset];
@@ -68,7 +69,7 @@ function saveProfile() {
                                   bossKills: PROFILE.bossKills || {},   // F5.26
                                   xp2: PROFILE.xp2 | 0, passClaimed: PROFILE.passClaimed | 0,   // F5.27
                                   trophies: PROFILE.trophies || {}, items: PROFILE.items || {}, itemEquip: PROFILE.itemEquip || null,   // F5.28
-                                  krakenSlayer: !!PROFILE.krakenSlayer,   // F5.29
+                                  krakenSlayer: !!PROFILE.krakenSlayer, krakenEggs: PROFILE.krakenEggs | 0,   // F5.29
                                   presets: (PROFILE.presets || []).map((p, i) => i === PROFILE.presetIdx ? PROFILE.preset : p), presetIdx: PROFILE.presetIdx | 0 };   // F5.20
   try { localStorage.setItem(CONFIG.PROGRESSION.accountsKey, JSON.stringify({ current: ACCOUNTS.current, list: ACCOUNTS.list })); } catch (e) {}
 }

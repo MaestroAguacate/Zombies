@@ -87,13 +87,14 @@ recargando (6 segundos). **Cada arponazo que entra te baja del cañón.** Si te 
 tentáculo del piso debajo del asiento y te tira lejos. Para bajarte: F o salto. **Hacen falta 3 arponazos.** Si errás
 (al cuerpo o al agua), es un paso fallado.
 
-**Fase 3, las granadas moradas.** Se acerca al muelle y **abre la boca** cada tanto (la boca roja se agranda). Salen del
-mar, de a dos, **2 Sombrerones, el Calamarón y la Bestia del búnker**. Cada uno, al morir, deja una **granada morada** en
-el piso: pasá por encima para agarrarla (si cae al agua, vuela sola hasta delante de la mesa) (en la **mesa de trabajo** del brazo largo, contra la baranda de atrás, se prende
-un hueco por cada una). Con **las 4**, andá a la mesa y apretá **F**: se atan a la **Ola Rompiente** (si no la tenés,
-la mesa te la da) y la ves en la mano con la carga grande atada. **Cuando abra la boca, disparale la carga** (clic; vuela
-en arco). Si entra: grita, explota de a poco y se termina. Si le errás, la carga vuelve a la mesa en 8 segundos y hay
-que volver a atarla (las granadas no se pierden).
+**Fase 3, los huevos de calamar.** Se acerca al muelle y **abre la boca** cada tanto (la boca roja se agranda). Salen del
+mar, de a dos, **2 Sombrerones, el Calamarón y la Bestia del búnker**. Cada uno, al morir, deja un **huevo de calamar**
+morado en el piso: pasá por encima para agarrarlo (si cae al agua, vuela solo hasta delante de la mesa). En la **mesa de
+trabajo** (contra la baranda de atrás de la barra) se prende un hueco por cada uno. Con **los 4**, andá a la mesa y
+**mantené F** unos 2.5 segundos (mientras armás no te podés mover y golpeás con el martillo): se atan a la **Ola
+Rompiente** (si no la tenés, la mesa te la da) y la ves en la mano con la carga atada. **Cuando abra la boca, disparale la
+carga** (clic; vuela en arco). Si entra, se termina. **Si le errás, la carga se pierde y vuelven a salir los 4 bosses**:
+hay que juntar los huevos de nuevo.
 
 **Escapar.** Si la pelea va mal, el **bote del embarcadero** te saca: F y quedate al lado 5 segundos. Volvés a la playa
 sin castigo, pero perdés el cebo (vuelve a la cabina en 2 rondas).
@@ -103,9 +104,11 @@ El Kraken te escupe a la playa: **salen dos Sombrerones, el calamar grande y per
 cabina del caparazón **2 rondas después**. Podés intentarlo las veces que quieras.
 
 ## Si lo matás
-La cinemática: el Kraken explota de a poco (cada vez más seguido, se le abren grietas que brillan, se le apaga el ojo),
-revienta en una gran explosión y se lo traga un remolino; en el cielo se abre un **portal cúbico morado** con auroras y
-rayos de luz. Después vas **en un tablón hacia la playa**, te das vuelta un momento y ves el remolino y el portal, y llegás
-a la playa mirándolos. El **remolino y el portal quedan** sobre el mar, hay **restos del Kraken**
-por todo el mapa y el cielo queda **morado y azul** (lo que queda de esa ronda, de día). Premio: **todos los perks**, **10 000 puntos**, **5 KRAKEN INK**,
-mucha XP, munición llena y el camo **KRAKEN** en tu perfil. Y la partida sigue.
+La cinemática: el Kraken abre la boca gritando y empieza a chorrear líquido negro; le saltan pedazos cada vez más seguido,
+sacude los tentáculos desesperado y caen rayos alrededor que rompen el muelle. Al final se hunde y se lo traga un
+remolino; en el cielo se abre un **portal cúbico morado** con auroras y rayos de luz. Después vas **en un tablón hacia la
+playa** (con algunos flashbacks de los bosses que mataste), te das vuelta un momento y ves el remolino y el portal, y
+llegás a la playa mirándolos. El **remolino queda** cerca de la orilla y el **portal mar adentro**, hay **restos del
+Kraken** por todo el mapa y el cielo queda **morado y azul** (lo que queda de esa ronda, de día). Premio: **todos los
+perks**, **10 000 puntos**, **5 KRAKEN INK**, mucha XP, munición llena, el camo **KRAKEN** y un **huevo de calamar** como
+trofeo en tu perfil. Y la partida sigue.

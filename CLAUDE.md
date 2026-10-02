@@ -216,10 +216,11 @@ Todas tienen su porqué en `HISTORIAL-FASES.md`:
     caparazón → Sombrerón en la cápsula → cebo (calma: sin zombies y de día morado) → pared de agua de la cabeza del
     calamar → un muelle en C en medio del mar que rodea al Kraken, de noche con tormenta (F5.29b–e). El Kraken es el calamar gigante de la playa
     ×10.5 con un ojo que brilla. Pelea en 3 fases (tentáculos sólidos, algunos con herida; cañones de arpones al ojo, que
-    se abre por ventanas; 4 granadas moradas de 2 Sombrerones, el Calamarón y la Bestia, atadas a la Ola en una mesa y
-    disparadas a la boca), con tentáculos del piso, ahogados y un boss del mar por cada fase cumplida o paso fallado;
-    ganar: cinemática (explota de a poco, gran explosión, el remolino y un portal cúbico morado en el cielo, que queda;
-    vas en un tablón a la playa mirándolos), restos y cielo morado y azul;
+    se abre por ventanas; 4 huevos de calamar de 2 Sombrerones, el Calamarón y la Bestia, atados a la Ola en una mesa y
+    disparados a la boca; si erra, vuelven los 4), con tentáculos del piso, ahogados y un boss del mar por cada fase
+    cumplida o paso fallado; ganar: cinemática (agonía con líquido negro, pedazos, tentáculos y rayos que rompen el muelle;
+    el remolino y un portal cúbico morado que queda mar adentro; el tablón con flashbacks), restos, cielo morado y azul y
+    un huevo de calamar como trofeo en el perfil. Armar (escudo, Ola, la mesa) tiene animación de martillo y no deja caminar;
     el tiempo o el bote te sacan; morir es game over. Sin pistas en el juego.
 - **Gráficos:** todo en cubos (F5.25: las primitivas curvas del `MeshBuilder` hacen cubos), calidad Bajo/Medio/Alto,
   sombras solo en Alto, ciclo de luz por ronda y desmembramiento. F5.28f: corrección de color (`GRADE`, una pasada

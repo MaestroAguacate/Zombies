@@ -750,7 +750,8 @@ function updateQuest(dt) {
     UI.craft.style.opacity = '1';
     UI.craftBar.style.width = (100 * QUEST.craftT / Q.craftTime).toFixed(1) + '%';
   }
-  craftMusic(QUEST.craftT > 0 || SHIELDST.craftT > 0);              // F5.19c: música mientras se arma (escudo u Ola)
+  // F5.19c: música mientras se arma (escudo u Ola). F5.29f: y la mesa del Kraken
+  craftMusic(QUEST.craftT > 0 || SHIELDST.craftT > 0 || (typeof EE !== 'undefined' && EE.craftT > 0));
   QUEST.shopModel.visible = state.quest.built && !haveWave();
   // la ola se abre hasta el alcance y se desvanece
   if (QUEST.fxT > 0) {

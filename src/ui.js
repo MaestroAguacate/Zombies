@@ -257,6 +257,7 @@ function renderProfilePanel() {
     '<span>Next unlock</span><span>' + (next.length ? next[0][1] + ' (level ' + next[0][0] + ')' : 'Everything unlocked') + '</span>' +
     '<span>' + CONFIG.GUMS.currency + '</span><span>' + (DEV.on ? '∞' : PROFILE.ink) + '</span>' +
     '<span>Double XP tokens</span><span>' + (PROFILE.xp2 | 0) + (PROFILE.xp2On ? ' (one active now)' : '') + '</span></div>' +
+    krakenEggHTML() +                                  // F5.29f: el trofeo del easter egg
     passTrackHTML(L) +                                 // F5.27: el pase del 1 al 100
     bossPlatesHTML();                                  // F5.26: placas por boss (1, 5 y 25 kills)
   const inp = document.getElementById('profName'), on = (id, ev, f) => { const e = document.getElementById(id); if (e && e.addEventListener) e.addEventListener(ev, f); };
@@ -267,6 +268,17 @@ function renderProfilePanel() {
   on('devMax', 'click', () => { devMaxAccount(); renderProfilePanel(); renderProfileMini(); });
   const tr = document.getElementById('passTrack');                   // F5.27: la tira arranca en tu nivel
   if (tr && tr.querySelector) { const cur = tr.querySelector('.cur'); if (cur) tr.scrollLeft = Math.max(0, cur.offsetLeft - 160); }
+}
+// F5.29f (Diego: "que completar el easter egg me agregue un huevo de calamar como trofeo en mi perfil"): solo de muestra;
+// un huevo morado en cubos (CSS) con la cuenta, o nada si todavía no lo terminaste
+function krakenEggHTML() {
+  const n = PROFILE.krakenEggs | 0;
+  if (!n) return '';
+  const egg = '<i style="display:inline-block;width:22px;height:30px;border-radius:9px 9px 8px 8px;background:' +
+    'linear-gradient(180deg,#a04aff,#7a2aff 55%,#4a12bf);box-shadow:0 0 12px #9a3aff;vertical-align:middle;margin-right:10px;' +
+    'position:relative"><b style="position:absolute;left:9px;top:11px;width:7px;height:9px;background:#2a0a4a"></b></i>';
+  return '<div class="eggtrophy" style="margin:10px 0;padding:8px 12px;border:1px solid #6a2aaa;background:rgba(60,10,90,.35);letter-spacing:2px">' +
+    egg + '<b>KRAKEN EGG</b>' + (n > 1 ? ' ×' + n : '') + ' <span class="dim">· THE KRAKEN easter egg completed</span></div>';
 }
 // F5.27: el pase estilo Fortnite: una casilla por nivel (1..maxLevel) con lo que da: tinta, camo (con su color) o XP doble.
 // Las que ya pasaste, marcadas; la tuya, resaltada. Lo que no da nada queda como un casillero vacío con la XP que pide

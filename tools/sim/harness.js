@@ -113,6 +113,7 @@ js += `\n;globalThis.G={scene,state,player,camera,clock,CONFIG,NAV,WORLD,FLOW,ZP
  HURT,hurtHit,updateHurtHUD,LOADSCR,startLoading,updateLoading,deathEater,GRADE,GVAULT,templeRoofAt,DEATH,
  EE,KRAKEN,eeNear,eeUse,eeOnPlantDeath,eeOnBeastDeath,eeCalm,eeStartFight,eeHold,krakenHit,krakenBlast,krakenMouth,
  eeChargeFire,krakenCraft,krakenDropOrb,krakenP3Spawn,beastAwakeAt,curSlot,
+ buildBusy,updateBuildAnim,krakenEggHTML,krakenBolt,krakenDrop,krakenPiece,SHIELDST,QUEST,
  updateKraken,resetKraken,eeDebugFight,BUNK,
  eeMounted,eeMountFire,krakenMount,krakenDismount,krakenSlam,krakenFloor,krakenHelper,krakenEdgeSpot,eeStorm,eeFogFar,stormZone,rainZone,
  weatherFogFar,THEMEFX,BOSS,ZPOOL,COLHASH,fireWeapon,scene,

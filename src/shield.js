@@ -108,6 +108,38 @@ function buildShield() {
   v.position.set(0.02, -0.3, -0.62); v.rotation.set(0.05, 0.12, 0); v.visible = false;
   weaponScene.add(v);
   SHIELDST.view = v;
+  // F5.29f: el martillo de construir (en primera persona): mango, cabeza de hierro, la mano que lo agarra y la otra mano
+  // sosteniendo la pieza
+  { const hb = new MeshBuilder(), hg = new THREE.Group(), piv = new THREE.Group();
+    hb.box(0, 0.16, 0, 0.05, 0.36, 0.05, 0x6a4a2a); hb.box(0, 0.36, 0.02, 0.07, 0.07, 0.2, 0x4a4a52); hb.box(0, 0.36, -0.1, 0.05, 0.05, 0.06, 0x2a2a30);
+    hb.box(0, 0.02, 0, 0.11, 0.12, 0.11, 0xc89a78);                                              // la mano
+    const hm = hb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true })); scene.remove(hm); hm.matrixAutoUpdate = true; piv.add(hm);
+    piv.position.set(0.22, -0.32, -0.55); hg.add(piv);
+    const lb = new MeshBuilder();
+    lb.box(0, 0, 0, 0.12, 0.1, 0.18, 0xc89a78); lb.box(0.02, 0.07, -0.08, 0.22, 0.04, 0.16, 0x5a5a62);   // la otra mano y la pieza
+    const lm = lb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true })); scene.remove(lm); lm.matrixAutoUpdate = true;
+    lm.position.set(-0.12, -0.4, -0.6); hg.add(lm);
+    hg.visible = false; weaponScene.add(hg);
+    SHIELDST.hammer = hg; SHIELDST.hammerPiv = piv; SHIELDST.knock = 0; SHIELDST.building = false; }
+}
+// F5.29f (Diego: "una animación de construcción que no me deje moverme"): armando el escudo, la Ola o la carga del Kraken
+// (mantener F en el banco, el taller o la mesa) no caminás (player.js: rooted), el arma se guarda y el martillo golpea
+function buildBusy() {
+  return SHIELDST.craftT > 0 || (typeof QUEST !== 'undefined' && QUEST.craftT > 0) || (typeof EE !== 'undefined' && EE.craftT > 0);
+}
+function updateBuildAnim(dt) {
+  const H = SHIELDST.hammer;
+  if (!H) return;
+  const on = buildBusy(), W = weaponsState;
+  H.visible = on;
+  // (el arma solo se toca al empezar y al terminar de armar)
+  if (on !== !!SHIELDST.building) { SHIELDST.building = on; if (W.model) W.model.visible = !on; }
+  if (!on) { SHIELDST.knock = 0; return; }
+  // golpe cada 0.42 s: sube despacio, baja rápido; en el golpe, sonido y un sacudón chico
+  const prev = SHIELDST.knock, k = (SHIELDST.knock = (SHIELDST.knock + dt / 0.42) % 1);
+  const a = k < 0.7 ? -1.1 * (k / 0.7) : -1.1 + 1.6 * ((k - 0.7) / 0.3);
+  SHIELDST.hammerPiv.rotation.set(a, 0.25, -0.2);
+  if (k < prev) { if (typeof sfxBoardRepair === 'function') sfxBoardRepair(); addTrauma(0.05); }
 }
 function rollShieldSpots() {
   for (const k of SHIELD_PARTS) {
@@ -233,6 +265,7 @@ function updateShield(dt) {
   } else SHIELDST.craftT = 0;
   UI.craft.style.opacity = SHIELDST.craftT > 0 ? '1' : '0';
   if (SHIELDST.craftT > 0) UI.craftBar.style.width = (100 * SHIELDST.craftT / C.craftTime).toFixed(1) + '%';
+  updateBuildAnim(dt);                                                 // F5.29f: el martillo (escudo, Ola, la mesa del Kraken)
   // modelos: en el banco si está armado y no lo tenés; en primera persona si está equipado
   SHIELDST.benchModel.visible = S.built && !S.has;
   const eq = W.phase === 'shield', V = SHIELDST.view;

@@ -2767,6 +2767,32 @@ suenan `sfxEEOk` (paso cumplido), `sfxEEFail` (paso fallido) y `sfxEEReady` (lis
     se agarra (`O.fly`);
   - (Diego: "que el calamar se voltee a donde yo vaya") el Kraken gira sin tope hacia vos por el lado más corto
     (`fight.turn` 1.2; antes ±0.6 rad y desde las puntas de la C quedaba de costado).
+- **F5.29f** (Diego: "quitá esas luces que simulan explosiones: que abra la boca gritando y chorree líquido negro, que le
+  salgan pedazos volando de a poco y sacuda los tentáculos desesperado mientras caen rayos que destruyen el muelle; las
+  luces mar adentro; flashbacks como screamers en el tablón; una animación de construcción que no me deje moverme
+  (easter egg, wonder weapon, escudo); si fallo el tiro, que vuelvan los bosses a darme los huevos; un huevo de calamar
+  como trofeo en el perfil"). Manda sobre F5.29e:
+  - **la agonía** (`blast`): sin bolas de fuego. La boca abierta gritando (`sfxKrakenScream`: las muestras
+    `muerte_de_planta_carnivora_en_templo` y `muerte_del_2do_boss` juntas y más graves, cada `screamEvery` s); el **líquido
+    negro**: gotas (`krakenDrop`, InstancedMesh de `drops` 140, con gravedad) que salen de la boca y de cada pedazo, y los
+    `cracks` pasan a ser chorreones negros verticales; **pedazos** de carne que saltan (`krakenPiece`, `pieceEvery` 0.6 →
+    0.15 s, `chunks` 30); los 4 tentáculos de ataque se levantan y se **sacuden** (`krakenFlailPose`); **rayos** en zigzag
+    (`krakenBolt`, `boltEvery` 0.6 → 0.25 s; 6 en pool) que caen sobre el muelle y lo **rompen**: agujero con agua
+    oscura, tablas partidas y brasas (`holes` 10) y tablas que vuelan (`planks`). El último golpe (`krakenBoom`): 4 rayos,
+    los pedazos que quedan, un chorro negro y el grito;
+  - **el portal mar adentro**: después de ganar queda en `portalSea` (10, −110) a `portalSeaY` 58 m. Como está más allá de
+    `camera.far`, el portal, los rayos y las auroras van en `KRAKEN.sky`, que `updateKrakenPortal` achica hacia la cámara
+    (homotecia: en pantalla se ve igual y queda adentro de `camera.far`);
+  - **flashbacks** en el tablón (`flashes` 0.14 / 0.28 / 0.64 / 0.8 del viaje, `flashT` 0.35 s): la planta jefa (la
+    cabeza), la Bestia (el cráneo), el Sombrerón y el Calamarón (copias en MeshBasic armadas al cargar: `copyNode`, sin
+    `Object3D.clone`, que copia el userData con referencias circulares) delante de la cámara, con un destello rojo, el
+    grito y un sacudón;
+  - **animación de construir** (`buildBusy`, `updateBuildAnim` en shield.js): mientras se arma el escudo, la Ola o la
+    carga del Kraken no se camina (`player.js`: rooted), el arma se guarda y aparece un martillo que golpea (con
+    sonido); la mesa del Kraken ahora se mantiene F `fight.craftTime` 2.5 s (con la barra y la música de armado);
+  - **huevos de calamar** (`krakenEggMB`) en lugar de las granadas moradas; si la carga erra, se pierde y los 4 bosses
+    vuelven a salir (`F.p3.queue`);
+  - **trofeo**: `PROFILE.krakenEggs` (+1 por easter egg terminado), en PROFILE (`krakenEggHTML`), solo de muestra.
 - **Salidas:**
   - **ganar** (`krakenWin` → cinemática del remolino → `krakenAfterWin`): volvés a la playa (`beachOut`); el remolino
     queda en el mar (`win.whirl`) y se ve desde la playa; restos del Kraken por el mapa (`win.debris`); el cielo y la

@@ -2030,12 +2030,14 @@ const CONFIG = {
     // Fase 2: el ojo se abre en ventanas cortas (eyeOpen s abierto, eyeClosed s cerrado); un arponazo te baja del cañón.
     // Fase 3 (en lugar del cebo y la panza): salen del mar p3Bosses (de a p3Alive, cada p3Every s) y cada uno suelta una
     // GRANADA MORADA (se agarra a orbPick m; si cae afuera del muelle, vuela a orbFly m/s hasta delante de la mesa); con las 4, en la mesa (tableUse m) se atan a la Ola Rompiente; esa carga
-    // (chargeSpeed m/s, chargeGrav) a la boca abierta lo mata (la cinemática: win.blast). Si erra, la carga vuelve a la mesa
-    // en chargeBack s
+    // (chargeSpeed m/s, chargeGrav) a la boca abierta lo mata (la cinemática: win.blast). F5.29f: los "granadas" son HUEVOS
+    // DE CALAMAR; si la carga erra, se pierde y vuelven a salir los 4 bosses
     fight: { time: 420,
              woundChance: 0.4, woundMax: 4, eyeOpen: 2.4, eyeClosed: 3.6,
              p3Bosses: ['sombrero', 'sombrero', 'calamar', 'bestia'], p3Alive: 2, p3Every: 4, orbPick: 1.8, orbFly: 7, tableUse: 2.2,
-             chargeSpeed: 32, chargeGrav: 5, chargeBack: 8, slamEvery: [4.5, 6.5], slowK: 1.6, maxDown: 2, warn: 2.2, fall: 0.5, stay: 8, up: 1.2, lift: 15,
+             // F5.29f: atar los huevos a la Ola se hace manteniendo F craftTime s (con la animación de construir); errar la
+             // carga la pierde y vuelven a salir los 4 bosses
+             chargeSpeed: 32, chargeGrav: 5, craftTime: 2.5, slamEvery: [4.5, 6.5], slowK: 1.6, maxDown: 2, warn: 2.2, fall: 0.5, stay: 8, up: 1.2, lift: 15,
              thick: [3.4, 1.1], floorThick: [2.4, 0.8],
              slamW: 1.6, slamDmg: 60, push: 9, reach: 2.5, segs: 24, boxes: 14, boxStep: 1.5, suckerHP: 3000, cuts: 4,
              floorEvery: [8, 11], mountGrace: 3, floorWarn: 1.1, floorDmg: 25, floorPush: 11, floorStay: 2.5, floorR: 2.2, floorSegs: 12,
@@ -2058,8 +2060,18 @@ const CONFIG = {
     // primera a la última; se le abren cracks grietas que brillan), boomT s de la gran explosión (chunks pedazos),
     // whirlT s mirando desde arriba cómo se lo traga el remolino mientras se abre el PORTAL en el cielo (portal: altura y
     // los radios de sus anillos de cubos; aurora: cintas de luces de ribbons × per cubos), y el tablón
-    win: { blast: 6, blastEvery: [0.55, 0.1], cracks: 48, boomT: 1.4, chunks: 18, whirlT: 5,
+    // F5.29f (Diego: "quitá esas luces que simulan explosiones; que abra la boca gritando y chorree líquido negro, que le
+    // salgan pedazos volando de a poco, sacudiendo los tentáculos desesperado, con muchos rayos alrededor que destruyan el
+    // muelle; las luces del portal mar adentro; en el tablón, flashbacks como screamers de los bosses con gritos"):
+    // blast: pieceEvery s entre pedazos (de la primera a la última); cracks chorreones negros; drops gotas negras;
+    // boltEvery s entre rayos (los rayos rompen el muelle: holes agujeros); screamEvery s entre gritos.
+    // portalSea: dónde queda el portal después de ganar (mar adentro, alto: portalSeaY). flashes: cuándo (fracción del
+    // viaje en el tablón) sale cada flashback y flashT s que dura
+    win: { blast: 6, pieceEvery: [0.6, 0.15], cracks: 48, drops: 140, boltEvery: [0.6, 0.25], holes: 10, screamEvery: 1.8,
+           boomT: 1.4, chunks: 30, whirlT: 5,
            portal: { y: 44, rings: [9, 12.5, 16], tilt: 0.45 }, aurora: { ribbons: 5, per: 46, y: 62 },
+           portalSea: [10, -110], portalSeaY: 58,
+           flashes: [0.14, 0.28, 0.64, 0.8], flashT: 0.35,
            swim: 12, swimFrom: [0, 32], look: [0.38, 0.52], points: 10000, ink: 5, xp: 5000, whirl: [14, -36], whirlR: 9, skyTop: 0x4a8aff, fog: 0x8a5ae0,
            debris: [[-6, -14, 1], [8, -17, 1.2], [-14, -9, 0.9], [14, -10, 1], [-18, -18, 1], [2, -30, 0.8], [-15, 8, 0.8],
                     [12, 36, 0.9], [-60, 30, 1], [-55, 62, 1.1], [66, 62, 0.9], [-60, -10, 1]] }
@@ -6177,7 +6189,8 @@ function updatePlayer(dt) {
   // F5.23: la lengua de la planta te arrastra (no caminás). F5.28: el tentáculo de la Bestia, igual
   const byBeast = beastGrabbed(), grabbed = plantGrabbed() || byBeast;
   // F5.24: la jaula de raíces te tiene quieto. F5.29b: subido a un cañón de arpones (el Kraken), también
-  const rooted = plantRooted() || (typeof eeMounted === 'function' && eeMounted());
+  // F5.29f: armando (escudo, Ola, la carga del Kraken) tampoco
+  const rooted = plantRooted() || (typeof eeMounted === 'function' && eeMounted()) || (typeof buildBusy === 'function' && buildBusy());
   if (grabbed || rooted) fx = fz = 0;
   const len = Math.hypot(fx, fz);
   if (len > 0) { fx /= len; fz /= len; }
@@ -13110,6 +13123,38 @@ function buildShield() {
   v.position.set(0.02, -0.3, -0.62); v.rotation.set(0.05, 0.12, 0); v.visible = false;
   weaponScene.add(v);
   SHIELDST.view = v;
+  // F5.29f: el martillo de construir (en primera persona): mango, cabeza de hierro, la mano que lo agarra y la otra mano
+  // sosteniendo la pieza
+  { const hb = new MeshBuilder(), hg = new THREE.Group(), piv = new THREE.Group();
+    hb.box(0, 0.16, 0, 0.05, 0.36, 0.05, 0x6a4a2a); hb.box(0, 0.36, 0.02, 0.07, 0.07, 0.2, 0x4a4a52); hb.box(0, 0.36, -0.1, 0.05, 0.05, 0.06, 0x2a2a30);
+    hb.box(0, 0.02, 0, 0.11, 0.12, 0.11, 0xc89a78);                                              // la mano
+    const hm = hb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true })); scene.remove(hm); hm.matrixAutoUpdate = true; piv.add(hm);
+    piv.position.set(0.22, -0.32, -0.55); hg.add(piv);
+    const lb = new MeshBuilder();
+    lb.box(0, 0, 0, 0.12, 0.1, 0.18, 0xc89a78); lb.box(0.02, 0.07, -0.08, 0.22, 0.04, 0.16, 0x5a5a62);   // la otra mano y la pieza
+    const lm = lb.mesh(new THREE.MeshLambertMaterial({ vertexColors: true })); scene.remove(lm); lm.matrixAutoUpdate = true;
+    lm.position.set(-0.12, -0.4, -0.6); hg.add(lm);
+    hg.visible = false; weaponScene.add(hg);
+    SHIELDST.hammer = hg; SHIELDST.hammerPiv = piv; SHIELDST.knock = 0; SHIELDST.building = false; }
+}
+// F5.29f (Diego: "una animación de construcción que no me deje moverme"): armando el escudo, la Ola o la carga del Kraken
+// (mantener F en el banco, el taller o la mesa) no caminás (player.js: rooted), el arma se guarda y el martillo golpea
+function buildBusy() {
+  return SHIELDST.craftT > 0 || (typeof QUEST !== 'undefined' && QUEST.craftT > 0) || (typeof EE !== 'undefined' && EE.craftT > 0);
+}
+function updateBuildAnim(dt) {
+  const H = SHIELDST.hammer;
+  if (!H) return;
+  const on = buildBusy(), W = weaponsState;
+  H.visible = on;
+  // (el arma solo se toca al empezar y al terminar de armar)
+  if (on !== !!SHIELDST.building) { SHIELDST.building = on; if (W.model) W.model.visible = !on; }
+  if (!on) { SHIELDST.knock = 0; return; }
+  // golpe cada 0.42 s: sube despacio, baja rápido; en el golpe, sonido y un sacudón chico
+  const prev = SHIELDST.knock, k = (SHIELDST.knock = (SHIELDST.knock + dt / 0.42) % 1);
+  const a = k < 0.7 ? -1.1 * (k / 0.7) : -1.1 + 1.6 * ((k - 0.7) / 0.3);
+  SHIELDST.hammerPiv.rotation.set(a, 0.25, -0.2);
+  if (k < prev) { if (typeof sfxBoardRepair === 'function') sfxBoardRepair(); addTrauma(0.05); }
 }
 function rollShieldSpots() {
   for (const k of SHIELD_PARTS) {
@@ -13235,6 +13280,7 @@ function updateShield(dt) {
   } else SHIELDST.craftT = 0;
   UI.craft.style.opacity = SHIELDST.craftT > 0 ? '1' : '0';
   if (SHIELDST.craftT > 0) UI.craftBar.style.width = (100 * SHIELDST.craftT / C.craftTime).toFixed(1) + '%';
+  updateBuildAnim(dt);                                                 // F5.29f: el martillo (escudo, Ola, la mesa del Kraken)
   // modelos: en el banco si está armado y no lo tenés; en primera persona si está equipado
   SHIELDST.benchModel.visible = S.built && !S.has;
   const eq = W.phase === 'shield', V = SHIELDST.view;
@@ -14025,7 +14071,8 @@ function updateQuest(dt) {
     UI.craft.style.opacity = '1';
     UI.craftBar.style.width = (100 * QUEST.craftT / Q.craftTime).toFixed(1) + '%';
   }
-  craftMusic(QUEST.craftT > 0 || SHIELDST.craftT > 0);              // F5.19c: música mientras se arma (escudo u Ola)
+  // F5.19c: música mientras se arma (escudo u Ola). F5.29f: y la mesa del Kraken
+  craftMusic(QUEST.craftT > 0 || SHIELDST.craftT > 0 || (typeof EE !== 'undefined' && EE.craftT > 0));
   QUEST.shopModel.visible = state.quest.built && !haveWave();
   // la ola se abre hasta el alcance y se desvanece
   if (QUEST.fxT > 0) {
@@ -18848,6 +18895,7 @@ function useAccount(name) {
   // F5.28: trofeos de boss (moneda de la tienda ITEMS), ítems comprados y el equipado
   PROFILE.trophies = a.trophies || {}; PROFILE.items = a.items || {}; PROFILE.itemEquip = a.itemEquip || null;
   PROFILE.krakenSlayer = !!a.krakenSlayer;                      // F5.29: mató al Kraken (el camo KRAKEN)
+  PROFILE.krakenEggs = a.krakenEggs | 0;                         // F5.29f: el trofeo: un huevo de calamar por easter egg terminado
   // F5.20: 3 sets de chicles (una cuenta de antes arranca con su set en el primero)
   PROFILE.presetIdx = Math.max(0, Math.min(CONFIG.GUMS.presetSets - 1, a.presetIdx | 0));
   PROFILE.presets = Array.isArray(a.presets) ? a.presets.map(p => Array.isArray(p) ? p.slice(0, CONFIG.GUMS.presetSize) : []) : [PROFILE.preset];
@@ -18876,7 +18924,7 @@ function saveProfile() {
                                   bossKills: PROFILE.bossKills || {},   // F5.26
                                   xp2: PROFILE.xp2 | 0, passClaimed: PROFILE.passClaimed | 0,   // F5.27
                                   trophies: PROFILE.trophies || {}, items: PROFILE.items || {}, itemEquip: PROFILE.itemEquip || null,   // F5.28
-                                  krakenSlayer: !!PROFILE.krakenSlayer,   // F5.29
+                                  krakenSlayer: !!PROFILE.krakenSlayer, krakenEggs: PROFILE.krakenEggs | 0,   // F5.29
                                   presets: (PROFILE.presets || []).map((p, i) => i === PROFILE.presetIdx ? PROFILE.preset : p), presetIdx: PROFILE.presetIdx | 0 };   // F5.20
   try { localStorage.setItem(CONFIG.PROGRESSION.accountsKey, JSON.stringify({ current: ACCOUNTS.current, list: ACCOUNTS.list })); } catch (e) {}
 }
@@ -22501,7 +22549,7 @@ const EE = {
   trial: { n: 0, state: 'off', t: 0, lit: [false, false, false] },   // n = pruebas cumplidas · calib · hold
   cap: { state: 'off', boss: null, t: 0, cd: 0, doorK: 0, shut: 0 },  // off · waiting · process · ready
   lure: false, calm: false, lureBackRound: 0,
-  fight: null, cine: null, won: false, skyK: 0, travelTo: null, storm: false,
+  fight: null, cine: null, won: false, skyK: 0, travelTo: null, storm: false, craftT: 0,
   g: {}, built: false
 };
 const KRAKEN = { g: null, body: null, eye: null, eyeHit: null, eyeHalo: null, lid: null, bodyHit: null, mouth: null,
@@ -22903,19 +22951,19 @@ function buildKrakenBody() {
     }
   }
   krakenPut(wb, new THREE.MeshBasicMaterial({ vertexColors: true }), body);
-  // F5.29e: las grietas de la muerte: cubos que brillan (lava morada y naranja) pegados al cuerpo; se van prendiendo de a
-  // uno mientras explota (InstancedMesh: escondidas con escala 0)
+  // F5.29e/f: los chorreones de la muerte (Diego: "que empiece a chorrear líquido negro"): tiras negras y brillosas que
+  // bajan por el cuerpo; se van agregando de a una mientras agoniza (InstancedMesh: escondidas con escala 0)
   { const n = CONFIG.EE.win.cracks, im = K.cracks = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshBasicMaterial({ fog: false }), n), col = new THREE.Color(), CR = [0xff7a1a, 0xffc040, 0xb05aff, 0xff3a10];
+      new THREE.MeshLambertMaterial({ emissive: 0x040206 }), n), col = new THREE.Color(), CR = [0x050208, 0x0c0612, 0x08040c, 0x1a0e24];
     K.crackM = [];
     for (let i = 0; i < n; i++) {
       const y = 0.2 + rr() * 3.0, head = y > 2.4, hw = head ? 0.5 - (y - 2.4) * 0.25 : 0.7, hd = head ? 0.44 - (y - 2.4) * 0.22 : 0.6;
       const side = rr(), long = r(0.18, 0.5), thin = r(0.03, 0.06), m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
-      if (side < 0.3) { p.set(r(-hw, hw), y, hd + 0.015); s.set(long, thin, 0.03); }
-      else if (side < 0.55) { p.set(r(-hw, hw), y, -hd - 0.015); s.set(long, thin, 0.03); }
-      else { p.set((rr() < 0.5 ? -1 : 1) * (hw + 0.015), y, r(-hd, hd)); s.set(0.03, thin, long); }
-      q.setFromEuler(new THREE.Euler(0, 0, side < 0.55 ? r(-1.2, 1.2) : 0));
-      if (side >= 0.55) q.setFromEuler(new THREE.Euler(r(-1.2, 1.2), 0, 0));
+      // (verticales: chorrean hacia abajo; más en el frente, desde la boca y los ojos)
+      if (side < 0.45) { p.set(r(-hw, hw), y, hd + 0.015); s.set(thin * 1.6, long, 0.03); }
+      else if (side < 0.6) { p.set(r(-hw, hw), y, -hd - 0.015); s.set(thin * 1.6, long, 0.03); }
+      else { p.set((rr() < 0.5 ? -1 : 1) * (hw + 0.015), y, r(-hd, hd)); s.set(0.03, long, thin * 1.6); }
+      q.setFromEuler(new THREE.Euler(0, 0, r(-0.12, 0.12)));
       m.compose(p, q, s); K.crackM.push(m);
       im.setMatrixAt(i, _kZero); col.setHex(CR[i % CR.length]); im.setColorAt(i, col);
     }
@@ -23032,12 +23080,16 @@ function buildKrakenTentacles() {
     K.floors.push({ f, i0: 4 * F.segs + f * F.floorSegs, n: F.floorSegs, warn, state: 'off', t: 0, x: 0, z: 0 });
   }
 }
-// F5.29d: la granada morada en cubos (cuerpo que brilla, bandas oscuras, la tapa, la anilla); s = tamaño
-function krakenGrenadeMB(b, x, y, z, s) {
-  b.box(x, y, z, 0.5 * s, 0.62 * s, 0.5 * s, 0x8a2aff);
-  b.box(x, y, z, 0.54 * s, 0.08 * s, 0.54 * s, 0x2a0a4a); b.box(x, y + 0.16 * s, z, 0.54 * s, 0.06 * s, 0.54 * s, 0x2a0a4a);
-  b.box(x, y + 0.4 * s, z, 0.24 * s, 0.16 * s, 0.24 * s, 0x5a5a62); b.box(x + 0.14 * s, y + 0.46 * s, z, 0.04 * s, 0.14 * s, 0.14 * s, 0xe8c040);
-  b.box(x, y - 0.1 * s, z + 0.26 * s, 0.2 * s, 0.2 * s, 0.02 * s, 0xf0c8ff);
+// F5.29f (Diego: "los huevos"): el HUEVO DE CALAMAR en cubos: un óvalo morado que brilla, en capas, con la cría
+// enroscada que se ve como manchas oscuras, moteado claro y un brillo; s = tamaño
+function krakenEggMB(b, x, y, z, s) {
+  const W = [0.26, 0.42, 0.5, 0.52, 0.48, 0.4, 0.26], C = [0x6a1aff, 0x8a2aff, 0xa04aff, 0x9a3aff, 0x8a2aff, 0x7a2aff, 0x5a1adf];
+  W.forEach((w, i) => b.box(x, y + (i - 3) * 0.1 * s, z, w * s, 0.105 * s, w * s, C[i]));
+  b.box(x + 0.12 * s, y + 0.02 * s, z + 0.24 * s, 0.14 * s, 0.2 * s, 0.03 * s, 0x2a0a4a);             // la cría
+  b.box(x + 0.02 * s, y - 0.08 * s, z + 0.25 * s, 0.18 * s, 0.08 * s, 0.03 * s, 0x2a0a4a);
+  b.box(x - 0.06 * s, y + 0.08 * s, z + 0.255 * s, 0.05 * s, 0.05 * s, 0.02 * s, 0xffe060);             // su ojito
+  for (const [px, py] of [[-0.18, 0.12], [0.2, -0.16], [-0.1, -0.2], [0.05, 0.22]]) b.box(x + px * s, y + py * s, z - 0.25 * s, 0.06 * s, 0.06 * s, 0.03 * s, 0xe0b0ff);
+  b.box(x - 0.14 * s, y + 0.16 * s, z + 0.25 * s, 0.08 * s, 0.06 * s, 0.03 * s, 0xffffff);              // brillo
 }
 // F5.29d: lo de la fase 3: 4 granadas moradas (en el piso, donde muere cada boss), la mesa de trabajo con 4 huecos, la
 // carga (las 4 atadas: chica en la Ola y grande volando), el tablón del final y los pedazos del Kraken que vuelan
@@ -23048,7 +23100,7 @@ function buildKrakenPhase3() {
   const spr = (s, o) => { const h = new THREE.Sprite(new THREE.SpriteMaterial({ map: halo, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); h.scale.set(s, s, 1); return h; };
   for (let i = 0; i < 4; i++) {
     const og = new THREE.Group(), b = new MeshBuilder();
-    krakenGrenadeMB(b, 0, 0, 0, 1);
+    krakenEggMB(b, 0, 0, 0, 1.2);
     krakenPut(b, glow(), og); og.add(spr(2.2, 0.8));
     og.visible = false; g.add(og);
     K.orbs.push({ g: og, on: false, x: 0, z: 0 });
@@ -23069,11 +23121,11 @@ function buildKrakenPhase3() {
     tg.position.set(A.x + tx, 0, A.z + tz); g.add(tg); }
   // la carga en la Ola (chica, la dibuja la escena del arma) y la que vuela
   { const b = new MeshBuilder();
-    for (let i = 0; i < 4; i++) krakenGrenadeMB(b, (i % 2 - 0.5) * 0.08, (i < 2 ? 0 : 0.08), 0, 0.15);
+    for (let i = 0; i < 4; i++) krakenEggMB(b, (i % 2 - 0.5) * 0.08, (i < 2 ? 0 : 0.08), 0, 0.15);
     b.box(0, 0.04, 0, 0.19, 0.02, 0.19, 0xb8a878); b.box(0, 0.04, 0, 0.02, 0.19, 0.19, 0xb8a878);         // la cuerda
     const m = b.mesh(glow()); scene.remove(m); K.bundle = new THREE.Group(); K.bundle.add(m); K.bundle.position.set(0, 0.07, -0.32); }
   { const b = new MeshBuilder(), cg = K.chargeM = new THREE.Group();
-    for (let i = 0; i < 4; i++) krakenGrenadeMB(b, (i % 2 - 0.5) * 0.55, (i < 2 ? 0 : 0.6), 0, 1);
+    for (let i = 0; i < 4; i++) krakenEggMB(b, (i % 2 - 0.5) * 0.55, (i < 2 ? 0 : 0.6), 0, 1);
     b.box(0, 0.3, 0, 1.3, 0.12, 1.3, 0xb8a878); b.box(0, 0.3, 0, 0.12, 1.3, 1.3, 0xb8a878);
     krakenPut(b, glow(), cg); cg.add(spr(4, 0.9)); cg.visible = false; g.add(cg); }
   // el tablón del final (con astillas) y los pedazos que vuelan cuando explota
@@ -23085,25 +23137,21 @@ function buildKrakenPhase3() {
   const cm = new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x1a040e });
   for (let i = 0; i < CONFIG.EE.win.chunks; i++) {
     const s = 0.9 + (i % 5) * 0.7, b = new MeshBuilder();
-    b.box(0, 0, 0, s, s * 0.8, s, i % 2 ? 0x2a0826 : 0x16040f); b.box(0, s * 0.41, 0, s * 0.6, 0.05, s * 0.2, 0xff7a1a);
+    b.box(0, 0, 0, s, s * 0.8, s, i % 2 ? 0x2a0826 : 0x16040f); b.box(0, s * 0.41, 0, s * 0.6, 0.05, s * 0.2, 0x0a0410);   // (F5.29f: lo negro que chorrea, sin luz)
     b.box(s * 0.51, 0, 0, 0.05, s * 0.5, s * 0.2, 0x9a1a12);
     const m = b.mesh(cm); scene.remove(m); m.visible = false; m.matrixAutoUpdate = true; g.add(m); K.chunks.push({ m, v: new THREE.Vector3(), on: false });
   }
 }
-// F5.29e: el final. Bolas de fuego en cubos (pool: crecen y se apagan), el PORTAL en el cielo (3 anillos de cubos que
-// giran al revés uno del otro, el remolino de cubos del medio, el centro que brilla y un halo), los rayos que suben del
-// remolino al portal y las AURORAS (cintas de cubos que ondulan). Todo MeshBasic aditivo y sin niebla (de lejos se ve)
+// F5.29e/f: el final. El PORTAL en el cielo (3 anillos de cubos que giran al revés uno del otro, el remolino de cubos del
+// medio, el centro que brilla y un halo), los rayos que suben del remolino al portal y las AURORAS (cintas de cubos que
+// ondulan), todo en KRAKEN.sky: un grupo que se achica hacia la cámara cuando queda lejos (updateKrakenPortal), así se ve
+// aunque esté mar adentro, más allá de camera.far. F5.29f: las gotas de líquido negro, los rayos que caen (y los
+// agujeros que dejan en el muelle, con tablas que vuelan) y los flashbacks del tablón (los bosses, en MeshBasic)
 function buildKrakenFinale() {
   const K = KRAKEN, W = CONFIG.EE.win, add = (o, parent) => { o.userData.theme = false; (parent || scene).add(o); return o; };
   const glowMat = () => new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
-  K.fire = [];
-  for (let i = 0; i < 14; i++) {
-    const b = new MeshBuilder();
-    for (let k = 0; k < 9; k++) { const a = k * 2.4, rr = 0.4 + (k % 3) * 0.25; b.box(Math.cos(a) * rr, Math.sin(k * 1.7) * 0.4, Math.sin(a) * rr, 0.6, 0.6, 0.6, k < 3 ? 0xffe0a0 : k < 6 ? 0xff7a1a : 0xb03aff); }
-    const m = add(b.mesh(glowMat()), K.arena); m.visible = false; m.matrixAutoUpdate = true;
-    K.fire.push({ m, t: 0, life: 0, s: 1, on: false });
-  }
-  const P = K.portal = add(new THREE.Group());
+  K.sky = add(new THREE.Group());
+  const P = K.portal = add(new THREE.Group(), K.sky);
   K.rings = W.portal.rings.map((R, j) => {
     const b = new MeshBuilder(), n = Math.round(R * 3.2), C = [[0xb05aff, 0x7a2aff], [0xe0a0ff, 0x9a3aff], [0x5a1aff, 0xc86aff]][j];
     for (let i = 0; i < n; i++) {
@@ -23128,26 +23176,101 @@ function buildKrakenFinale() {
   { const b = new MeshBuilder();
     for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; for (let i = 0; i < 24; i++) b.box(Math.cos(a) * 3, i * 1.9, Math.sin(a) * 3, 0.5 + (i % 3) * 0.2, 1.4, 0.5 + (i % 3) * 0.2, i % 2 ? 0xc86aff : 0x7a2aff); }
     for (let i = 0; i < 24; i++) b.box(0, i * 1.9, 0, 1.4, 1.6, 1.4, 0xf0d0ff);
-    K.beams = add(b.mesh(glowMat())); K.beams.matrixAutoUpdate = true; K.beams.visible = false; }
+    K.beams = add(b.mesh(glowMat()), K.sky); K.beams.matrixAutoUpdate = true; K.beams.visible = false; }
   // las auroras: cintas de cubos (un InstancedMesh) que ondulan en el cielo
   { const A = W.aurora, n = A.ribbons * A.per, im = K.aurora = add(new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({
-      transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), n));
+      transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), n), K.sky);
     const col = new THREE.Color(), AC = [0xb05aff, 0x7a2aff, 0x3ad8ff, 0xe06aff, 0x5a3aff];
     for (let i = 0; i < n; i++) { im.setMatrixAt(i, _kZero); col.setHex(AC[Math.floor(i / A.per) % AC.length]); im.setColorAt(i, col); }
     im.frustumCulled = false; im.visible = false; }
+  // F5.29f: el líquido negro que chorrea (gotas: un InstancedMesh; cada una con su posición y velocidad)
+  { const im = K.ooze = add(new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0x07030a, emissive: 0x050208 }), W.drops), K.arena);
+    im.frustumCulled = false;
+    K.drops = [];
+    for (let i = 0; i < W.drops; i++) { im.setMatrixAt(i, _kZero); K.drops.push({ on: false, p: new THREE.Vector3(), v: new THREE.Vector3(), s: 0.3 }); } }
+  // F5.29f: los rayos que caen alrededor (cadenas de cubos en zigzag con ramas; blancos y violetas, sin niebla)
+  K.bolts = [];
+  for (let k = 0; k < 6; k++) {
+    const b = new MeshBuilder(), rr = mulberry(500 + k);
+    let x = 0, z = 0;
+    for (let y = 70; y > 0; y -= 2.5) {
+      const nx = x + (rr() - 0.5) * 3.2, nz = z + (rr() - 0.5) * 3.2, mx = (x + nx) / 2, mz = (z + nz) / 2;
+      b.box(mx, y - 1.25, mz, 0.45, 2.9, 0.45, rr() < 0.7 ? 0xffffff : 0xd8b0ff, Math.atan2(nz - z, 2.5) , 0, -Math.atan2(nx - x, 2.5));
+      if (rr() < 0.18) for (let j = 1; j < 5; j++) b.box(x + j * 0.9 * (k % 2 ? 1 : -1), y - j * 1.4, z + j * 0.5, 0.22, 1.6, 0.22, 0xb07aff);   // rama
+      x = nx; z = nz;
+    }
+    const m = add(b.mesh(glowMat()), K.arena); m.matrixAutoUpdate = true; m.visible = false;
+    K.bolts.push({ m, t: 0 });
+  }
+  // F5.29f: los agujeros que dejan en el muelle (agua oscura, tablas partidas y quemadas, brasas) y las tablas que vuelan
+  K.holes = [];
+  for (let k = 0; k < W.holes; k++) {
+    const b = new MeshBuilder(), rr = mulberry(900 + k);
+    b.box(0, 0.02, 0, 3.0, 0.06, 3.0, 0x0a1820);
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2, R = 1.5 + rr() * 0.3; b.box(Math.cos(a) * R, 0.06, Math.sin(a) * R, 0.5 + rr() * 0.6, 0.12, 0.3, i % 2 ? 0x1a120a : 0x2a1a0c, 0, -a + rr() * 0.6, rr() * 0.5); }
+    for (let i = 0; i < 5; i++) b.box((rr() - 0.5) * 3.4, 0.1, (rr() - 0.5) * 3.4, 0.12, 0.08, 0.12, 0xff6a1a);   // brasas
+    const m = add(b.mesh(new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x080402 })), K.arena); m.matrixAutoUpdate = true; m.visible = false;
+    K.holes.push(m);
+  }
+  K.planks = [];
+  { const pm = new THREE.MeshLambertMaterial({ color: 0x4e3420, emissive: 0x0c0804 });
+    for (let k = 0; k < 16; k++) { const m = add(new THREE.Mesh(new THREE.BoxGeometry(0.9 + (k % 3) * 0.4, 0.14, 0.4), pm), K.arena); m.visible = false; K.planks.push({ m, v: new THREE.Vector3(), on: false }); } }
+  // F5.29f: los flashbacks del tablón: copias de la planta jefa (la cabeza), la Bestia (el cráneo), el Sombrerón y el
+  // Calamarón, en MeshBasic (de noche igual se ven), centradas y del mismo tamaño; y el destello rojo delante de la cámara
+  K.flash = [];
+  // (copia propia: Object3D.clone copia el userData con JSON y el de los bosses tiene referencias circulares; acá solo
+  // la jerarquía visible y las mallas, con material MeshBasic)
+  const copyNode = (o, root) => {
+    if (!o.visible && !root) return null;                               // (la raíz sí: los bosses fuera de juego la tienen escondida)
+    let n;
+    if (o.isMesh && !o.isInstancedMesh && !Array.isArray(o.material)) {
+      const m = o.material;
+      n = new THREE.Mesh(o.geometry, new THREE.MeshBasicMaterial({ color: m.color ? m.color.clone() : new THREE.Color(0xffffff), vertexColors: !!m.vertexColors,
+        map: m.map || null, fog: false, transparent: !!m.transparent, opacity: m.opacity === undefined ? 1 : m.opacity, visible: m.visible !== false }));
+    } else if (o.isMesh || o.isSprite || o.isPoints || o.isLine) return null;
+    else n = new THREE.Group();
+    n.position.copy(o.position); n.quaternion.copy(o.quaternion); n.scale.copy(o.scale);
+    for (const ch of o.children) { const cc = copyNode(ch); if (cc) n.add(cc); }
+    return n;
+  };
+  const copyOf = (src) => {
+    if (!src) return null;
+    const c = copyNode(src, true), g = new THREE.Group();
+    if (!c) return null;
+    c.position.set(0, 0, 0); c.rotation.set(0, 0, 0); c.scale.set(1, 1, 1); g.add(c); c.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(c), size = new THREE.Vector3(), mid = new THREE.Vector3();
+    box.getSize(size); box.getCenter(mid);
+    const s = 1.3 / Math.max(0.01, size.x, size.y, size.z);
+    c.position.copy(mid).multiplyScalar(-s); c.scale.setScalar(s);
+    g.visible = false; add(g);
+    return g;
+  };
+  const sombrero = BOSS.pool.find(z => z.variant === 'sombrero'), calamar = BOSS.pool.find(z => z.variant === 'calamar');
+  for (const src of [typeof PLANTB !== 'undefined' ? PLANTB.head : null, typeof BEAST !== 'undefined' && BEAST.z ? BEAST.z.head : null,
+                     sombrero ? sombrero.root : null, calamar ? calamar.root : null]) {
+    const g = copyOf(src);
+    if (g) K.flash.push(g);
+  }
+  K.flashRed = add(new THREE.Mesh(new THREE.PlaneGeometry(3, 3), new THREE.MeshBasicMaterial({ color: 0x9a0000, transparent: true, opacity: 0, depthTest: false, depthWrite: false, fog: false })));
+  K.flashRed.renderOrder = 999; K.flashRed.visible = false;
 }
-// el portal, los rayos y las auroras en (x, z), con k = 0..1 (abriéndose)
-function krakenPortalAt(x, z, k) {
-  const K = KRAKEN, W = CONFIG.EE.win;
-  K.portal.visible = k > 0; K.portal.position.set(x, W.portal.y, z); K.portal.rotation.set(W.portal.tilt, 0, 0);
+// el portal, los rayos y las auroras en (x, z), con k = 0..1 (abriéndose); y: altura del portal (si no, portal.y)
+function krakenPortalAt(x, z, k, y) {
+  const K = KRAKEN, W = CONFIG.EE.win, py = y === undefined ? W.portal.y : y;
+  K.portal.visible = k > 0; K.portal.position.set(x, py, z); K.portal.rotation.set(W.portal.tilt, 0, 0);
   K.portal.scale.setScalar(Math.max(0.001, k));
-  K.beams.visible = k > 0.3; K.beams.position.set(x, SEA.y, z);
-  K.aurora.visible = k > 0; K.aurora.userData.x = x; K.aurora.userData.z = z; K.aurora.userData.k = k;
+  K.beams.visible = k > 0.3; K.beams.position.set(x, SEA.y, z); K.beams.scale.set(1, (py - SEA.y) / (W.portal.y - SEA.y), 1);
+  K.aurora.visible = k > 0; K.aurora.userData.x = x; K.aurora.userData.z = z; K.aurora.userData.k = k; K.aurora.userData.y = py;
 }
-// gira el portal, late el centro y ondulan las auroras (también después de ganar, sobre la playa)
+// gira el portal, late el centro y ondulan las auroras (también después de ganar, mar adentro). KRAKEN.sky se achica
+// hacia la cámara (homotecia: en pantalla se ve igual) para quedar adentro de camera.far aunque el portal esté lejos
 function updateKrakenPortal(dt, t) {
   const K = KRAKEN, W = CONFIG.EE.win;
   if (!K.portal || !K.portal.visible) return;
+  if (typeof camera !== 'undefined' && camera) {
+    const c = camera.position, d = c.distanceTo(K.portal.position) + 60, s = Math.min(1, Math.max(0.05, (camera.far - 4) / d));
+    K.sky.scale.setScalar(s); K.sky.position.copy(c).multiplyScalar(1 - s);
+  }
   K.rings.forEach((r, j) => { r.rotation.z += dt * (j % 2 ? -0.6 : 0.45) * (1 + j * 0.3); });
   K.vortex.rotation.z -= dt * 1.4;
   const p = 0.85 + 0.15 * Math.sin(t * 2.3);
@@ -23157,26 +23280,70 @@ function updateKrakenPortal(dt, t) {
   for (let r = 0; r < A.ribbons; r++) for (let i = 0; i < A.per; i++) {
     const u = i / (A.per - 1), a = r / A.ribbons * Math.PI * 2 + 0.6, span = 90;
     const x = ud.x + Math.cos(a) * (u - 0.5) * span * k, z = ud.z + Math.sin(a) * (u - 0.5) * span * k - 10;
-    const y = A.y + r * 4 + Math.sin(u * 7 + t * 1.3 + r) * 4 + Math.sin(u * 17 - t * 2.1) * 1.2;
+    const y = A.y + ((ud.y || W.portal.y) - W.portal.y) + r * 4 + Math.sin(u * 7 + t * 1.3 + r) * 4 + Math.sin(u * 17 - t * 2.1) * 1.2;
     const s = (1.6 + Math.sin(u * 11 + t * 3 + r) * 0.6) * k;
     M.makeScale(s, s * (2.2 + Math.sin(u * 5 + t + r) * 1.2), s); M.setPosition(x, y, z);
     im.setMatrixAt(r * A.per + i, M);
   }
   im.instanceMatrix.needsUpdate = true;
 }
-// una bola de fuego en cubos (crece y se apaga)
-function krakenFireball(x, y, z, s) {
-  const F = KRAKEN.fire.find(f => !f.on) || KRAKEN.fire[0];
-  F.on = true; F.t = 0; F.life = 0.7 + Math.random() * 0.4; F.s = s;
-  F.m.visible = true; F.m.position.set(x, y, z); F.m.rotation.set(Math.random() * 3, Math.random() * 3, 0);
+// F5.29f: el líquido negro: una gota sale de (x, y, z) con velocidad (vx, vy, vz)
+function krakenDrop(x, y, z, vx, vy, vz) {
+  const D = KRAKEN.drops.find(d => !d.on);
+  if (!D) return;
+  D.on = true; D.p.set(x, y, z); D.v.set(vx, vy, vz); D.s = 0.25 + Math.random() * 0.45;
 }
-function updateKrakenFire(dt) {
-  for (const F of KRAKEN.fire) {
-    if (!F.on) continue;
-    F.t += dt; const k = F.t / F.life;
-    if (k >= 1) { F.on = false; F.m.visible = false; continue; }
-    F.m.scale.setScalar(F.s * (0.4 + k * 1.6)); F.m.material.opacity = 1 - k * k; F.m.rotation.y += dt * 2;
+// las gotas, los rayos, los agujeros del muelle y las tablas que vuelan (cada frame del final)
+function updateKrakenFinale(dt) {
+  const K = KRAKEN, M = K.m4, seaY = CONFIG.EE.storm.seaY;
+  if (!K.drops) return;
+  let any = false;
+  for (let i = 0; i < K.drops.length; i++) {
+    const D = K.drops[i];
+    if (!D.on) continue;
+    any = true;
+    D.v.y -= 22 * dt; D.p.addScaledVector(D.v, dt);
+    if (D.p.y < seaY) { D.on = false; K.ooze.setMatrixAt(i, _kZero); continue; }
+    M.makeScale(D.s, D.s * (1.5 + Math.min(2.5, -D.v.y * 0.08)), D.s); M.setPosition(D.p.x, D.p.y, D.p.z);
+    K.ooze.setMatrixAt(i, M);
   }
+  if (any || K.oozeDirty) { K.ooze.instanceMatrix.needsUpdate = true; K.oozeDirty = any; }
+  for (const B of K.bolts) if (B.m.visible) { B.t -= dt; B.m.material.opacity = Math.random() < 0.5 ? 1 : 0.4; if (B.t <= 0) B.m.visible = false; }
+  for (const Pk of K.planks) if (Pk.on) {
+    Pk.v.y -= 20 * dt; Pk.m.position.addScaledVector(Pk.v, dt); Pk.m.rotation.x += dt * 6; Pk.m.rotation.z += dt * 4;
+    if (Pk.m.position.y < seaY) { Pk.on = false; Pk.m.visible = false; }
+  }
+}
+// un rayo cae en (x, z): el destello del cielo y el trueno, y si es el muelle lo rompe (agujero, tablas, astillas)
+function krakenBolt(x, z, breakIt) {
+  const K = KRAKEN, B = K.bolts.find(b => !b.m.visible) || K.bolts[0];
+  B.m.visible = true; B.t = 0.28; B.m.position.set(x, 0, z); B.m.rotation.y = Math.random() * 6.28;
+  lightning();
+  addTrauma(0.35);
+  if (breakIt && inArena(x, z)) {
+    const H = K.holes.find(h => !h.visible);
+    if (H) { H.visible = true; H.position.set(x, 0, z); H.rotation.y = Math.random() * 6.28; }
+    for (let k = 0; k < 4; k++) {
+      const Pk = K.planks.find(p => !p.on);
+      if (!Pk) break;
+      const a = Math.random() * 6.28;
+      Pk.on = true; Pk.m.visible = true; Pk.m.position.set(x, 0.3, z); Pk.v.set(Math.cos(a) * (3 + Math.random() * 5), 8 + Math.random() * 8, Math.sin(a) * (3 + Math.random() * 5));
+    }
+    if (typeof spawnSplashFx === 'function') spawnSplashFx(x, 0.4, z, 0x6a4a2a, 2.2);
+  } else if (typeof spawnSplashFx === 'function') spawnSplashFx(x, CONFIG.EE.storm.seaY, z, 0x9fd4e6, 2.5);
+}
+// un lugar del muelle al azar (para los rayos)
+function krakenDeckSpot() {
+  const A = CONFIG.EE.arena, R = A.rects[Math.floor(Math.random() * (A.rects.length - 1))];
+  return [A.x + R[0] + 1.5 + Math.random() * (R[1] - R[0] - 3), A.z + R[2] + 1.5 + Math.random() * (R[3] - R[2] - 3)];
+}
+// F5.29f: el grito (Diego: la muerte de la planta carnívora del templo junto con la muerte del 2do boss, aterrador); sin
+// las muestras, el rugido procedural
+function sfxKrakenScream(vol) {
+  const v = vol || 1;
+  const a = typeof playSample === 'function' && playSample('muerte_de_planta_carnivora_en_templo', { vol: v, rate: 0.82 });
+  const b = typeof playSample === 'function' && playSample('muerte_del_2do_boss', { vol: v * 0.9, rate: 0.9 });
+  if (!a && !b && typeof sfxGiantRoar === 'function') sfxGiantRoar();
 }
 // F5.29e: un sonido para el portal: un brillo que sube (arpegio con eco) y un zumbido grave
 function sfxKrakenPortal() {
@@ -23250,8 +23417,8 @@ function eeNear(room, px, pz, bd, lvl) {
     if (F.mount >= 0) take(0, { k: 'dismount' });
     else KRAKEN.harps.forEach((h, i) => take(Math.hypot(px - h.sx, pz - h.sz) < E.fight.harpoonUse ? 0.1 : 99, { k: 'harpoon', i }));
     const A = E.arena; take(Math.hypot(px - (A.x + A.boat[0]), pz - (A.z + A.boat[1])) < E.fight.boatUse ? 0.1 : 99, { k: 'boat' });
-    // F5.29d: la mesa: con las 4 granadas moradas, atarlas a la Ola
-    if (F.phase === 3 && F.charges >= 4 && !F.loaded && !F.shot && F.chargeBack <= 0 && !F.dying)
+    // F5.29d: la mesa: con los 4 huevos, atarlos a la Ola (F5.29f: manteniendo F, ver updateKraken)
+    if (F.phase === 3 && F.charges >= 4 && !F.loaded && !F.shot && !F.dying)
       take(Math.hypot(px - (A.x + A.table[0]), pz - (A.z + A.table[1])) < E.fight.tableUse ? 0.1 : 99, { k: 'craft' });
   }
   return best;
@@ -23275,7 +23442,7 @@ function eeUse(t) {
   if (t.k === 'membrane') { eeStartFight(); return true; }
   if (t.k === 'harpoon') { return krakenMount(t.i); }
   if (t.k === 'dismount') { krakenDismount(); return true; }
-  if (t.k === 'craft') { return krakenCraft(); }
+  if (t.k === 'craft') { return true; }                                  // (F5.29f: se arma manteniendo F: updateKraken)
   if (t.k === 'boat') { if (EE.fight.boat <= 0) EE.fight.boat = E.fight.boat; return true; }
   return false;
 }
@@ -23343,9 +23510,9 @@ function eeStartFight() {
   EE.fight = { phase: 1, t: 0, cuts: 0, eyeHits: 0, slamT: 3, floorT: 7, squidT: 6, inkT: 8, drownT: E.fight.drowned.first,
                mouthT: 0, mouthOpen: false, lunge: 0, boat: 0, flinch: 0, noWound: 0, eyeOpen: false, eyeT: 0,
                mount: -1, mountT: 0, mountFloor: false, helper: 0, helpers: 0, fails: 0,
-               // F5.29d, fase 3: los bosses de las granadas (cola, los que salieron), granadas juntadas, la carga en la Ola,
-               // la carga volando, cuándo vuelve a la mesa, y la muerte (explota de a poco)
-               p3: null, charges: 0, loaded: false, shot: null, chargeBack: 0, dying: null };
+               // F5.29d, fase 3: los bosses de los huevos (cola, los que salieron), huevos juntados, la carga en la Ola, la
+               // carga volando y la muerte
+               p3: null, charges: 0, loaded: false, shot: null, dying: null };
   krakenClear();
   const [kx, kz] = krakenHome();
   KRAKEN.arena.visible = true; KRAKEN.g.position.set(kx, -40, kz); KRAKEN.g.rotation.set(0, 0, 0);
@@ -23518,7 +23685,11 @@ function krakenP3Spawn(v) {
   const sp = krakenEdgeSpot(9, 28);
   if (!sp) return null;
   let z = null;
-  if (v === 'bestia') { const was = BEAST.phase; if (beastAwakeAt(sp[0], sp[1])) { z = BEAST.z; EE.fight.beastWas = was; } }
+  if (v === 'bestia') {
+    const was = BEAST.phase;
+    // (la primera vez guarda cómo estaba antes de la pelea: dormida o muerta; si vuelve a salir, no lo pisa)
+    if (beastAwakeAt(sp[0], sp[1])) { z = BEAST.z; if (EE.fight.beastWas === undefined) EE.fight.beastWas = was; }
+  }
   else {
     const before = BOSS.pool.filter(q => q.variant === v && q.active);
     if (spawnBoss(v, { x: sp[0], z: sp[1] })) z = BOSS.pool.find(q => q.variant === v && q.active && q.alive && before.indexOf(q) < 0) || null;
@@ -23814,40 +23985,61 @@ function krakenClear() {
   for (let i = state.zombies.length - 1; i >= 0; i--) if (!state.zombies[i].active) state.zombies.splice(i, 1);
   if (typeof UI !== 'undefined' && UI.boss && UI.boss.style) UI.boss.style.display = 'none';
 }
-// ganar (F5.29e): la cinemática, en 4 tomas (EE.cine.stage):
-//  blast: la cámara da la vuelta alrededor del Kraken mientras explota de a poco (cada vez más seguido): bolas de fuego en
-//         cubos, grietas que se prenden, pedazos que saltan, el ojo que se apaga, se sacude y se va hundiendo;
-//  boom:  la gran explosión (vuelan los pedazos grandes, relámpago) y se va al fondo;
+// ganar (F5.29e/f): la cinemática, en 4 tomas (EE.cine.stage):
+//  blast: la agonía. La cámara da la vuelta alrededor del Kraken: abre la boca gritando, chorrea líquido negro (de la
+//         boca y por todo el cuerpo), le saltan pedazos de a poco (cada vez más seguido), sacude los tentáculos
+//         desesperado y caen rayos alrededor que rompen el muelle; el ojo se apaga; se va hundiendo;
+//  boom:  el último golpe: una lluvia de rayos, vuelan los pedazos que quedan y se va al fondo;
 //  whirl: desde arriba: el remolino se abre y se lo traga; la cámara sube la vista al cielo, donde se abre el PORTAL
 //         cúbico morado con las auroras y los rayos que suben del remolino;
-//  swim:  el tablón hacia la playa (mirás para atrás un momento: el remolino y el portal).
+//  swim:  el tablón hacia la playa, con los flashbacks (screamers de los bosses); mirás para atrás un momento.
 function krakenWin() {
   const F = EE.fight;
   if (!F || EE.cine) return;
   const [kx, kz] = krakenHome();
-  EE.cine = { t: 0, stage: 'blast', x: player.pos.x, y: player.pos.y, z: player.pos.z, boom: false, sx: 0, sz: 0, next: 0,
-              a0: Math.atan2(player.pos.x - kx, player.pos.z - kz), cracks: 0 };
+  EE.cine = { t: 0, stage: 'blast', x: player.pos.x, y: player.pos.y, z: player.pos.z, boom: false, sx: 0, sz: 0, next: 0, bolt: 0.3,
+              scream: 0, a0: Math.atan2(player.pos.x - kx, player.pos.z - kz), cracks: 0, nb: 0, flash: -1, flashT: 0 };
   krakenDismount();
   krakenClear();
   KRAKEN.whirl.position.set(kx, CONFIG.EE.storm.seaY + 0.1, kz); KRAKEN.whirl.scale.setScalar(0.01); KRAKEN.whirl.visible = false;
-  KRAKEN.mouth.scale.setScalar(2.3);
-  if (typeof sfxGiantRoar === 'function') sfxGiantRoar();
+  KRAKEN.mouth.scale.setScalar(2.8);
+  // los 4 tentáculos de ataque se levantan y se sacuden (krakenFlailPose), cada uno hacia un lado
+  KRAKEN.tents.forEach((T, i) => {
+    const a = (i - 1.5) * 0.9 + Math.PI, br = CONFIG.EE.arena.scale * 0.85;
+    T.state = 'flail'; T.t = i * 0.7;
+    T.bx = kx + Math.sin(a) * br; T.bz = kz + Math.cos(a) * br; T.tx = kx + Math.sin(a) * (br + 18); T.tz = kz + Math.cos(a) * (br + 18);
+  });
+  sfxKrakenScream(1);
   addTrauma(0.8);
 }
-// una explosión de la muerte: en un lugar del cuerpo, bola de fuego, salpicadura, a veces un pedazo que salta
-function krakenBlastFx(big) {
-  const K = KRAKEN, g = K.g.position, sc = CONFIG.EE.arena.scale, a = (Math.random() - 0.5) * 2.4;
-  const x = g.x + Math.sin(a) * 0.65 * sc, y = g.y + (0.4 + Math.random() * 2.8) * sc, z = g.z + Math.cos(a) * 0.62 * sc;
-  krakenFireball(x, y, z, big ? 9 : 3 + Math.random() * 3);
-  if (typeof spawnSplashFx === 'function') spawnSplashFx(x, y, z, Math.random() < 0.5 ? 0xff5a10 : 0x9a1010, big ? 8 : 3);
-  if (typeof sfxExplosion === 'function') sfxExplosion();
-  const C = K.chunks.find(c => !c.on);
-  if (C && Math.random() < 0.5) {
-    C.on = true; C.m.visible = true; C.m.position.set(x, y, z);
-    C.v.set(Math.sin(a) * (6 + Math.random() * 8), 8 + Math.random() * 10, Math.cos(a) * (6 + Math.random() * 8));
+// los tentáculos que se sacuden desesperados (levantados, ondulando rápido y de lado a lado)
+function krakenFlailPose(T, t, sink) {
+  const n = T.n, pts = _kPts, F = CONFIG.EE.fight, [w0, w1] = F.thick;
+  const sw = Math.sin(t * 3.1 + T.k * 2) * 0.9;
+  for (let i = 0; i < n; i++) {
+    const u = i / (n - 1), ou = u * 0.85;
+    const x = T.bx + (T.tx - T.bx) * ou, z = T.bz + (T.tz - T.bz) * ou;
+    const lat = Math.sin(t * 7 + u * 5 + T.k) * 4 * u + sw * 6 * u * u;              // de lado a lado
+    const dx = T.tz - T.bz, dz = -(T.tx - T.bx), dl = Math.hypot(dx, dz) || 1;
+    const y = -2 - sink + (F.lift + 4) * Math.sin(Math.PI * 0.5 * Math.min(1, u * 1.2)) + Math.sin(t * 9 + u * 8) * 1.4 * u - (u > 0.8 ? (u - 0.8) * 18 : 0);
+    pts[i].set(x + dx / dl * lat, y, z + dz / dl * lat);
   }
+  krakenSegs(T.i0, n, w0, w1);
 }
-// la gran explosión: vuelan todos los pedazos que quedan, varias bolas de fuego, relámpago
+// un pedazo que le salta (carne con lo negro), y el líquido que sale de ahí
+function krakenPiece(big) {
+  const K = KRAKEN, g = K.g.position, sc = CONFIG.EE.arena.scale, a = (Math.random() - 0.5) * 2.6;
+  const x = g.x + Math.sin(a) * 0.65 * sc, y = g.y + (0.4 + Math.random() * 2.8) * sc, z = g.z + Math.cos(a) * 0.62 * sc;
+  const C = K.chunks.find(c => !c.on);
+  if (C) {
+    C.on = true; C.m.visible = true; C.m.position.set(x, y, z);
+    C.v.set(Math.sin(a) * (6 + Math.random() * 8), 6 + Math.random() * 10, Math.cos(a) * (6 + Math.random() * 8));
+  }
+  for (let k = 0; k < (big ? 14 : 6); k++) krakenDrop(x, y, z, Math.sin(a) * (2 + Math.random() * 4) + (Math.random() - 0.5) * 2, Math.random() * 4, Math.cos(a) * (2 + Math.random() * 4));
+  if (typeof spawnSplashFx === 'function') spawnSplashFx(x, y, z, 0x14060f, big ? 4 : 2);
+  if (typeof sfxBoardTear === 'function') sfxBoardTear();
+}
+// el último golpe: una lluvia de rayos, vuelan los pedazos que quedan, el grito
 function krakenBoom() {
   const K = KRAKEN, g = K.g.position, sc = CONFIG.EE.arena.scale;
   K.chunks.forEach((C, i) => {
@@ -23856,11 +24048,10 @@ function krakenBoom() {
     C.on = true; C.m.visible = true; C.m.position.set(g.x + Math.sin(a) * 3, g.y + (1.5 + (i % 3) * 0.6) * sc, g.z + Math.cos(a) * 3);
     C.v.set(Math.sin(a) * (10 + i), 16 + (i % 4) * 6, Math.cos(a) * (10 + i));
   });
-  for (let k = 0; k < 6; k++) krakenFireball(g.x + (Math.random() - 0.5) * 10, g.y + (1 + Math.random() * 2.5) * sc, g.z + (Math.random() - 0.5) * 10, 8 + Math.random() * 6);
-  if (typeof spawnSplashFx === 'function') { spawnSplashFx(g.x, g.y + 2.8 * sc, g.z, 0xff3a10, 10); spawnSplashFx(g.x, CONFIG.EE.storm.seaY, g.z, 0x9fd4e6, 12); }
-  if (typeof sfxExplosion === 'function') { sfxExplosion(); sfxExplosion(); }
-  if (typeof sfxGiantRoar === 'function') sfxGiantRoar();
-  lightning();
+  for (let k = 0; k < 4; k++) { const [x, z] = krakenDeckSpot(); krakenBolt(x, z, true); }
+  for (let k = 0; k < 30; k++) { const a = Math.random() * 6.28; krakenDrop(g.x + Math.sin(a) * 4, g.y + 2 * sc, g.z + Math.cos(a) * 4, Math.sin(a) * 8, 6 + Math.random() * 8, Math.cos(a) * 8); }
+  if (typeof spawnSplashFx === 'function') spawnSplashFx(g.x, CONFIG.EE.storm.seaY, g.z, 0x9fd4e6, 12);
+  sfxKrakenScream(1.2);
   addTrauma(1);
 }
 function krakenAfterWin() {
@@ -23871,7 +24062,12 @@ function krakenAfterWin() {
   if (typeof setFog === 'function' && typeof SETTINGS !== 'undefined') setFog(SETTINGS.fog);
   KRAKEN.whirl.position.set(W.whirl[0], 0, W.whirl[1]); KRAKEN.whirl.scale.setScalar(1); KRAKEN.whirl.visible = true;
   // el portal queda en el cielo, sobre el remolino de la playa (la pista del mapa que viene)
-  krakenPortalAt(W.whirl[0], W.whirl[1], 1); KRAKEN.beams.position.y = 0;
+  // (F5.29f, Diego: "que esas luces se vean pero mar adentro"): lejos y alto; KRAKEN.sky lo acerca a la cámara para que se vea
+  krakenPortalAt(W.portalSea[0], W.portalSea[1], 1, W.portalSeaY);
+  for (const f of KRAKEN.flash) f.visible = false;
+  KRAKEN.flashRed.visible = false;
+  // F5.29f: el trofeo del perfil: un huevo de calamar por cada vez que se termina el easter egg
+  PROFILE.krakenEggs = (PROFILE.krakenEggs | 0) + 1;
   if (KRAKEN.debris) KRAKEN.debris.visible = true;
   setSky(Math.max(1, state.round));
   // lo que queda de la ronda es de día (cielo morado y azul brillante); la ronda que viene vuelve a su cielo
@@ -23958,6 +24154,18 @@ function updateKraken(dt) {
     if (m.material.map) m.material.map.offset.y = (t * 0.15) % 1;
     m.material.opacity = (EE.lure && EE.calm ? 0.85 : 0.7) + 0.06 * Math.sin(t * 2);
   }
+  // F5.29f: atar los huevos a la Ola: mantener F en la mesa craftTime s (con la barra y la animación de construir)
+  { const it = typeof interactState !== 'undefined' ? interactState : null, U = typeof UI !== 'undefined' ? UI : null;
+    const on = !!EE.fight && it && it.kind === 'ee' && it.target && it.target.k === 'craft' && keys['KeyF'];
+    if (on) {
+      EE.craftT += dt;
+      if (U && U.craft) { U.craft.style.opacity = '1'; U.craftBar.style.width = (100 * Math.min(1, EE.craftT / E.fight.craftTime)).toFixed(1) + '%'; }
+      if (EE.craftT >= E.fight.craftTime) {
+        EE.craftT = 0; if (U && U.craft) U.craft.style.opacity = '0';
+        if (krakenCraft() && typeof voice === 'function') voice('audio_personaje_al_construir_wonder_weapon', 1, 0);
+      }
+    } else if (EE.craftT > 0) { EE.craftT = 0; if (U && U.craft) U.craft.style.opacity = '0'; }
+  }
   // viajes que terminan (el castigo, la vuelta de la victoria)
   if (EE.travelTo && !(BUNK.fadeT > 0)) {
     const T = EE.travelTo; EE.travelTo = null;
@@ -23968,7 +24176,7 @@ function updateKraken(dt) {
   if (KRAKEN.whirl.visible) KRAKEN.whirl.rotation.y -= dt * 0.9;
   if (EE.won && EE.skyK < 1) { EE.skyK = Math.min(1, EE.skyK + dt / 4); NIGHT.dirty = true; }
   if (KRAKEN.arena.visible) updateKrakenSea(t);
-  updateKrakenFire(dt);                                                  // F5.29e: las bolas de fuego del final
+  updateKrakenFinale(dt);                                                // F5.29f: gotas negras, rayos, agujeros y tablas del final
   updateKrakenPortal(dt, t);                                             // F5.29e: el portal y las auroras (quedan después de ganar)
   if (EE.fight || EE.cine) updateKrakenFight(dt, t);
 }
@@ -24010,30 +24218,46 @@ function updateKrakenFight(dt, t) {
         T.parts[2].rotation.z = 0.6 + 0.8 * Math.sin(t * 9 + T.ph);
       }
       if (CI.stage === 'blast') {
-        // explota de a poco: cada vez más seguido; se prenden las grietas; el ojo titila y se apaga; se va hundiendo
+        // F5.29f, la agonía: la boca abierta gritando, el líquido negro que chorrea (de la boca y por los chorreones que se
+        // van sumando), pedazos que saltan cada vez más seguido, los tentáculos sacudiéndose y los rayos que rompen el muelle
         const u = Math.min(1, CI.t / W.blast);
-        if ((CI.next -= dt) <= 0) { CI.next = W.blastEvery[0] + (W.blastEvery[1] - W.blastEvery[0]) * u; krakenBlastFx(false); CI.nb = (CI.nb || 0) + 1; }
+        if ((CI.next -= dt) <= 0) { CI.next = W.pieceEvery[0] + (W.pieceEvery[1] - W.pieceEvery[0]) * u; krakenPiece(false); CI.nb++; }
+        if ((CI.bolt -= dt) <= 0) {
+          CI.bolt = W.boltEvery[0] + (W.boltEvery[1] - W.boltEvery[0]) * u;
+          const [x, z] = Math.random() < 0.75 ? krakenDeckSpot() : [kx + (Math.random() - 0.5) * 40, kz + (Math.random() - 0.5) * 30];
+          krakenBolt(x, z, true);
+        }
+        if ((CI.scream -= dt) <= 0) { CI.scream = W.screamEvery; sfxKrakenScream(0.9); }
         const want = Math.floor(u * W.cracks);
         for (; CI.cracks < want; CI.cracks++) K.cracks.setMatrixAt(CI.cracks, K.crackM[CI.cracks]);
         K.cracks.instanceMatrix.needsUpdate = true;
-        g.position.y -= dt * (0.4 + u * 1.2); g.rotation.z = Math.sin(t * 23) * (0.02 + u * 0.05); g.rotation.x = Math.sin(t * 17) * 0.03 * (1 + u);
+        // de la boca sale un chorro negro
+        { const m = krakenMouth(K.v), h = g.rotation.y;
+          for (let k = 0; k < 3; k++) krakenDrop(m.x + (Math.random() - 0.5) * 2, m.y, m.z + (Math.random() - 0.5) * 2, Math.sin(h) * (3 + Math.random() * 3), -1 + Math.random() * 2, Math.cos(h) * (3 + Math.random() * 3)); }
+        g.position.y -= dt * (0.3 + u * 0.9); g.rotation.z = Math.sin(t * 23) * (0.02 + u * 0.05); g.rotation.x = Math.sin(t * 17) * 0.03 * (1 + u);
         K.eyeHalo.material.opacity = Math.random() < 0.3 + u * 0.5 ? 0.05 : 0.9 * (1 - u * 0.7);
         K.lid.scale.y = 0.3 + Math.random() * 0.4; K.lid.position.y = (1 - K.lid.scale.y) * 0.25;
-        K.mouthHalo.material.opacity = 0.7 + 0.3 * Math.random();
+        K.mouth.scale.setScalar(2.6 + Math.sin(t * 13) * 0.25); K.mouthHalo.material.opacity = 0.35 + 0.2 * Math.random();
+        for (const T of K.tents) if (T.state === 'flail') krakenFlailPose(T, t + T.t, 0);
         orbit(u * 0.8, 0.15 + u * 0.6);
         camera.lookAt(kx, g.position.y + 16, kz);
         if (u >= 1) { CI.stage = 'boom'; CI.t = 0; krakenBoom(); K.whirl.visible = true; K.whirl.scale.setScalar(0.3); }
         return;
       }
       if (CI.stage === 'boom') {
-        // la gran explosión: se va al fondo; el remolino empieza a abrirse
+        // el último golpe: se va al fondo con los tentáculos; el remolino empieza a abrirse
         const u = Math.min(1, CI.t / W.boomT);
         g.position.y -= dt * 14; g.rotation.y += dt * 0.8;
         K.eyeHalo.material.opacity = 0;
+        for (const T of K.tents) if (T.state === 'flail') krakenFlailPose(T, t + T.t, u * 20);
+        if (Math.random() < dt * 4) { const [x, z] = krakenDeckSpot(); krakenBolt(x, z, true); }
         K.whirl.scale.setScalar(0.3 + u * 0.9); K.whirl.rotation.y -= dt * 3;
         orbit(0.8 + u * 0.15, 1.2 * (1 - u) + 0.3);
         camera.lookAt(kx, Math.max(2, g.position.y + 16), kz);
-        if (u >= 1) { CI.stage = 'whirl'; CI.t = 0; CI.cx = camera.position.x; CI.cy = camera.position.y; CI.cz = camera.position.z; }
+        if (u >= 1) {
+          CI.stage = 'whirl'; CI.t = 0; CI.cx = camera.position.x; CI.cy = camera.position.y; CI.cz = camera.position.z;
+          for (const T of K.tents) krakenTentOff(T);
+        }
         return;
       }
       // whirl: desde arriba se ve cómo se lo traga el remolino; después la vista sube al cielo: se abre el portal
@@ -24071,6 +24295,24 @@ function updateKrakenFight(dt, t) {
     camera.position.set(px, py, pz);
     // (mirando para atrás se levanta un poco la vista: el remolino abajo y el portal en el cielo)
     camera.lookAt(tx, SEA.y + 0.6 - 0.2 * (1 - wl) + 12 * wl, tz);
+    // F5.29f, los flashbacks (Diego: "como screamers, muy cortos, con gritos"): en cada flashes[i] del viaje, flashT s con
+    // la cara de un boss (planta, Bestia, Sombrerón, Calamarón) encima de la cámara, el destello rojo, el grito y el sacudón
+    { const i = W.flashes.findIndex(f => u >= f && u < f + 0.05);
+      if (i >= 0 && CI.flash < i && K.flash.length) { CI.flash = i; CI.flashT = W.flashT; sfxKrakenScream(1.3); }
+      const on = CI.flashT > 0, G = on ? K.flash[CI.flash % K.flash.length] : null;
+      for (const f of K.flash) f.visible = f === G;
+      K.flashRed.visible = on;
+      if (on) {
+        CI.flashT -= dt;
+        const fw = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion), k = CI.flashT / W.flashT;
+        camera.position.x += (Math.random() - 0.5) * 0.25; camera.position.y += (Math.random() - 0.5) * 0.25;
+        G.position.copy(camera.position).addScaledVector(fw, 0.85 + (1 - k) * 0.2); G.quaternion.copy(camera.quaternion);
+        G.rotation.z += (Math.random() - 0.5) * 0.15;
+        K.flashRed.position.copy(camera.position).addScaledVector(fw, 0.3); K.flashRed.quaternion.copy(camera.quaternion);
+        K.flashRed.material.opacity = 0.35 + 0.35 * Math.random();
+        if (CI.flashT <= 0) { G.visible = false; K.flashRed.visible = false; }
+      }
+    }
     if (u >= 1) {
       // en la playa, mirando el remolino
       const W2 = W.whirl, gy = groundY(bx, bz);
@@ -24254,7 +24496,8 @@ function updateKrakenFight(dt, t) {
   { const s = curSlot(), M = typeof weaponsState !== 'undefined' ? weaponsState.model : null, want = F.loaded && !!s && s.id === 'wave' && !!M;
     if (want && K.bundle.parent !== M) M.add(K.bundle);
     else if (!want && K.bundle.parent) K.bundle.parent.remove(K.bundle); }
-  // la carga volando: a la boca abierta (lo mata), o al cuerpo / al agua (fallo: vuelve a la mesa en chargeBack s)
+  // la carga volando: a la boca abierta (lo mata), o al cuerpo / al agua (fallo: F5.29f, se pierde y vuelven a salir los 4
+  // bosses de los huevos)
   if (F.shot) {
     const S = F.shot; S.t += dt; S.v.y -= FC.chargeGrav * dt; S.p.addScaledVector(S.v, dt);
     K.chargeM.position.copy(S.p); K.chargeM.rotation.x += dt * 5; K.chargeM.rotation.y += dt * 3;
@@ -24266,11 +24509,11 @@ function updateKrakenFight(dt, t) {
       krakenDying();
     } else if (inBody || S.p.y < E.storm.seaY || S.t > 4) {
       if (typeof spawnSplashFx === 'function') spawnSplashFx(S.p.x, Math.max(S.p.y, E.storm.seaY), S.p.z, 0x9a3aff, 2.5);
-      F.shot = null; K.chargeM.visible = false; F.chargeBack = FC.chargeBack;
+      F.shot = null; K.chargeM.visible = false; F.charges = 0;
+      if (F.p3) { F.p3.queue = FC.p3Bosses.slice(); F.p3.t = 2; }
       krakenFail();
     }
   }
-  if (F.chargeBack > 0) F.chargeBack = Math.max(0, F.chargeBack - dt);
   // el bote: F y quedarte cerca boat s
   if (F.boat > 0) {
     const bx = A.x + A.boat[0], bz = A.z + A.boat[1];
@@ -24300,7 +24543,7 @@ function resetKraken() {
   if (EE.storm) eeStorm(false);
   else if (wasCine && typeof setFog === 'function' && typeof SETTINGS !== 'undefined') setFog(SETTINGS.fog);
   Object.assign(EE, { step: 0, hasSeed: false, plantDead: false, beastDead: false, seed: null, lure: false, calm: false, lureBackRound: 0,
-    fight: null, cine: null, won: false, skyK: 0, travelTo: null, debugHp: false });
+    fight: null, cine: null, won: false, skyK: 0, travelTo: null, debugHp: false, craftT: 0 });
   Object.assign(EE.tele, { state: 'off', t: 0, out: 0 });
   Object.assign(EE.trial, { n: 0, state: 'off', t: 0, lit: [false, false, false] });
   Object.assign(C, { state: 'off', boss: null, t: 0, cd: 0, doorK: 0, shut: 0 });
@@ -24319,7 +24562,15 @@ function resetKraken() {
   for (const Ch of KRAKEN.chunks) { Ch.on = false; Ch.m.visible = false; }
   // F5.29e: el final (portal, auroras, rayos, bolas de fuego, grietas)
   KRAKEN.portal.visible = false; KRAKEN.aurora.visible = false; KRAKEN.beams.visible = false;
-  for (const Fb of KRAKEN.fire) { Fb.on = false; Fb.m.visible = false; }
+  // F5.29f: el líquido negro, los rayos, los agujeros del muelle, las tablas y los flashbacks
+  for (let i = 0; i < KRAKEN.drops.length; i++) { KRAKEN.drops[i].on = false; KRAKEN.ooze.setMatrixAt(i, _kZero); }
+  KRAKEN.ooze.instanceMatrix.needsUpdate = true;
+  for (const B of KRAKEN.bolts) B.m.visible = false;
+  for (const H of KRAKEN.holes) H.visible = false;
+  for (const Pk of KRAKEN.planks) { Pk.on = false; Pk.m.visible = false; }
+  for (const f of KRAKEN.flash) f.visible = false;
+  KRAKEN.flashRed.visible = false;
+  KRAKEN.sky.scale.setScalar(1); KRAKEN.sky.position.set(0, 0, 0);
   for (let i = 0; i < KRAKEN.crackM.length; i++) KRAKEN.cracks.setMatrixAt(i, _kZero);
   KRAKEN.cracks.instanceMatrix.needsUpdate = true;
   KRAKEN.g.rotation.set(0, 0, 0);
@@ -24596,6 +24847,7 @@ function renderProfilePanel() {
     '<span>Next unlock</span><span>' + (next.length ? next[0][1] + ' (level ' + next[0][0] + ')' : 'Everything unlocked') + '</span>' +
     '<span>' + CONFIG.GUMS.currency + '</span><span>' + (DEV.on ? '∞' : PROFILE.ink) + '</span>' +
     '<span>Double XP tokens</span><span>' + (PROFILE.xp2 | 0) + (PROFILE.xp2On ? ' (one active now)' : '') + '</span></div>' +
+    krakenEggHTML() +                                  // F5.29f: el trofeo del easter egg
     passTrackHTML(L) +                                 // F5.27: el pase del 1 al 100
     bossPlatesHTML();                                  // F5.26: placas por boss (1, 5 y 25 kills)
   const inp = document.getElementById('profName'), on = (id, ev, f) => { const e = document.getElementById(id); if (e && e.addEventListener) e.addEventListener(ev, f); };
@@ -24606,6 +24858,17 @@ function renderProfilePanel() {
   on('devMax', 'click', () => { devMaxAccount(); renderProfilePanel(); renderProfileMini(); });
   const tr = document.getElementById('passTrack');                   // F5.27: la tira arranca en tu nivel
   if (tr && tr.querySelector) { const cur = tr.querySelector('.cur'); if (cur) tr.scrollLeft = Math.max(0, cur.offsetLeft - 160); }
+}
+// F5.29f (Diego: "que completar el easter egg me agregue un huevo de calamar como trofeo en mi perfil"): solo de muestra;
+// un huevo morado en cubos (CSS) con la cuenta, o nada si todavía no lo terminaste
+function krakenEggHTML() {
+  const n = PROFILE.krakenEggs | 0;
+  if (!n) return '';
+  const egg = '<i style="display:inline-block;width:22px;height:30px;border-radius:9px 9px 8px 8px;background:' +
+    'linear-gradient(180deg,#a04aff,#7a2aff 55%,#4a12bf);box-shadow:0 0 12px #9a3aff;vertical-align:middle;margin-right:10px;' +
+    'position:relative"><b style="position:absolute;left:9px;top:11px;width:7px;height:9px;background:#2a0a4a"></b></i>';
+  return '<div class="eggtrophy" style="margin:10px 0;padding:8px 12px;border:1px solid #6a2aaa;background:rgba(60,10,90,.35);letter-spacing:2px">' +
+    egg + '<b>KRAKEN EGG</b>' + (n > 1 ? ' ×' + n : '') + ' <span class="dim">· THE KRAKEN easter egg completed</span></div>';
 }
 // F5.27: el pase estilo Fortnite: una casilla por nivel (1..maxLevel) con lo que da: tinta, camo (con su color) o XP doble.
 // Las que ya pasaste, marcadas; la tuya, resaltada. Lo que no da nada queda como un casillero vacío con la XP que pide

@@ -1260,12 +1260,14 @@ const CONFIG = {
     // Fase 2: el ojo se abre en ventanas cortas (eyeOpen s abierto, eyeClosed s cerrado); un arponazo te baja del cañón.
     // Fase 3 (en lugar del cebo y la panza): salen del mar p3Bosses (de a p3Alive, cada p3Every s) y cada uno suelta una
     // GRANADA MORADA (se agarra a orbPick m; si cae afuera del muelle, vuela a orbFly m/s hasta delante de la mesa); con las 4, en la mesa (tableUse m) se atan a la Ola Rompiente; esa carga
-    // (chargeSpeed m/s, chargeGrav) a la boca abierta lo mata (la cinemática: win.blast). Si erra, la carga vuelve a la mesa
-    // en chargeBack s
+    // (chargeSpeed m/s, chargeGrav) a la boca abierta lo mata (la cinemática: win.blast). F5.29f: los "granadas" son HUEVOS
+    // DE CALAMAR; si la carga erra, se pierde y vuelven a salir los 4 bosses
     fight: { time: 420,
              woundChance: 0.4, woundMax: 4, eyeOpen: 2.4, eyeClosed: 3.6,
              p3Bosses: ['sombrero', 'sombrero', 'calamar', 'bestia'], p3Alive: 2, p3Every: 4, orbPick: 1.8, orbFly: 7, tableUse: 2.2,
-             chargeSpeed: 32, chargeGrav: 5, chargeBack: 8, slamEvery: [4.5, 6.5], slowK: 1.6, maxDown: 2, warn: 2.2, fall: 0.5, stay: 8, up: 1.2, lift: 15,
+             // F5.29f: atar los huevos a la Ola se hace manteniendo F craftTime s (con la animación de construir); errar la
+             // carga la pierde y vuelven a salir los 4 bosses
+             chargeSpeed: 32, chargeGrav: 5, craftTime: 2.5, slamEvery: [4.5, 6.5], slowK: 1.6, maxDown: 2, warn: 2.2, fall: 0.5, stay: 8, up: 1.2, lift: 15,
              thick: [3.4, 1.1], floorThick: [2.4, 0.8],
              slamW: 1.6, slamDmg: 60, push: 9, reach: 2.5, segs: 24, boxes: 14, boxStep: 1.5, suckerHP: 3000, cuts: 4,
              floorEvery: [8, 11], mountGrace: 3, floorWarn: 1.1, floorDmg: 25, floorPush: 11, floorStay: 2.5, floorR: 2.2, floorSegs: 12,
@@ -1288,8 +1290,18 @@ const CONFIG = {
     // primera a la última; se le abren cracks grietas que brillan), boomT s de la gran explosión (chunks pedazos),
     // whirlT s mirando desde arriba cómo se lo traga el remolino mientras se abre el PORTAL en el cielo (portal: altura y
     // los radios de sus anillos de cubos; aurora: cintas de luces de ribbons × per cubos), y el tablón
-    win: { blast: 6, blastEvery: [0.55, 0.1], cracks: 48, boomT: 1.4, chunks: 18, whirlT: 5,
+    // F5.29f (Diego: "quitá esas luces que simulan explosiones; que abra la boca gritando y chorree líquido negro, que le
+    // salgan pedazos volando de a poco, sacudiendo los tentáculos desesperado, con muchos rayos alrededor que destruyan el
+    // muelle; las luces del portal mar adentro; en el tablón, flashbacks como screamers de los bosses con gritos"):
+    // blast: pieceEvery s entre pedazos (de la primera a la última); cracks chorreones negros; drops gotas negras;
+    // boltEvery s entre rayos (los rayos rompen el muelle: holes agujeros); screamEvery s entre gritos.
+    // portalSea: dónde queda el portal después de ganar (mar adentro, alto: portalSeaY). flashes: cuándo (fracción del
+    // viaje en el tablón) sale cada flashback y flashT s que dura
+    win: { blast: 6, pieceEvery: [0.6, 0.15], cracks: 48, drops: 140, boltEvery: [0.6, 0.25], holes: 10, screamEvery: 1.8,
+           boomT: 1.4, chunks: 30, whirlT: 5,
            portal: { y: 44, rings: [9, 12.5, 16], tilt: 0.45 }, aurora: { ribbons: 5, per: 46, y: 62 },
+           portalSea: [10, -110], portalSeaY: 58,
+           flashes: [0.14, 0.28, 0.64, 0.8], flashT: 0.35,
            swim: 12, swimFrom: [0, 32], look: [0.38, 0.52], points: 10000, ink: 5, xp: 5000, whirl: [14, -36], whirlR: 9, skyTop: 0x4a8aff, fog: 0x8a5ae0,
            debris: [[-6, -14, 1], [8, -17, 1.2], [-14, -9, 0.9], [14, -10, 1], [-18, -18, 1], [2, -30, 0.8], [-15, 8, 0.8],
                     [12, 36, 0.9], [-60, 30, 1], [-55, 62, 1.1], [66, 62, 0.9], [-60, -10, 1]] }

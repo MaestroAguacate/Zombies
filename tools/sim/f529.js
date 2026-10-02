@@ -297,26 +297,46 @@ setPlayer(A.x, A.z + 20);
   O.on = false; O.g.visible = false; }
 const p3seen = [];
 const orbsNow = () => K.orbs.filter(o => o.on);
-for (let k = 0; k < 40 && F().charges < 4; k++) {
-  run(2, () => { for (const r of F().p3.refs) if (p3seen.indexOf(r) < 0) p3seen.push(r); });
-  for (const r of F().p3.refs) if (r.z.alive) G.damageZombie(r.z, 1e9, false);
-  run(0.3);
-  for (const o of orbsNow()) { setPlayer(o.x, o.z); run(0.2); }
-  setPlayer(A.x, A.z + 20);
-}
+// juntar los 4 huevos: matar a los bosses que van saliendo y pasar por encima de lo que sueltan
+const collect = () => {
+  for (let k = 0; k < 40 && F().charges < 4; k++) {
+    run(2, () => { for (const r of F().p3.refs) if (p3seen.indexOf(r) < 0) p3seen.push(r); });
+    for (const r of F().p3.refs) if (r.z.alive) G.damageZombie(r.z, 1e9, false);
+    run(0.3);
+    for (const o of orbsNow()) { setPlayer(o.x, o.z); run(0.2); }
+    setPlayer(A.x, A.z + 20);
+  }
+};
+collect();
 const kinds = p3seen.map(r => r.z.variant);
 check(kinds.filter(v => v === 'sombrero').length === 2 && kinds.includes('calamar') && kinds.includes('bestia'),
   'salen del mar 2 Sombrerones, el Calamarón y la Bestia', `(${kinds.join(', ')})`);
-check(F().charges === 4, 'cada uno suelta una granada morada (4 juntadas)', `(${F().charges})`);
+check(F().charges === 4, 'cada uno suelta un huevo de calamar (4 juntados)', `(${F().charges})`);
 const TB = [A.x + A.table[0], A.z + A.table[1] - 1.4];
+// atarlos: manteniendo F en la mesa craftTime s; mientras, no te movés, el arma se guarda y aparece el martillo
+const craftHold = () => {
+  setPlayer(TB[0], TB[1]);
+  let moved = 0, hammer = false, busy = false;
+  G.keys['KeyF'] = true; G.keys['KeyW'] = true;
+  run(FC.craftTime + 0.4, () => {
+    if (!G.buildBusy()) return;
+    busy = true; if (G.SHIELDST.hammer.visible) hammer = true; moved = Math.max(moved, Math.hypot(player.pos.x - TB[0], player.pos.z - TB[1]));
+  });
+  G.keys['KeyF'] = false; G.keys['KeyW'] = false;
+  return { moved, hammer, busy };
+};
 setPlayer(TB[0], TB[1]);
 const nc = near();
-check(nc && nc.target.k === 'craft', 'con las 4, la mesa se usa');
+check(nc && nc.target.k === 'craft', 'con los 4, la mesa se usa');
 G.eeUse(nc.target);
-check(F().loaded && G.curSlot().id === 'wave', 'quedan atadas a la Ola Rompiente (en la mano)');
+check(!F().loaded, 'apretar F una vez no alcanza (hay que mantener)');
+const c1 = craftHold();
+check(F().loaded && G.curSlot().id === 'wave', 'manteniendo F: quedan atados a la Ola Rompiente (en la mano)');
+// (el primer cuadro todavía camina: el armado empieza al cuadro siguiente)
+check(c1.busy && c1.hammer && c1.moved < 0.1, 'mientras arma: la animación del martillo y no te movés', `(${c1.moved.toFixed(2)} m)`);
 run(0.5);
 check(!G.weaponsState.model || K.bundle.parent === G.weaponsState.model, 'y se ve la carga atada');
-// errarle: paso fallado; la carga vuelve a la mesa
+// errarle: paso fallado; la carga se pierde y vuelven a salir los 4 bosses
 const f3 = F().fails;
 G.weaponsState.phase = 'idle';
 G.camera.position.copy(player.pos); G.camera.lookAt(player.pos.x + 20, player.pos.y + 30, player.pos.z + 20); G.camera.updateMatrixWorld();
@@ -324,10 +344,11 @@ G.feel.aimQuat.copy(G.camera.quaternion); G.feel.eye.copy(G.camera.position);
 G.fireWeapon();
 check(!!F().shot && !F().loaded, 'el clic tira la carga');
 run(4.5);
-check(!F().shot && F().fails === f3 + 1 && F().chargeBack > 0 && F().charges === 4, 'si le errás: paso fallado y vuelve a la mesa');
-run(FC.chargeBack + 0.2);
-setPlayer(TB[0], TB[1]); G.eeUse({ k: 'craft' });
-check(F().loaded, 'se vuelve a atar en la mesa');
+check(!F().shot && F().fails === f3 + 1 && F().charges === 0 && F().p3.queue.length === FC.p3Bosses.length, 'si le errás: se pierde y vuelven a salir los 4 bosses');
+p3seen.length = 0; collect();
+check(F().charges === 4 && p3seen.length >= 4, 'y te vuelven a dar los 4 huevos', `(${F().charges})`);
+craftHold();
+check(F().loaded, 'se vuelven a atar en la mesa');
 // a la boca abierta
 run(14, () => !F().mouthOpen);
 check(F().mouthOpen, 'abre el pico');
@@ -336,32 +357,43 @@ G.fireWeapon();
 const mo = new THREE.Vector3(); G.krakenMouth(mo); F().shot.p.copy(mo);
 run(0.1);
 check(!!EE.cine && EE.cine.stage === 'blast', 'la carga en la boca: grita y arranca la cinemática');
-// la cinemática (F5.29e): explota de a poco (cada vez más seguido, grietas que se prenden), la gran explosión, el
-// remolino desde arriba y el portal en el cielo; el tablón hacia la playa; mira para atrás al remolino y al portal
-let chunks = false, swim = false, lookBack = false, plank = false, booms = [], boomBig = false, whirlBig = 0, portalK = 0, aurora = false, beams = false;
-const W = E.win, ink0 = G.PROFILE.ink, pts0 = state.points, firesOn = () => K.fire.filter(f => f.on).length;
-let lastFire = 0, crackMax = 0;
+// la cinemática (F5.29f): la agonía (la boca gritando, líquido negro, pedazos que saltan cada vez más seguido, los
+// tentáculos sacudiéndose, rayos que rompen el muelle), el último golpe, el remolino y el portal; el tablón con los
+// flashbacks; mira para atrás al remolino y al portal
+let chunks = false, swim = false, lookBack = false, plank = false, pieces = [], whirlBig = 0, portalK = 0, aurora = false, beams = false;
+let ooze = 0, holes = 0, flail = false, mouthBig = 0, flashes = new Set(), flashFace = false, flashRed = false;
+const W = E.win, ink0 = G.PROFILE.ink, pts0 = state.points, eggs0 = G.PROFILE.krakenEggs | 0;
+let lastN = 0, crackMax = 0;
 run(W.blast + W.boomT + W.whirlT + W.swim + 2, () => {
   if (!EE.cine) return false;
   const st = EE.cine.stage;
-  if (st === 'blast') { const n = EE.cine.nb || 0; if (n > lastFire) booms.push(EE.cine.t); lastFire = n; crackMax = Math.max(crackMax, EE.cine.cracks); }
-  if (st === 'boom' && firesOn() >= 5) boomBig = true;
+  if (st === 'blast') {
+    const n = EE.cine.nb || 0; if (n > lastN) pieces.push(EE.cine.t); lastN = n; crackMax = Math.max(crackMax, EE.cine.cracks);
+    ooze = Math.max(ooze, K.drops.filter(d => d.on).length); mouthBig = Math.max(mouthBig, K.mouth.scale.x);
+    if (K.tents.every(T => T.state === 'flail')) flail = true;
+  }
+  holes = Math.max(holes, K.holes.filter(h => h.visible).length);
   if (K.chunks.some(c => c.on)) chunks = true;
   if (st === 'whirl') { whirlBig = Math.max(whirlBig, K.whirl.scale.x); portalK = Math.max(portalK, K.portal.scale.x); if (K.aurora.visible) aurora = true; if (K.beams.visible) beams = true; }
   if (st === 'swim') {
     swim = true; if (K.plank.visible) plank = true;
+    if (EE.cine.flashT > 0) { flashes.add(EE.cine.flash); if (K.flash.some(f => f.visible)) flashFace = true; if (K.flashRed.visible) flashRed = true; }
     const f = new THREE.Vector3(0, 0, -1).applyQuaternion(G.camera.quaternion), w = K.whirl.position.clone().sub(G.camera.position).setY(0).normalize();
     if (f.setY(0).normalize().dot(w) > 0.9) lookBack = true;
   }
 });
-const gaps = booms.slice(1).map((b, i) => b - booms[i]);
-check(booms.length >= 12 && gaps.length > 4 && gaps[gaps.length - 1] < gaps[0], 'explota de a poco, cada vez más seguido', `(${booms.length} explosiones)`);
-check(crackMax >= W.cracks - 2, 'se le abren grietas que brillan', `(${crackMax})`);
-check(boomBig && chunks, 'la gran explosión: vuelan los pedazos');
+const gaps = pieces.slice(1).map((b, i) => b - pieces[i]);
+check(mouthBig > 2.4 && ooze > 20 && crackMax >= W.cracks - 2, 'abre la boca gritando y chorrea líquido negro', `(${ooze} gotas, ${crackMax} chorreones)`);
+check(pieces.length >= 12 && gaps[gaps.length - 1] < gaps[0] && chunks, 'le saltan pedazos de a poco, cada vez más seguido', `(${pieces.length})`);
+check(!K.fire, 'sin las luces de explosiones');
+check(flail, 'sacude los tentáculos desesperado');
+check(holes >= 3, 'caen rayos que rompen el muelle', `(${holes} agujeros)`);
 check(whirlBig > 2, 'se lo traga el remolino', `(${whirlBig.toFixed(1)})`);
 check(portalK > 0.95 && aurora && beams, 'y se abre el portal cúbico en el cielo, con auroras y rayos');
 check(swim && plank, 'después vas en un tablón hacia la playa');
+check(flashes.size === W.flashes.length && flashFace && flashRed && K.flash.length === 4, 'con los flashbacks de los 4 bosses (screamers)', `(${flashes.size} de ${K.flash.length})`);
 check(lookBack, 'y mirás para atrás: el remolino');
+check(!K.flash.some(f => f.visible) && !K.flashRed.visible, 'los flashbacks no quedan en pantalla');
 
 // 12) la victoria: en la playa, mirando el remolino, restos, cielo, premios; las rondas siguen
 const fwd = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw)), tw = new THREE.Vector3(E.win.whirl[0] - player.pos.x, 0, E.win.whirl[1] - player.pos.z).normalize();
@@ -375,6 +407,11 @@ check(K.debris && K.debris.visible, 'hay restos del Kraken por el mapa');
 run(5);
 check(EE.skyK > 0.9, 'el cielo se pone morado y azul');
 check(G.PERK_KEYS.every(k => G.hasPerk(k)) && state.points >= pts0 + E.win.points && G.PROFILE.ink >= ink0 + E.win.ink && G.PROFILE.krakenSlayer, 'premios: todos los perks, puntos, tinta y el título');
+check(G.PROFILE.krakenEggs === eggs0 + 1 && G.krakenEggHTML().indexOf('KRAKEN EGG') >= 0, 'el trofeo: un huevo de calamar en el perfil');
+// las luces quedan mar adentro (y se ven: KRAKEN.sky las acerca a la cámara sin cambiar cómo se ven)
+{ const pp = K.portal.position, ok = K.portal.visible && Math.hypot(pp.x - E.win.portalSea[0], pp.z - E.win.portalSea[1]) < 0.1 && pp.z < -90;
+  const c = G.camera.position, wp = pp.clone().multiplyScalar(K.sky.scale.x).add(K.sky.position), dir0 = pp.clone().sub(c).normalize(), dir1 = wp.clone().sub(c).normalize();
+  check(ok && c.distanceTo(wp) < G.camera.far && dir0.dot(dir1) > 0.999, 'el portal queda mar adentro y se ve desde la playa', `(z ${pp.z.toFixed(0)}, a ${c.distanceTo(wp).toFixed(0)} m en pantalla)`); }
 
 // 13) intento fallido por tiempo: te escupe a la playa, castigo, y el cebo vuelve a la cabina en 2 rondas
 fresh(); EE.step = 6; EE.lure = true; G.eeCalm(true); G.eeStartFight(); run(E.travel + 0.3);
